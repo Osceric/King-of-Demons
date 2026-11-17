@@ -1,0 +1,471 @@
+# KoD notes (session of 2026-11-13)
+
+## Goal
+A single-player web take on play-by-mail games. The turn report is the core: it should let a player see what happened, what they know, and what to do next, quickly.
+
+## Report design (implemented)
+Headline sentence, then stat tiles with deltas, a "needs your attention" list whose buttons jump to the right screen, battles and events, each order echoed with an outcome (success / partial / setback), new intel, and shadow-horde rumors. Filters and a per-turn archive. Planes and hordes named in the report are clickable. Standing orders carry over. Stale map info is drawn dashed with its age.
+
+## Assumptions where the deck was silent or conflicted
+- Dretches can join any horde (rank 1 allows only tier 1).
+- Starting general capacity is 2 (slide 6), not 3 (rank table).
+- Ungol = tier 37, Yothoth = tier 51 (names were swapped between the table and ability notes).
+- Plane quality frequencies add to 110%, so they are used as weights.
+- Horde movement: portals crossed per turn = round(speed / 8), at least 1 (75% slower than the first version).
+- Shadow Horde defense: each owned plane adds 50% of the owner's shadow offense/defense to its planar defense (100% at the home plane); when a plane's defense takes casualties, 50% of that loss percentage applies to the shadow demons. DELVE stops short of any plane held by another party and does not claim planes.
+- Combat: casualties kill the loss % of demons and also add loss/2 as damage; hordes heal 30% per quiet turn (20% before v61).
+- Unspent souls are harvested automatically (v65). The old 2% idle fade was removed afterwards.
+- Victory points: "Demons killed and lost" gives 100 x tier per enemy demon destroyed and 75 x tier per own demon lost (more than the 50 x tier for a demon merely alive in a horde). The deck gave no points for losses.
+- NPC powers get names generated from tables (either "The [adjective] [noun]" or "The [noun] of [phrase]", never both an adjective and an "of" phrase), giving titles like "The Pale Choir" or "The Maw of Ash", unique within a game. Prince names are chosen by players (multiplayer plan); generals use the deck's syllable scheme.
+- End game countdowns: a prince reaching Chaos rank 7 starts a 10-turn countdown; the other triggers (rank 10, every plane dominated, every prince met) start 5-turn countdowns. Only the first countdown to start counts; later triggers change nothing. If several start on the same turn, the shortest applies. The game also ends after turn 30.
+- Every game gets a six-digit game number (from its start-time seed), shown under the page title and on the final results. Multiplayer should replace this with server-assigned numbers.
+- The Known Planes table shows changes since last turn for Dom, Val, Souls / turn and Defense (blank means no change).
+- Secret underdog bias: +1 to the side with under half the other's strength.
+- Map: 10 x 6 planes, 3 portals each (east, west, and one vertical alternating), 4 princes.
+
+## Not implemented yet
+Surrender, Probe, shadow horde defending planes, veterancy, multiplayer, accounts, emailed turns.
+
+## Deck issues to resolve
+- Slide 9 ends with a stray "sdf"; slide 25 has a cut-off sentence.
+- "FDPs" (slide 33) is never defined.
+- Slide 27 first column vs. slide 6 on starting generals.
+- Slide 33 Helkae note mentions "Vrock".
+
+## Playtest findings
+- Computer princes expand quickly; a passive player loses planes.
+- "All princes met" triggers the endgame around turn 15 with 4 players, ending games near turn 20. Consider requiring more, or counting only direct combat.
+- Victory-point scale: Chaos Power is now 50,000 per rank (was 300,000 in the deck), so carnage and planes matter more.
+
+## Next steps
+1. Play it and note what the report makes easy or hard.
+2. Tune AI aggression, endgame triggers, VP weights.
+3. Add Probe, Surrender, shadow defense.
+4. Decide whether the multiplayer version (Azure SQL per the deck) shares this rules engine.
+
+## Battle detail (blow by blow)
+- Each battle in "Battles and events" has a Won/Lost/Draw button. Selecting it opens the step-by-step record: forces, offense/defense/speed, odds column, dice, table value, modifiers, numeric result, result name and loss %, casualties by demon type, purge effects, and the aftermath.
+- The secret underdog bias is shown only as "Other circumstances +1".
+- Bug fixed: kill/loss attribution was mis-paired. Each side's losses are now its own casualties plus demons purged by the enemy. This changes Carnage, "Demons killed and lost" VP and the "demons lost" counts.
+
+## PDF export
+- An "Export PDF" button (right of the tabs) saves one landscape PDF holding the Report (with every battle expanded), Realm and Standing tabs. It uses the artifact `downloads` capability, so the viewer confirms the save. When the page is not running inside claude.ai (own web host, or index.html opened locally) it falls back to a normal browser download. Inside claude.ai without that capability the button is hidden.
+- The PDF is built in the page with a small built-in writer (Courier, text only). The map is not included; the Known Planes table is.
+- Build order is now: 01-shell, 02, 03, 04, 05, 06, 065-pdf-export, 07.
+
+## Garrisons by plane value (setup)
+Source: the designer's spreadsheet "NPC Planes by Value" (table NPCDEF in 02-data-and-setup.js). New games only.
+- Values 0-2: empty, no defense.
+- Values 3-4: held by an NPC power at domination 1 (Rebellious: planar defense 3 offense / 3 defense), garrison 25 Dre at value 3 and 75 Dre at value 4.
+- Value 5: NPC power, domination 2 (Oppressed), 75 Dre + 16 Gal. Value 6: domination 3 (Afraid), 75 Dre + 48 Gal. Value 7: domination 4 (Terrified), 75 Dre + 48 Gal + 12 Hel.
+- Code: any live garrison now counts as hostile for movement and retreat, and as a target and a defense figure for the AI and the Known Planes table, whether or not the plane is an NPC power.
+- Victory points and garrisons: demons killed in a fight with a garrison, and the player's own losses there, score like any other fight. When a garrison loses, the demons that survived the fight are wiped out and also count as kills (souls value to Carnage, tier x 100 to "Demons killed and lost"); the battle detail notes it.
+
+## Free SCRY every turn
+- Every turn the Prince automatically scries one hop: every plane adjacent to the player's planes and hordes is fully revealed (holder, domination, value, hordes seen), at no cost. Done in updateKnow(), also at game start and on loading a saved game.
+- The paid SCRY command costs 2,500 souls per extra hop beyond the free one, spent in multiples of 2,500 from 2,500 up to a cap of 7,500 (reach 2 to 4 hops in total; SCRYMAX in 04-economy-ai-turn.js): reach = 1 + souls/2,500 hops. The Orders panel defaults it to 2,500, steps by 2,500, snaps typed amounts down to a multiple (and down to the cap) and shows an error that blocks the turn if the amount is invalid; the turn engine also refuses an invalid amount (no cost, reported as a failed SCRY).
+- A note about the free SCRY sits at the top of the Princely commands panel.
+- The 25% / 50% / All buttons are not shown for the SCRY command (the amount is picked with the field or its 2,500 steps); other Princely commands keep them.
+
+## Chaos Power ranks: invested to date
+- The ranks table (Orders panel fold-out and Standing tab) has an "Invested to date" column: ranks already reached show their full cost, the next rank shows the souls invested so far and the percentage, and later ranks show 0. Progress resets to 0 each time a rank is reached, as before.
+
+## Plane lists in letter order; horde card overflow
+- Every list of planes (target choices in a horde's command, the Known Planes table, the report's new intelligence) is in plane-id order: A00, A01 ... B00, B01 ... (function idCmp in 06-ui-report.js). Previously targets were by distance and Known Planes by owner and freshness; distance is still shown on each target.
+- Horde command cards no longer overflow narrow screens: the card's grid column and its children can shrink (min-width 0) and the target dropdown is clipped with an ellipsis.
+
+## Known planes grouped by holder
+- The Known Planes table is grouped: you, then each rival in turn order, then Minor Powers (NPCs), then planes no one holds. Each group has a heading with its plane count, and planes are in letter order inside each group. Every NPC holder is shown as "Minor Power"; selecting the row opens the plane's detail, which still gives the NPC's name.
+
+## "Minor Power" naming and game version
+- Everything the player sees now says "Minor Power" instead of NPC / NPC power: the map legend, the map cell label ("Minor"), the plane detail and the Known Planes table. (Code names such as npc, NPCDEF and the name tables keep the short form.)
+- The game version is shown after the game number, e.g. GAME NO. 377560v29, and in the PDF header. It is the constant GAME_VERSION in 02-data-and-setup.js: bump it on every published release so it matches the artifact version.
+
+## v30 – Multiplayer (GM-run play by mail)
+- Multiplayer button (top right) switches between Solo, Play in a friend's game, and Run a game (GM). Each mode has its own saved game (kod1 / kodP / kodGM).
+- GM: set up 4 seats (human or AI), custom prince names and emails. Each turn: Prepare mail (one email per human prince with a private, fogged turn code) → paste each returned orders code → Resolve (missing princes keep standing orders + default Princely plan).
+- Player: paste turn code, play normally, "Make orders code", reply by email. Report history accumulates locally.
+- Codes are gzip+base64url (~4 KB), wrapped in BEGIN/END KOD CODE markers. Views swap the player's seat with seat 0 and redact unknown planes and other princes' private state.
+- Gmail drafts NOT yet wired (connector not connected): mail is copy-to-clipboard for now. GM must share the artifact link with friends.
+- Not yet handled: game-over screen for players.
+
+## v31
+- GM mail: Copy all messages, per-player Mark sent tracker, remembered roster (names, emails, seat types) prefilled at setup.
+
+## v32
+- Mail link ends in #play: opens straight into player mode (join screen, no Multiplayer button). Players get a "Load turn code" button for later turns.
+
+## v33
+- Email wording per GM: KOD Turn Code / KOD Orders Code with BEGIN/END KOD TURN CODE and ORDERS CODE lines (old lines still accepted); button "Finalize Orders and Make KOD Orders Code".
+
+## v34
+- AI princes get names from a 32-name table (DPN in 02-data-and-setup.js), drawn without repeats per game; gameplay unchanged (aggression stays tied to seat).
+
+## v35
+- AI prince name list is editable (Multiplayer menu > Edit AI prince names): one per line, min 3, saved in browser (kodAIN), restore-default button.
+
+## v36
+- GM setup: choose human princes (1-6), AI princes (0-5, 2-6 in all), map width (6-14) and height (4-10, even). Game stores G.cfg {nx,ny}; NX/NY/NP are now variable (setDims). Homes: legacy spots for 10x6 with 4 princes, otherwise farthest-point spread. Added colours c4,c5. AI aggression table AGG. Opening the #play link in an already open page switches to player mode.
+- Roster saved as kodRoster2 (counts, map size, names, emails).
+
+## v37
+- Known planes table: "Your planes produce" total row now sits directly under your own group of planes.
+
+## v38
+- Up to 8 princes (1-8 human, 0-7 AI). Colours c6,c7 added; AGG table extended; map width up to 16 (column letters to R).
+
+## v39
+- Demon display names changed per spreadsheet: Elbren->Oni, Helkae->Hezrou, Oni->Arileth, Rodim->Vrock, Skor->Balor, Ungol->Shogoth, Yothoth->Ungol. Internal codes (Elb, Hel, Oni, Rod, Sko, Ung, Yot) unchanged so saved games keep working.
+
+## v40
+- End-game countdowns: Count of Chaos (rank 7) = 15 turns; every plane dominated once = 10 turns; every prince meets every other = 15 turns; True Prince countdown removed. Shortest countdown wins if several trigger the same turn; later triggers change nothing; turn 30 still ends the game.
+
+## v41
+- Maximum turn limit raised to 45 (MAXT in 02-data-and-setup.js); the game ends after turn 45 even if no countdown started. A report warning appears in the last 5 turns when no countdown is running.
+
+## v42
+- "The princes of the Abyss" card (all princes by full name and colour, you marked) on the Opening briefing and on the Standing tab. Previously only first names appeared in the Realm map legend.
+
+## v43
+- Princes of the Abyss card now sits on the Standing tab between "How the game ends" (victory points) and Chaos Power ranks, and lists each prince's current Chaos rank title.
+
+## v44 – Forge Bond (5th Princely command)
+- Cost 5,000 + 1,000 per elapsed turn (forgeCost). Target: a prince you have met.
+- A bond forms only if BOTH princes name each other with Forge Bond the same turn and each pays. If only one pays the souls are lost, nothing happens, and the payer's report says BETRAYED (no refund; the other prince is not told).
+- Lasts 5 turns including the turn it is forged (G.bonds {a,b,from,until}); both re-forging while active adds 5 more turns. Bonded princes never fight each other (hostile(), pdOn and the combat loop skip bonded pairs; their planes are not hostile to each other) and each earns +1,500 souls per turn per bond (inside income()).
+- AI princes never start a bond, but may answer a human's offer (chance 0.75 - 0.25*aggression, min 0.2, needs the souls).
+- Reports: echo line, success/betrayal events, reminder the turn before it ends and when it ends. Standing > Princes of the Abyss shows "Bonded - N turns left" beside the bonded prince. Players' views carry only their own bonds; orders codes carry the Forge Bond target (seat-swapped back by the GM).
+- Known limits: two bonded hordes alone on a free plane do not claim it (claim needs a single prince).
+
+## v45 – Blood Pact (renamed from Forge Bond)
+- Command renamed BLOOD PACT (internal code stays FORGE). All text now says Blood Pact / pact.
+- Income: each prince earns one third of the price paid, every turn (pactInc = round(pay/3)); stored per bond as inc. Renewing while active adds 5 turns and resets inc to the new price / 3.
+- Partners cannot dominate each other's planes: a DOMINATE/DELVE order aimed at a partner's plane becomes HOLD (report says so). Hordes also never fight and the planes are not hostile to each other.
+- Standing > Princes of the Abyss tag reads "Blood Pact · N turns left · +X souls/turn".
+
+## v46 – One Blood Pact at a time
+- A prince may hold only one active Blood Pact. An order is refused with no souls charged when the sender, or the named prince, is already bound to someone else (pactBusy in p3). Renewing with the current partner is still allowed, and a new partner is possible once the pact has lapsed.
+- Only one BLOOD PACT order per prince per turn is honoured. The AI will not answer an offer if either side is busy. The Orders screen warns about the sender's own busy state.
+
+## v47 – BREAK PACT
+- New princely command BREAK PACT (code BREAK, BREAKC=2,500 souls). Needs an active Blood Pact; otherwise it fails and costs nothing.
+- The bond ends immediately (until=T-1), before movement and combat. Income stops that turn for both princes. Former partners' hordes on the same plane fight; any LOITER horde there is switched to HOLD so it cannot slip away. Dominating each other's planes is allowed again.
+- The partner is told they were BETRAYED. No Blood Pact order involving either prince is honoured on the turn of a break.
+- AI princes bound for at least a turn backstab with probability 0.05 x aggression per turn (needs souls). About 5% per turn in testing.
+
+## v48 – AI princes declare whether they are open to a Blood Pact
+- Each turn start (newGame and after G.turn++) setOpen() sets P.open for every AI prince: no active pact (or one ending this turn), enough souls for the price, and a hash-based roll below max(.2, .75 - agg*.25). The roll does not use rnd(), so game outcomes are unchanged. Saved state now carries `open`, so the regression baseline md5s were regenerated; outcomes are identical.
+- An open AI prince always answers the first human who offers. A closed one, or one that answered someone else, makes the order fail with no souls charged.
+- Shown in Standing > Princes of the Abyss ("Open to a Blood Pact" / "Closed to a Blood Pact") and in the Orders target list ("(open)" / "(closed)"). calcPlan refuses a closed target. Player view carries `ai` so human rivals are not shown as closed.
+
+## v49 – "Garrison" renamed "Minor Horde"
+- All player-visible text now says Minor Horde (Standing/Realm lists, reports, combat notes). Internal names such as garrisoned() are unchanged.
+
+## v50 – DELVE becomes MOVE
+- Players see MOVE; the internal order code stays DELVE so saved games and codes still work (CMDN maps the label).
+- MOVE travels at double speed (mvHops = 2 x hopsFor).
+- The target cannot be a plane held by a Minor Horde or another prince. Known barred planes are disabled in the target list and give an Orders error; if the order still reaches the engine, the horde holds and the report says why. The horde still stops short of any such plane on the way. Own planes are allowed.
+
+## v51 – Chaos rank costs are cumulative
+- FOMENT CHAOS souls are no longer zeroed on a rank rise (removed P.foment=0). The RK costs are running totals: 5,000 / 10,000 / 20,000 / 40,000 / 100,000 / 200,000 / 400,000 / 600,000 / 1,000,000 invested in total. Surplus carries over and a big FOMENT can rise several ranks at once.
+- Chaos table and Orders text explain it. AI princes rise faster, so max rank in long sims went from 7-8 to 8-10; game length is similar (28-43 turns). Regression baseline regenerated.
+
+## v52 – Values from the designer's spreadsheet (Chaos Rank and Demon Values)
+- Chaos ranks (total cost / harvest / generals): 2: 5,000/5%/3; 3: 10,000/10%/4; 4: 20,000/15%/5; 5: 40,000/20%/6; 6: 100,000/30%/7; 7: 200,000/40%/8; 8: 325,000/50%/10; 9: 500,000/60%/12; 10: 800,000/70%/14. Tiers unchanged.
+- Demons: Malflesh spd 7; Arileth off 5, spd 6; Pazu spd 5; Vrock spd 3; Balor off 16, def 8, spd 3; Shogoth off 18, def 9, spd 3; Ungol purge 12.
+- Long sims (13 games): games ended turn 30-39, rank 10 reached in 6 of 13. Observation: horde speed is the average of its demons and hops = max(1, round(spd/8)), so only speed 12+ moves 2 planes a turn.
+
+## v53 – Movement value per demon
+- Every demon has `mv` (planes per turn) = speed / 4, set from DT in p2 after the table so it can be tuned per demon: Dretch 3, Oni 2.5, Galbrex 2.25, Hezrou 2, Malflesh 1.75, Arileth 1.5, Pazu 1.25, Vrock/Balor/Shogoth/Ungol 0.75.
+- A horde moves at the count-weighted average of its demons mv, scaled down by the same damage penalty that slows speed, then rounded to whole planes, minimum 1. MOVE doubles the average before rounding (so Pazu 1.25 gives 1 plane, 3 with MOVE). Replaces round(speed/8).
+- Orders horde card shows a Move figure. Long sims: games ended turn 28-42 (slightly shorter).
+
+## v54 – Purge made visible
+- Summon and Banish lists show a stats line under every demon (tier, off, def, speed, move) with a gold "Purge N" and a tooltip where it has one. Horde cards show Purge when the horde has it.
+- Battle reports name the purging demon: "the enemy's Malflesh (purge 2) destroyed every demon of tier 2 or lower on this side: ..." and "Your Malflesh (purge 2) destroys every enemy demon of tier 2 or lower." (purgerName in p3; record fields eby/oby).
+- New "Purge" entry under Standing > Rules at a glance, generated from the demon table so it stays right when values change. The movement text in Prototype assumptions now describes speed/4 averaging.
+
+## v55 – Speed and movement fully decoupled
+- Speed is used only in combat. Movement (mv, planes per turn) is its own number on each demon in the DT table, no longer computed from speed. Starting values equal speed/4 but are edited independently.
+- Damage slows the two separately: speed keeps its old penalty (combat); movement is multiplied by 0.9 / 0.75 / 0.5 for minor / damaged / severely damaged and drops to the minimum 1 plane when crippled.
+
+
+## v56 rules revision (2026-11-15) - supersedes the older notes on combat, demons, movement, ranks and victory points
+Source spreadsheets (all in `spreadsheets/`): Combat Results Roll, Tactics Roll Bands, Combat Report Language, Chaos Rank and Demon Values. The Demon Roster is a live Sheets artifact; Chaos Rank and Demon Values.xlsx holds its current values.
+
+### Demons
+- 22 demons, tiers 1-22. Every demon is Fast (class F, odd tiers, move 3, about 1.5 strength per 100 souls) or Heavy (class H, even tiers, move 1, about 2.05 per 100 souls). One Strength value each; offense, defense and speed are gone. Pazu was dropped (Slagfiend replaces its purge 3).
+- Horde movement = its slowest demon (MOVE doubles it); damage still slows a horde. A general is Fast or Heavy (chosen with UNLEASH) and can summon only demons of that class, so hordes are single-class. NPC garrisons stay mixed.
+- Rank gating: highest tier = 2 x rank, except rank 9 = 19 and rank 10 = 22. Generals are one shared pool (2,3,4,5,6,7,8,10,12,14) across Fast and Heavy.
+- Purge (nerfed 2026-11-15): at the end of every round each side's best purge rating destroys 10% (minimum 1) of each kind of enemy demon of that tier or lower; both fire together, win or lose, count as casualties and toward the 60% break. Reports say the heavy demons unleash eldritch spells that destroy many of the named demons.
+
+### Combat (up to 6 rounds)
+- Each round: tactics roll 3d6 v 3d6 (gap bands: Tie 0-1, Better Plan 2-4, Loser Outclassed 5-7, Disastrous Decision 8-10, Catastrophic Imbalance 11-15) nudges each side's strength; defender x1.2 (none in a meeting engagement); the stronger side adds a strength-band bonus (Even 0, Minor 1, Advantaged 2, Strong 3, Overwhelming 6) to a 3d6 roll; the margin picks Stalemate / Gaining minor advantage / Clear advantage gained / Enemy in Disarray / Rout, each with winner/loser loss percentages and a momentum bonus (stacks for the same winner, replaced on a reversal, carried through a stalemate).
+- Victor's loss is capped (attacker 2x, or 3x at 3:1 or better; defender 1.5x; meeting engagement 1.5x the loser's gross loss).
+- A side is broken at 60% strength lost, Rout (that round) or Disarray (end of the next round). Round 6 ends the fight.
+- Attacker (moved in) v defender (started the turn there): defender broken and attacker not -> defender leaves, attacker holds. Anything else (attacker broken, both broken, round limit) -> attacker repulsed, defender stays, even if the attacker was stronger. Meeting engagement (both moved in): only a broken horde retreats; both broken or round limit -> both retreat; plane ownership unchanged.
+- Retreat is automatic: back the way it came (attackers only, if no fight there), else the adjacent friendly plane with the highest domination then value then random, else an adjacent plane with no fight, else the horde is destroyed (the general returns home). A broken Minor Horde is wiped out. Planar defenses fight as a defending force of strength (domination off + def) + the owner's Shadow Horde (half, all at home); beating them cuts domination by 2.
+- Nothing numeric is shown to players: no dice, ratios, bonuses or multipliers.
+
+### Report
+- Each fight is one headline line with an outcome pill (Held, Took the plane, Repulsed, Driven out, Held the field, Lost the field, Mutual retreat) that opens a round-by-round record. Wording comes from 055-report-language.js (generated from Combat Report Language.xlsx; seven variants per case, picked deterministically per seat). A few headline lines for planar defenses are written in code because the sheet assumes an enemy horde.
+
+### Victory points
+- Carnage = soul cost of every demon you destroy (including the survivors of a horde that is destroyed or a Minor Horde that is wiped out, credited to the side that beat it). "Demons lost" = 75% of the soul cost of your own losses. Horde strength counts the soul cost of the demons you have. The old tier-based kill/loss points are gone.
+
+### Still open
+Purge redesign, a general-based speed attribute, whether rank 10 generals should also be capped by class, and balance of Fast v Heavy by simulation with real players.
+
+### Removed from the earlier notes
+Secret underdog bias, speed/freshness/home-defense combat bonuses, the Numeric Result table and the single 2d6 roll.
+
+
+## v58-v59 changes
+- v58: every starting horde is commanded by a Heavy general and holds 25 Mawlings (same 1,500 souls as the old 30 Dretches).
+- Battle report wording: the Losses tab has an Adverb column (D); `{yourlossadv}` / `{enemylossadv}` are used after "lost", `{yourloss}` / `{enemyloss}` are adjectives. Headlines use complete phrases ("heavy losses on your side and severe on theirs"). `CRL.LossAdv` holds the adverbs; `lossPair` in 056 picks adjective and adverb with one draw. "Regents's" is fixed to "Regents'". Rout lines end "the fleeing demons".
+- v59: the DOMINATE target list now includes the plane a horde is standing on when an enemy prince holds it, so a horde that beat the defenders can keep fighting the planar defenses (each win cuts domination by 2; at 0 the plane changes hands).
+- UNLEASH defaults to a Heavy general (UI order, multiplayer parse, applyOrders, unleash spawn).
+
+- v60: horde cards show each demon type's change from last turn (h.pd snapshot taken at the start of resolveTurn; dLine in 07).
+- v61: horde healing raised from 0.20 to 0.30 damage per quiet turn.
+- New hordes (UNLEASH) and wiped generals now appear at `rally(owner)`: the home plane while it is still theirs, otherwise their strongest plane with no enemy on it (home only if they hold nothing).
+- No home plane: a prince who does not hold their home plane cannot UNLEASH, and a general destroyed in that state is gone for good (h.gone) and lowers the prince's general limit by one (P.genLost, capOf). With a home: generals return/appear at home, or if enemy forces hold it, at the owned plane with the highest domination, then highest value.
+- v62: general placement: home if held and free of enemy hordes, else the owned plane of highest domination (then value) that no enemy horde occupies; if none, an UNLEASH is refunded and a wiped general is gone for good (lowers the limit).
+- LOITER removed from the order list (saved LOITER orders convert to HOLD). New DISBAND order: dissolves a horde and its general (10% of the demons' cost back), frees the general slot without lowering the limit, and can be followed by an UNLEASH the same turn. BANISH is unchanged (destroys chosen demons).
+- Once the game is over, each rival in the Report tab's princes card has a Points button that expands that prince's full victory-point breakdown (vpTable in 06, act "pvp").
+- v64 (v63 skipped at the owner's request): LOITER removed, DISBAND added, end-of-game rival victory-point breakdowns.
+- HARVEST is no longer a Princely command. Every soul left in the Well after horde and princely spending is harvested automatically (consumed; 4 return per 3 next turn), for humans and AI princes. The default with no Princely orders is 25% of the Well to FOMENT. Old saved HARVEST orders are cleared by migrate().
+- v65: automatic harvest of unspent souls (HARVEST command removed).
+- v66: idle fade removed; UNLEASH shown as UNLEASH GENERAL with Assault Commander (Heavy) and Maneuver Commander (Fast) labels.
+- Generals have Age (turns since unleashed or last resurrected), Experience (combats fought, win or lose) and Resurrection Count (h.born, h.exp, h.res). Age and Experience reset when the horde is annihilated and the general returns; Resurrection Count goes up by one. Shown on the horde card.
+- General abilities: one random ability at Age 10 (h.abA) and another at Experience 10 (h.abE), drawn from ABIL (Tactician +1 tactics roll, Siegebreaker domination -3 on planar wins, Iron Will -10% casualties, Warlock +1 purge rating, Pathfinder +1 move, Mender heals 50%, Battle-hardened +5% strength). Lost if the horde is annihilated. Shown under Details on the horde card; the player is told in the turn report when one is earned.
+- Abilities added/renamed: Abjurer (enemy purge rating -2), Slippery (retreats at the end of a round when outnumbered 3:1; new How It Ended cases "You slipped away"/"Enemy slipped away"), Battle-hardened is now Battlemaster, Mender is now Necromancer.
+- Added the Quartermaster ability (QUAR): summons into its horde cost 5% fewer souls (sumH).
+
+- Prince naming: solo/new games show a "Name your demon prince" box (blank/keep = default). Game Master setup already names human seats. Game keeps the same map and AI names after renaming (G.seed0).
+
+- Version scheme: GAME_VERSION is now a string "major.middle.minor" (1.00.70). Minor +1 for every change, middle for bigger changes, major for massive ones.
+
+- Version scheme revised: GAME_VERSION is "major.minor" (1.70). Minor +1 for every change; major only for massive changes.
+
+- v1.71: UNLEASH GENERAL has a name box (letters and spaces only, max 24, blank = random; duplicates fall back to random). Prince names (solo box and Game Master seat names) also filtered to letters and spaces (cleanName in 02).
+
+- v1.72: opening briefing now reads "You are <prince>, lord of <home plane>." (replaces "the Well of Souls at").
+
+- v1.73: opening briefing names the home plane by its name plus id ("lord of Haunted Waste of Loss at B01"). Plane names come from ADJ+NOUN+of+DESC in 02.
+
+- v1.74: default prince name table (DPN) now 38 names (added 6 new from the user list; the other 26 were already there).
+
+- v1.75: DPN prince name table now exactly the user list (32 names).
+
+- v1.76: plane names shortened: 50% "Adjective Noun" (Frozen Riverlands), 50% one fused word (Gloomvale, Plaguefen) from PFX+SFX lists. Games already in progress keep their old names.
+
+- v1.77: opening briefing has a four-paragraph intro (report.intro, rendered under the headline in 06).
+
+- v1.78: Orders/Realm/Standing tabs pulse (ember background, G.seenTabs) until first clicked; games past turn 1 start with them seen; reduced-motion gets a steady tint.
+
+- v1.79: Princely commands intro text reworded (harvest 3 to 4, SCRY hop costs spelled out).
+
+- v1.80: removed the default FOMENT (25% of Well). With no Princely commands, 100% of unspent souls are auto-harvested. Removed the "Use defaults" button, default warning and report line.
+
+- v1.81: report note "No Princely commands were given. All unspent souls were harvested." on turns with no Princely orders (human seats only).
+
+- v1.82: (1) battle end text: when both sides break in the same round for different reasons, it now says what happened to each ("Both sides broke in the same round. ..."); (2) battle headline appends the enemy general name and abilities ("The enemy general was X (A, B)."); (3) games and turn codes from 1.81 or earlier are no longer supported (G.ver stamp, MIN_VER in 02; old solo save is replaced with a notice in the name box); (4) GM final view carries per-seat VP (fv) so the rival VP drill-down works in multiplayer. Verified in simulation: GM/player orders-code round trip keeps a named general.
+
+- v1.83: default solo prince name is now Thraxxamazog.
+
+- v1.84: opening briefing intro rewritten (five paragraphs, mentions blinking tabs and Chaos Power).
+
+- v1.85: Shadow Horde can only SUMMON Fast demons (cleanN with cls F in 04 and 07; UI list filtered; note added).
+
+- v1.86: Shadow Horde defense share on non-home planes cut from 50% to 33% (pdStats in 03; texts in 07). Home plane still gets all of it. Shadow casualty scaling when a planar defense is beaten (f*.5) unchanged.
+
+- v1.87: every Fast demon strength (st) x1.17, rounded to 2 decimals (avg Fast/Heavy strength per soul now 0.868, about 7/8). Costs and moves unchanged. The Demon Types artifact and other design sheets are not updated.
+
+- Spreadsheets refreshed for v1.87 Fast strengths: spreadsheets/Chaos Rank and Demon Values.xlsx (Demon Values) and the published Demon Roster sheet (Roster column H). The published Chaos Rank and Demon Values and Demon Types sheets still show an older Off/Def design and were not changed.
+
+## v1.88 – cruft cleanup
+- Removed dead code: CT, LOSE, WIN, DESC, AIN, sgn, shadowOf, knownIds, purgerName, whoText, lossWord, migrate().
+- Removed LOITER (slip logic, report line, help text, order conversion) and the HARVEST command branch (auto-harvest echo stays), the dead "defaults" handler, unused CSS .bt-step.
+- DELVE renamed MOVE internally (CMDN removed). Orders codes and saves from 1.82–1.87 that say DELVE are converted on load.
+- usedDefault renamed noOrders.
+- Dropped never-read fields: G.log, G.pend, G.usedNpc, killT, lastInc/lastRet, sf, scry flag, hit:false.
+- Text: removed "This is a prototype." from rules; orders-code help no longer mentions a default Princely plan.
+- Kept bg-*, s-* and r-* CSS classes: they are built dynamically.
+
+## v1.89 – result codes
+- New "result code": a gzip+base64 block (-----BEGIN KOD RESULT CODE-----) with game no., version, seed, map size, mode, final/current standings, each prince's points breakdown, and the human prince's orders plus every prince's points for each turn (G.hist, recorded in resolveTurn).
+- Buttons: game-over screen ("Result code") and Standing tab (Make my result code / Read a result code). The reader decodes any pasted code into tables.
+- unpack() accepts RESULT headers. Orders codes and turn codes are unchanged.
+
+## v1.90 – harvest scores nothing
+- Auto-harvest no longer adds to P.consumed, so unspent souls give no victory points (an idle prince had scored over a billion). Report line now says "Unspent souls harvested: N souls."
+
+## v1.91 – elimination
+- After each turn's harvest (step 7b in resolveTurn) a prince is eliminated if he owns no planes AND his horde strength (all hordes plus Shadow Horde, at soul cost, same measure as the Horde strength score) is under 10% of the weakest other live prince's. All candidates are judged against the same snapshot.
+- Eliminated: P.elim=turn, hordes/shadow/well/pending summons/pacts removed. Orders are ignored (AI skipped, UI shows a notice, GM no longer waits for the seat). Scoring continues; the game still runs to its normal end.
+- Every human gets a 20px event (e.big): one text for the eliminated prince, another for the rest. "Perhaps you can summon him into one of your hordes" is flavour only; no such mechanic exists.
+
+## v1.92 – harvest cap, "Income" label
+- HARV_CAP=250000 (02). At harvest time, if the unspent Well is at or above the cap the harvest is skipped: souls stay in the Well, no 4/3 return, only income adds to it. Report line explains it; the Orders summary reads "Left (kept, no harvest)".
+- "Harvest" meaning plane income is now "Income" (header, report tile and headline, Chaos table, Shadow Horde text, help text). "Harvest" now only means the automatic return of unspent souls.
+
+## v1.93 – tooltips
+- Mouse-over text on the Well and Income displays (header and report tiles): TIP_WELL / TIP_INC in 02.
+
+## v1.94 – "Income" renamed "Total Yield"
+- Header, report tile, headline, tooltip, help and Shadow Horde text. The Chaos table column (a % bonus) is now "Yield bonus". Pact income text unchanged.
+
+## v1.95
+- Total Yield tooltip explains Value (v) and Domination (d) and points to the plane detail. Realm grid and legend use lower-case d for domination.
+
+## v1.96
+- Total Yield tooltip text replaced with the Value/Domination explanation only.
+
+## v1.97
+- Total Yield tooltip: original explanation restored, followed by the Value/Domination text (starts "A plane's Yield is determined…").
+
+## v1.98 – carnage vs Minor Powers doubled
+- runFight: kills of a Minor Horde or an NPC planar defense count x2 toward Carnage; scattering a Minor Horde and beating an NPC plane's planar defense (plane-value bonus) also x2. Same-seed AI games: average Carnage +7.7%, total points +2.2%.
+
+## v1.99
+- Elimination ignores the Shadow Horde (it cannot attack). Score 'Horde strength' still includes it.
+
+## v1.100 – fight order
+- Before fights each turn, every plane's attacking strength is computed. Planes then resolve in this order: each prince's home plane first, then ascending attacking strength, ties by plane id. Shadow Horde defense still = a third of whatever survives when that plane's fight starts (all of it at home).
+- Version compare fixed: verOK now compares major and minor as integers (parseFloat would have read 1.100 as 1.1 and rejected every save). Minor numbers above 99 are fine.
+
+## v1.101
+- Orders summary label: Left (to be harvested) / Left (will not be harvested) depending on whether the leftover Well is under or at/above the 250,000 limit.
+
+## v1.102
+- Orders summary label reads 'Left after commands (to be harvested / will not be harvested)'.
+
+## v1.103
+- Shadow Horde no longer reveals hordes (removed the 1,000/20,000-soul sighting tiers in updateKnow). Sighting beyond the free 1-hop SCRY now needs the SCRY command. Card text: 'More demons raise your total yield.'
+
+## v1.104
+- Shadow Horde card text replaced; shows live 'Each plane now gains strength X and yield is raised Y%' (yield to one decimal).
+
+## v1.105
+- Shadow Horde SUMMON shows 'Only Fast demons can join the Shadow Horde.' above the demon list.
+
+## v1.106
+- Orders tab: expandable 'Show the demon table' card between the horde cards and Princely commands (tier, name, type, cost, strength, strength per 1,000 souls, purge; rows above your highest summonable tier are greyed). Open state kept in UI.open.dtab.
+
+## v1.107
+- Demon tables split into two side-by-side cards (Heavy with purge column, Fast) under one 'Show the demon tables' toggle.
+
+## v1.108
+- Demon tables: 'Per 1,000 souls' column replaced by 'Purged by Heavy Tier' (lowest Heavy tier whose purge rating reaches the demon, with + for that tier and above; computed from the table). Compact table CSS (.dtt).
+
+## v1.109
+- 'Purged by Heavy Tier' shows the Heavy demon's name with + (e.g. Hezrou+) instead of the tier number.
+
+v1.111: Chaos rank names: 1 Chaos Soldier, 2 Chaos Captain, 3 Chaos Commander, 4 Chaos Fiend, 5 Elder Chaos Fiend, 6 Chaos Lord. Countdown text now names rank 7 correctly (Count of Chaos).
+
+v1.112: Horde damage removed (no damage field, no Nominal/Damaged status, no healing, no movement penalty, no 'hold it back to heal' warning). Necromancer (MEND) now: after each fight raises back demons worth 5% of the strength its horde lost, lowest tier lost first; if that buys nothing, raises one demon of the lowest tier lost (free; only if the horde survived with demons). Reported as a note on the battle record.
+
+v1.113: Abjurer now reduces the enemy's highest purge rating by 1 (was 2).
+
+v1.114: New general ability Lashmaster (LASH): +1 plane of movement, added after the MOVE doubling (so MOVE does not double it). Eleven abilities now.
+
+v1.115: Pathfinder removed (old saves lose it). New abilities: Dominator (conquered planes start at domination 2), Soulfinder (+100 x rank^2.5 souls to the Well on each conquest by its horde), Antipaladin (+7% carnage credit for its force). Necromancer rework pending.
+
+v1.116: Necromancer reworked: after each fight (horde must have survivors) 5% of the strength the enemy lost is raised into its horde as the lowest-tier demon of the horde's own class (Dretch for Fast, Mawling for Heavy), probabilistic rounding; free; each Necromancer horde gets its own 5%.
+
+v1.117: Abilities now merge across a force (same owner, same plane): duplicates never stack. Battlemaster +5% applies to every horde in the force once; Necromancer pool is 5% of enemy strength lost, split among the force's surviving hordes by strength (each gets its own class's lowest-tier demon); Soulfinder pays once per conquest. Iron Will and the other combat abilities already worked this way.
+
+v1.118: Realm grid: enemy prince hordes seen on a plane show their horde number in a circle of that prince's colour (up to 2 circles, then +N); Minor Hordes and old snapshots keep the red !. visH now returns n (horde numbers).
+
+v1.119: Realm grid hord circles capped at two, then +N.
+
+v1.120: Enemy horde circles are smaller (r7) and sit on a row above the H tags when you have hordes on the same plane, so nothing overlaps; +N sits left of the two circles.
+
+v1.121: Plane detail card lists every enemy prince horde on its own line ('Malgrath Horde 2 ~strength', with its demon mix when you have a horde there or hold the plane). Minor Hordes stay one combined line. visH now carries per-horde strengths (l).
+
+v1.122: Eight new general abilities. Combat: Berserk (+10% strength rounds 4+), Trench Master (defender bonus 1.35 under HOLD), Reaper (10% of enemy soul cost killed -> Well), Mindbreaker (enemy -15% strength in round 1); Berserk/Mindbreaker change the strength the round is judged on (bands, caps), not casualty percentages; abilities merge per force. Information (all carried in visH/known snapshots, so they work in multiplayer): Unseen (strength hidden unless on an enemy prince's plane, SCRY too), Seer (demon mix of hordes on adjacent planes; Seer vs Unseen cancel, strength only), Farsighted (strength within 2 planes, overrides Unseen within 1, presence only at 2), Judge (enemy general abilities on same/adjacent plane, shown on the detail card and as a one-time event). Plane detail card shows unknown strength, demon mix and general abilities per horde; hordes seen by Farsighted also show on unexplored planes. Battle records are unchanged.
+
+v1.123: Defender bonus (an attacker moved in) is now 15% (was 20%). A force with a horde under the HOLD order gets 25%. Trench Master: 25% without HOLD, 40% with HOLD. Planar defenses get the base 15%. HOLD order text and Trench Master text updated. defBonus(B) in 03.
+
+v1.124: Trench Master text: '...and 40% if the general's horde is under the HOLD order.'
+
+v1.125: Orders tab: 'Show general abilities' button under the demon tables (all abilities and effects from ABIL).
+
+v1.126: New horde order FORCED MARCH (cmd type MARCH): behaves like DOMINATE (fights whoever holds the plane, stops at hostile planes) with +2 planes of movement; the share of a force that marched this turn fights at -25% strength in rounds 1-3 of every fight (judged strength: bands/caps, like Berserk). Added to the order list, target picker, realm plane-card buttons, reports (cmdName shows FORCED MARCH). Also fixed the report line 'Seized X (domination N)' to show the real domination (Dominator). AI never orders it.
+
+v1.127: New horde order RAID (cmd RAID, one turn only). Target must be a plane held by another prince (not Minor Power, free, own or bonded). The horde moves like DOMINATE, fights any horde on the plane, but skips the planar defenses. If it survives and is on the target after fights it raids in resolveRaids() (before summons arrive): D = planar defense + Shadow share, R = strength/D, f = R^2/(1+R^2); siphon = 40% of f x the plane's remaining yield (so the 60% cut is applied), raider keeps half of that (20% of the full amount) into its Well at once, the holder's income is reduced by the siphon this turn (P.raidLost) and the holder gets an event. Raiders at one plane resolve individually, smallest first, each from what is left. Raider casualties c = 2% + 10% x D/(D+S). Afterwards the horde withdraws (back to where it came from if safe, else a friendly/empty plane; if none it stays). Order list, target picker (illegal targets disabled), warnings, plane-card buttons, reports updated. AI never raids.
+
+## v1.128
+- MOVE and DOMINATE merged: the old MOVE order is gone; DOMINATE is shown as "MOVE and DOMINATE". All movement orders stop and fight at the first hostile plane.
+- Movement: budget = move + Lashmaster (+1) (+2 FORCED MARCH), no doubling. Entering a friendly plane (own or Blood Pact partner) costs 0.5, any other plane 1. Routes use the cheapest path (route/costMap/turnsFor/stepCost/mvBudget).
+- AI scores targets by move cost. Saved games/codes from before 1.128 are rejected (MIN_VER 1.128); DELVE/Pathfinder shims removed.
+
+## v1.129
+- BANISH removed from horde and Shadow Horde commands (DISBAND covers it). MIN_VER 1.129.
+
+## v2.0
+- Major version bumped to 2 (minor resets to 0). MIN_VER 2.0. No gameplay changes.
+
+## v2.1
+- Fair start: each home plane now has two v3 planes and one v4 plane adjacent (a plane has only 3 neighbors). Set in newGame before Minor Powers are placed.
+
+## v2.2
+- Demon tables stack vertically when the screen is narrow (auto-fit grid, 440px minimum column) and use tighter cells on phones.
+
+## v2.3 (Test artifact + PC only; shareable link stays at v2.2)
+- Save diagnostics for the "game restarted on iPhone/iPad" reports: a boot log in localStorage (kodBoot), a "not saving" warning in the header when storage is blocked or a save fails, and a note on the name prompt when no saved game was found although the browser has opened the game before.
+
+## v2.4 (Test artifact + PC only)
+- MOVE and DOMINATE / FORCED MARCH target info now ends with the odds of winning every fight (high 67%+, medium 34-67%, low under 34%), worked out by simulating the real fight engine against the defenses the prince knows about: seen hordes, the planar defense for the known domination level, and an allowance for an unseen Shadow Horde (oddsFor in 03). It uses a private seed so the game dice are untouched. Not shown for RAID or when a defender is hidden.
+
+## v2.5
+- Odds wording: "We tortured an oracle and determined that your omens of victory are unfavorable / uncertain / favorable. Remember, fortune can favor the reckless (unfavorable) / bad luck can ruin the best odds (otherwise)." Same 34%/67% thresholds.
+
+## v2.6 (Test artifact + PC only)
+- Rank-up notices: whenever any prince rises in Chaos rank, every other human prince gets one of 20 flavour lines (RISE/riseText in 02) at the very top of Battles and events (pri -1). The line is picked from prince and rank, so it is stable. Your own rank-up keeps its old line.
+
+## v2.7 (Test artifact + PC only)
+- Rank-up nudge in Needs Your Attention: after four turns with no rank-up (P.rise = turn of the last rank-up, set in FOMENT resolution), then every other turn, one of 4 NUDGE texts urges FOMENT CHAOS. Skipped at rank 10 and when the Foment progress notice (70%+) is already showing. Saves older than 2.7 have no P.rise and never see it.
+
+## v2.8 (Test artifact + PC only)
+- Removed the stale "hordes heal 30%" from the Rules at a glance text (healing went away with damage tracking).
+
+## v2.9
+- Abyss map: portal link lines no longer drawn inside plane squares; they now appear only as short bright red connectors (#ff2d2d) across the gaps between squares. Wrap-around stubs also start at the square edge.
+
+## v2.10
+- Abyss map: edge wrap-around connectors shortened by 33%.
+
+## v2.11
+- Realm grid key reworded: "d = domination/defense", American spelling "color", and a new sentence explaining that solid and dotted lines are connections hordes can move through.
+
+## v2.12
+- Realm grid key: the line explanation now sits on its own line and reads "Solid and dotted red lines indicate a connection between planes that hordes can move through."
+
+## v2.13
+- Realm map: Minor Horde marker is now a light grey circle with a dark "!" (was red), matching the Minor Power color family.
+
+## v2.14
+- Prince 8 color darkened from brick red #c0504a to dark crimson #a8342e so it sits further from prince 5 (rose).
+
+## v2.15
+- Palette locked at 12 prince colors: orange, teal, violet, green, rose, gold, bone, dark crimson (#a8342e), navy blue (#2d55b0), forest green (#2e8b4f), lime (#b9d84a), bronze brown (#9a6a4a). Minor Powers stay light grey.
+- You are always color 1 (orange). Colors 2-12 are dealt to the rival princes at random for each game (seeded, so a game keeps its colors for life; `G.pal`, `mkPal`, `applyPal`). Multiplayer views carry the palette so a prince keeps the same color for every viewer except where the viewer and seat 1 swap places.
+- Older saves without a palette keep the original color order.
+
+## v2.16
+- Save code: Standing tab > "Make my save code" produces a text block holding the whole game; "Restore a saved game" pastes one back in and replaces the game in this browser (checks it is a save, a playable version, and the same mode). Backup against browsers that lose stored data.
+- Header now shows "saved h:mm" (the time the game was last saved in this browser), so a fresh start vs. a loaded save is obvious.
+- Code reader accepts "SAVE" code blocks.
+
+## v2.17
+- Header: added a space before "saved" so it no longer runs into the version number.
+
+## v2.18
+- Fast vs Heavy: in rounds 1-3 of a fight, a force made only of Fast demons adds +3 (FASTT) to its tactics roll against a force made only of Heavy demons. Planar defenses hold no demons and never count as Heavy. Applies to every fight that uses fightRounds (meetings, attacks, raids that meet hordes) and to the odds estimate. Rules text ("Prototype assumptions") updated.
+- Simulation (equal strength, Fast-only vs Heavy-only, whole fight): Fast wins about 54% with the bonus vs 51% without.
+
+## v2.19
+- Purge starts sooner and runs one step higher through most of the ladder: Brazenhorn 1, Hezrou 2, Malflesh 3, Slagmaw 4, Hate Fiend 6, Soulhammer 8, Balor 10, Shogoth 12, Ungol 14 (was Hezrou 1, Malflesh 2, Slagfiend 3, Hate Fiend 5, Soulhammer 7, Balor 9, Shogoth 11, Ungol 13).
+- Slagfiend renamed Slagmaw. Rules text and the "Purged by Heavy Tier" columns follow the table automatically.

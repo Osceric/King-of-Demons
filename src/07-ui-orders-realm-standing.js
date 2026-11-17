@@ -1,0 +1,231 @@
+
+/* ===== ORDERS ===== */
+const CH={HOLD:"Stay put and fight anything that comes. A force that holds fights with +25% strength when an enemy moves in to attack it (+15% without the order).",DOMINATE:"Travel toward a plane and fight whatever you meet. Planes you hold cost half a move to cross; all others cost a full move. The horde stops and fights at the first hostile plane.",RAID:"Slip into a plane held by another prince, siphon part of its yield for the turn, and withdraw the same turn. You keep 20% of what a full raid would take; the holder loses 40%. Fights any horde there first and skips the planar defenses. Costs a few demons. Lasts one turn.",MARCH:"Like MOVE and DOMINATE, but the horde gets 2 more moves. Its strength is cut 25% in rounds 1 to 3 of every fight it fights after marching.",SUMMON:"Pay souls to add demons. They arrive at the end of the turn.",DISBAND:"Dissolve this horde and its general for good. You recover 10% of the demons' cost, and the general slot is free to UNLEASH GENERAL again as any type."};
+const PCH={FOMENT:"FOMENT CHAOS",UNLEASH:"UNLEASH GENERAL",SCRY:"SCRY",FORGE:"BLOOD PACT",BREAK:"BREAK PACT"};
+function calcPlan(){
+ const P=G.players[0],tier=effTier(0),errs=[],warns=[];let hc=0,pc=0,unl=0;
+ for(const h of hordesOf(0)){const c=h.cmd;
+  if(c.type==="SUMMON"){const n=cleanN(c.n,tier,h.cls);hc+=sumH(n,h);if(!sumN(n))warns.push(`${h.gen} has SUMMON with no demons chosen.`)}
+  if(c.type==="RAID"&&G.planes[c.target]&&raidBarred(c.target))errs.push(`${h.gen}: RAID needs a plane held by another prince, and ${c.target} is not one you know of.`);if((c.type==="DOMINATE"||c.type==="MARCH"||c.type==="RAID")&&!G.planes[c.target])errs.push(`${h.gen} needs a target plane.`);}
+ if(P.shadowCmd&&P.shadowCmd.type==="SUMMON")hc+=sumN(cleanN(P.shadowCmd.n,tier,"F"));
+ for(const c of P.princely){if(!c.type)continue;if(c.type==="UNLEASH"){pc+=UNLEASH;unl++}else if(c.type==="BREAK"){pc+=BREAKC;if(!activeBonds(P.id).length)errs.push("BREAK PACT needs an active Blood Pact to break.")}else if(c.type==="FORGE"){c.souls=forgeCost(G.turn);pc+=c.souls;if(!(P.met||[]).includes(c.target))errs.push(P.met.length?"BLOOD PACT needs a rival prince you have met.":"BLOOD PACT needs a prince you have met, and you have not met anyone yet.");else if(isAI(c.target)&&!G.players[c.target].open)errs.push(`${G.players[c.target].name} is not open to a Blood Pact this turn.`);else if(pactBusy(P.id,c.target))errs.push("You are already bound by a Blood Pact to another prince. A prince may have only one at a time.")}else {const q=Math.max(0,Math.floor(c.souls||0));pc+=q;if(c.type==="SCRY"&&(q<SCRYU||q>SCRYMAX||q%SCRYU))errs.push(`SCRY costs ${fmt0(SCRYU)} souls per extra hop: enter ${fmt0(SCRYU)}, ${fmt0(SCRYU*2)} or ${fmt0(SCRYMAX)}, no more.`)}}
+ if(unl&&!ownsHome(0))errs.push("UNLEASH GENERAL needs a home plane. You no longer hold yours, so you cannot unleash new generals.");else if(hordesOf(0).length-hordesOf(0).filter(x=>x.cmd.type==="DISBAND").length+unl>capOf(0))errs.push(`UNLEASH GENERAL needs a free general slot (you have ${hordesOf(0).length} of ${capOf(0)}).`);
+ const rem=P.well-hc-pc;if(rem<0)errs.push(`Over budget by ${fmt0(-rem)} souls.`);
+ return{hc,pc,rem,errs,warns,unl}}
+function qtyUI(hid,types,n,summon,have){
+ return`<div class="qty">${types.map(k=>`<label><span>${DT[k].n}${summon?` <small>${fmt0(DT[k].cost)}</small>`:` <small>of ${have[k]}</small>`}</span><input type="number" min="0" ${summon?"":`max="${have[k]}"`} inputmode="numeric" data-k="qty" data-h="${hid}" data-d="${k}" value="${n[k]||""}" placeholder="0" aria-label="${DT[k].n}"><span class="ds"${DT[k].purge?` title="Purge ${DT[k].purge}: every round this demon destroys 10% (at least 1) of each kind of enemy demon of tier ${DT[k].purge} or lower."`:""}>Tier ${DT[k].t} · ${CLS[DT[k].c]} · Strength ${DT[k].st} · Move ${DT[k].mv}${DT[k].purge?` · <b>Purge ${DT[k].purge}</b>`:""}</span></label>`).join("")}</div><div class="note" id="cost-${hid}"></div>`}
+const raidBarred=id=>{const k=G.players[0].known[id];return !(k&&k.full&&!k.np&&k.o!=null&&k.o>0)};/* only a plane you know to be held by another prince can be raided */
+function targetUI(h){
+ const K=G.players[0].known,d=distMap(h.loc),s=hstats(h),t=h.cmd.target;
+ const ids=Object.keys(K).filter(id=>id!==h.loc||h.cmd.type==="DOMINATE"||h.cmd.type==="MARCH").sort(idCmp);
+ const opts=`<option value="">Choose a plane…</option>`+ids.map(id=>{const k=K[id];const lab=k.full?`${id} · ${k.np||(k.o!=null&&k.o>=0?(k.o===0?"yours":short(k.o)):"unheld")} · dom ${k.d} · value ${k.q}`:`${id} · unexplored`;return`<option value="${id}" ${t===id?"selected":""} ${(h.cmd.type==="RAID"&&raidBarred(id))?"disabled":""}>${lab} · ${d[id]} away</option>`}).join("");
+ let info="";
+ if(G.planes[t]){const pth=route(h.loc,t,h.owner),len=pth.length,hops=mvBudget(h),nt=turnsFor(h,pth),k=K[t];
+  info=t===h.loc?(G.planes[t].owner===h.owner?`Your horde is already on this plane. It will fight any enemy horde that is here. `:`Your horde is already on this plane. DOMINATE keeps it fighting the enemy hordes and planar defenses here until you hold the plane. `):`${len} plane${len===1?"":"s"} away. This horde has ${hops} move${hops===1?"":"s"} a turn${h.cmd.type==="MARCH"?" (forced march, +2)":""}; planes you hold cost half${h.cmd.type==="RAID"?(nt>1?" RAID only works if the horde arrives this turn: this target is out of reach.":" It raids on arrival and withdraws the same turn."):""}, so about ${nt} turn${nt>1?"s":""}.`;
+  if(k&&k.full){const od=h.cmd.type!=="RAID"&&k.o!==0?oddsFor(h,t,K):null,pd=od&&od.prince?` You will also need to fight the plane's defenses and the owner's Shadow Horde. Accurate estimates are impossible, but these defenses might have a strength of ~${fmt0(od.def)}.`:(h.cmd.type==="RAID"&&k.o!=null&&k.o>0?` Planar defense strength ${DOM[k.d].o+DOM[k.d].d}.`:"");const eh=(k.h||[]).filter(x=>x.o!==0).map(x=>` Enemy horde seen, strength ${x.p==null?"unknown":"~"+fmt0(x.p)}.`).join("");info+=` Last seen ${ageLabel(k.t)}.${k.np?` Held by ${k.np}, strength unknown.`:""}${pd}${h.cmd.type==="RAID"&&pd?" Any Shadow Horde adds to that.":""}${eh} Your horde: strength ~${fmt0(s.str)}.${od?(od.unknown?" Some of the defenders are hidden, so no odds can be given.":` We tortured an oracle and determined that your omens of victory are <b>${{low:"unfavorable",medium:"uncertain",high:"favorable"}[od.level]}</b>. Remember, ${od.level==="low"?"fortune can favor the reckless":"bad luck can ruin the best odds"}.`):""}`}
+  else info+=" You have only its name. Expect the unknown."}
+ return`<div class="cmdrow"><select data-k="tgt" data-h="${h.id}" aria-label="Target plane">${opts}</select></div>${info?`<div class="note">${info}</div>`:""}`}
+function mvTxt(h){return`<b>${Math.round((hstats(h).mv+lashB(h))*100)/100}</b>`}
+function dLine(h){const pd=h.pd,ks=Object.keys(h.demons);if(pd)for(const k in pd)if(!(k in h.demons)&&DT[k])ks.push(k);
+ return ks.map(k=>{const n=h.demons[k]||0,d=pd?n-(pd[k]||0):0,dl=pd&&d?` <b class="dl ${d>0?"up":"dn"}">(${d>0?"+":"−"}${fmt0(Math.abs(d))})</b>`:"";return`<span>${DT[k].n} ×${fmt0(n)}${dl}</span>`}).join("")}
+function hordeCard(h){
+ const s=hstats(h),c=h.cmd,empty=!total(h),tier=effTier(0);
+ const types=empty?["HOLD","SUMMON","DISBAND"]:["HOLD","DOMINATE","MARCH","RAID","SUMMON","DISBAND"];
+ let dyn="";
+ if(c.type==="DOMINATE"||c.type==="MARCH"||c.type==="RAID")dyn=targetUI(h);
+ else if(c.type==="SUMMON")dyn=qtyUI(h.id,DK.filter(k=>DT[k].t<=tier&&DT[k].c===h.cls),c.n||(c.n={}),true);
+ return`<div class="card hc" id="hc-${h.id}"><div class="top"><span class="gen">Horde ${hno(h)} · ${h.gen} <button class="pill s-good" data-act="gdet" data-id="${h.id}" aria-expanded="${!!UI.open["gd"+h.id]}" title="Age, Experience and Resurrections">Details ${UI.open["gd"+h.id]?"▴":"▾"}</button></span><span class="kv"><span>at <a class="ref" role="button" tabindex="0" data-act="plane" data-id="${h.loc}">${h.loc}</a></span></span></div>
+ <div class="kv"><span>${CLS[h.cls]||"Mixed"} horde</span><span>Strength <b>~${fmt0(s.str)}</b></span>${purgeOf({hordes:[h]})?`<span>Purge <b>${purgeOf({hordes:[h]})}</b></span>`:""}<span>Move ${mvTxt(h)}</span><span>${fmt0(s.n)} demons</span></div>${UI.open["gd"+h.id]?`
+ <div class="gdet"><div class="kv"><span>Age <b>${genAge(h)}</b></span><span>Experience <b>${h.exp||0}</b></span><span>Resurrections <b>${h.res||0}</b></span></div><div class="kv">${abOf(h).length?abOf(h).map(k=>`<span><b>${ABIL[k].n}</b> · ${ABIL[k].t}</span>`).join(""):`<span class="note">No abilities yet. One at Age 10, another at Experience 10.</span>`}</div></div>`:""}
+ <div class="dem">${empty?`<span>No demons. Summon some.</span>`:dLine(h)}</div>
+ <div class="cmdrow"><select data-k="cmd" data-h="${h.id}" aria-label="Command for ${h.gen}">${types.map(t=>`<option value="${t}" ${c.type===t?"selected":""}>${cmdName(t)}</option>`).join("")}</select>${h.stand?`<span class="fresh">standing order from last turn</span>`:""}</div>
+ <div class="note">${CH[c.type]}</div>${dyn}</div>`}
+function shadowCard(){
+ const P=G.players[0],c=P.shadowCmd,tier=effTier(0),have=P.shadow;
+ let dyn="";if(c&&c.type==="SUMMON")dyn=`<div class="note" style="margin:6px 0">Only Fast demons can join the Shadow Horde.</div>`+qtyUI("S",DK.filter(k=>DT[k].t<=tier&&DT[k].c==="F"),c.n||(c.n={}),true);
+ const n=Object.keys(have).reduce((a,k)=>a+have[k],0);
+ return`<div class="card hc"><div class="top"><span class="gen">Shadow Horde</span><span class="kv"><span>${fmt0(n)} demons · yield bonus <b>+${Math.round(shadowBonus(0)*100)}%</b></span></span></div>
+ <div class="dem">${n?Object.keys(have).map(k=>`<span>${DT[k].n} ×${fmt0(have[k])}</span>`).join(""):`<span>Empty</span>`}</div>
+ <div class="cmdrow"><select data-k="scmd" aria-label="Shadow Horde command"><option value="">OPPRESS (default)</option><option value="SUMMON" ${c&&c.type==="SUMMON"?"selected":""}>SUMMON</option></select></div>
+ <div class="note">These demons defend your realm and increase soul yield through oppression. More demons raise your total yield and they defend every plane you hold: up to a third of their strength joins each plane's defense (all of it at home), and they take losses when a plane's defense is beaten.<br>Each plane now gains strength ${(shadowStr(0)*.33).toFixed(1)} and yield is raised ${(shadowBonus(0)*100).toFixed(1)}%.</div>${dyn}</div>`}
+function demonTableCard(){
+ const open=!!UI.open.dtab,tier=effTier(0);
+ const pby=d=>{const k=DK.filter(j=>DT[j].c==="H"&&DT[j].purge>=d.t).sort((a,b)=>DT[a].t-DT[b].t)[0];return k?DT[k].n+"+":"–"};/* lowest Heavy tier whose purge rating reaches this demon, and every higher Heavy tier too */
+ const tbl=(cls,title,sub)=>{const ks=DK.filter(k=>DT[k].c===cls),pg=cls==="H";return`<div class="card"><h3 style="margin-top:0">${title}</h3><div class="note" style="margin:0 0 6px">${sub}</div><div class="scroll"><table class="dtt"><tr><th class="r">Tier</th><th>Demon</th><th class="r">Cost</th><th class="r">Strength</th><th class="r">Purged by Heavy Tier</th>${pg?`<th class="r">Purge</th>`:""}</tr>${ks.map(k=>{const d=DT[k];return`<tr style="${d.t>tier?"opacity:.45":""}"><td class="r">${d.t}</td><td>${d.n}</td><td class="r">${fmt0(d.cost)}</td><td class="r">${d.st}</td><td class="r">${pby(d)}</td>${pg?`<td class="r">${d.purge||"–"}</td>`:""}</tr>`}).join("")}</table></div></div>`};
+ let h=`<div class="sec" style="margin-top:12px"><button class="btn sm" data-act="dtab" aria-expanded="${open}">${open?"Hide":"Show"} the demon tables</button>`;
+ if(open)h+=`<div class="note" style="margin:8px 0">A horde moves at the pace of its slowest demon. Greyed rows are above your highest summonable tier (${tier}).</div><div class="grid cols2" style="align-items:start;grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr))">${tbl("H","Heavy demons","Move 1 plane a turn. A purge rating destroys enemy demons of that tier and lower.")}${tbl("F","Fast demons","Move 3 planes a turn. No purge. Only Fast demons can join the Shadow Horde.")}</div>`;
+ return h+`</div>`+abilitiesCard()}
+function abilitiesCard(){
+ const open=!!UI.open.abil;
+ let h=`<div class="sec" style="margin-top:8px"><button class="btn sm" data-act="abil" aria-expanded="${open}">${open?"Hide":"Show"} general abilities</button>`;
+ if(open)h+=`<div class="note" style="margin:8px 0">A general earns one ability at Age 10 and another at Experience 10, never the same one twice. If several generals in one force share an ability, it counts once. A general who is destroyed and resurrected loses both.</div><div class="card"><div class="scroll"><table class="dtt"><tr><th>Ability</th><th>Effect</th></tr>${Object.keys(ABIL).map(k=>`<tr><td><b>${ABIL[k].n}</b></td><td>${ABIL[k].t}</td></tr>`).join("")}</table></div></div>`;
+ return h+`</div>`}
+function princelyCard(){
+ const P=G.players[0],cap=capOf(0);
+ const rows=P.princely.map((c,i)=>`<div class="cmdrow" style="margin-bottom:6px"><select data-k="pc" data-i="${i}" aria-label="Princely command ${i+1}"><option value="">No command</option>${Object.keys(PCH).map(k=>`<option value="${k}" ${c.type===k?"selected":""}>${PCH[k]}</option>`).join("")}</select>
+  ${c.type&&c.type!=="UNLEASH"&&c.type!=="FORGE"&&c.type!=="BREAK"?`<input type="number" min="${c.type==="SCRY"?SCRYU:0}" ${c.type==="SCRY"?`max="${SCRYMAX}"`:""} step="${c.type==="SCRY"?SCRYU:100}" inputmode="numeric" data-k="ps" data-i="${i}" id="ps${i}" value="${c.souls||""}" placeholder="souls" aria-label="Souls for command ${i+1}">${c.type==="SCRY"?"":`<button class="btn sm" data-act="pp" data-i="${i}" data-f=".25">25%</button><button class="btn sm" data-act="pp" data-i="${i}" data-f=".5">50%</button><button class="btn sm" data-act="pp" data-i="${i}" data-f="1">All</button>`}`:""}
+  ${c.type==="UNLEASH"?`<select data-k="pu" data-i="${i}" aria-label="Type of the new general"><option value="H" ${c.cls!=="F"?"selected":""}>Assault Commander</option><option value="F" ${c.cls==="F"?"selected":""}>Maneuver Commander</option></select><input type="text" data-k="pun" data-i="${i}" maxlength="24" value="${esc(c.name||"")}" placeholder="General's name (blank = random)" aria-label="Name of the new general" autocomplete="off" style="min-width:12em"><span class="fresh">${fmt0(UNLEASH)} souls</span>`:""}${c.type==="BREAK"?`<span class="fresh">${fmt0(BREAKC)} souls</span>`:""}${c.type==="FORGE"?`<select data-k="pt" data-i="${i}" aria-label="Prince for the Blood Pact"><option value="">Choose a prince</option>${(P.met||[]).map(m=>`<option value="${m}" ${c.target===m?"selected":""}>${esc(G.players[m].name)}${isAI(m)?(G.players[m].open?" (open)":" (closed)"):""}</option>`).join("")}</select><span class="fresh">${fmt0(forgeCost(G.turn))} souls</span>`:""}</div>
+  ${c.type?`<div class="note" style="margin:-2px 0 8px">${{FOMENT:`Invest toward ${P.rank<10?RK[P.rank+1].n:"the summit"}: ${fmt0(P.foment)} of ${P.rank<10?fmt0(RK[P.rank+1].c):"–"} in total so far, and it keeps counting when you rise.`,UNLEASH:`A new general for a new horde, ready next turn. A Maneuver Commander has 3 moves a turn (planes you hold cost half) and summons only Fast demons (less strength per soul, but much faster). An Assault Commander has 1 move a turn and summons only Heavy demons (more strength per soul, but slower).`,BREAK:`Pay ${fmt0(BREAKC)} souls to end your Blood Pact at once. It takes effect this turn: hordes of yours and your former partner that share a plane fight, even if they were set to LOITER, and either of you may now take the other's planes. The pact income stops, starting this turn, for both of you. Your partner is told they were betrayed.`,FORGE:`Pay ${fmt0(forgeCost(G.turn))} souls (5,000 plus 1,000 for every elapsed turn) for a pact with a prince you have met. A prince run by the game answers only when it shows as open, and then it always does; a closed prince cannot be ordered. A human prince must also order a pact with you this turn. It lasts ${BONDLEN} turns: your hordes will not fight each other or take each other's planes, and each of you earns one third of the price paid (${fmt0(pactInc(forgeCost(G.turn)))} souls) every turn. If they do not pay too, the souls are lost and you are betrayed.`,SCRY:"Looks beyond the free one-hop SCRY. Each extra hop costs 2,500 souls: spend 2,500 for two hops, 5,000 for three or 7,500 for four. It must be a multiple of 2,500, and 7,500 is the most."}[c.type]}</div>`:""}`).join("");
+ return`<div class="card" style="margin-top:12px"><h3>Princely commands (up to four)</h3><div class="note" style="margin:-4px 0 10px"><b>Unspent souls are harvested automatically.</b> Every three souls you do not spend returns four souls next round. Harvest shuts off while your Well holds ${fmt0(HARV_CAP)} or more souls. <b>A free SCRY happens every turn.</b> Every plane next to your planes and hordes is revealed for no cost, showing its holder, domination, value and the hordes seen there. The SCRY command below looks farther: for 2,500 souls you can see one extra hop, for 5,000 you can see two extra hops, and for 7,500 you can see three extra hops.</div>${rows}<div class="tools" style="margin:8px 0 0">${P.lastP&&P.lastP.some(c=>c.type)?`<button class="btn sm" data-act="lastp">Same as last turn</button>`:""}<button class="btn sm" data-act="clearp">Clear</button></div><details style="margin-top:12px"><summary>Chaos Power ranks: costs and benefits</summary>${chaosTable()}</details></div>`}
+function renderOrders(){
+ if(G.players[0].elim){$("#main").innerHTML=`<h2>Orders for turn ${G.turn}</h2><div class="card"><p>You were eliminated in turn ${G.players[0].elim}. You have no planes, demons or souls left, and further orders cannot be issued. You can still win if your victory points are high enough, so keep resolving turns to see how the game ends.</p></div>`;return}
+ let h=`<h2>Orders for turn ${G.turn}</h2><p class="sub">One command per horde and up to four Princely commands. Standing orders carry over until you change them. Nothing happens until you resolve the turn.</p>`;
+ h+=`<div class="grid cols2">${hordesOf(0).map(hordeCard).join("")}${shadowCard()}</div>${demonTableCard()}${princelyCard()}<div class="stick" id="foot"></div>`;
+ $("#main").innerHTML=h;renderSums()}
+function renderSums(){
+ const p=calcPlan(),P=G.players[0],f=$("#foot");if(!f)return;
+ for(const h of hordesOf(0))if(h.cmd.type==="SUMMON")costNote(h.id,h.cmd);
+ if(P.shadowCmd)costNote("S",P.shadowCmd);
+ f.innerHTML=`<div><div class="sums"><div><span>Well</span> <b>${fmt0(P.well)}</b></div><div><span>Horde commands</span> <b>−${fmt0(p.hc)}</b></div><div><span>Princely</span> <b>−${fmt0(p.pc)}</b></div><div><span>Left after commands (${p.rem>=HARV_CAP?"will not be harvested":"to be harvested"})</span> <b style="color:var(${p.rem<0?"--bad":"--gold"})">${fmt0(p.rem)}</b></div></div>${p.errs.map(e=>`<div class="err">${e}</div>`).join("")}${p.warns.map(e=>`<div class="warn">${e}</div>`).join("")}</div><button class="btn pri" id="go" data-act="resolve" ${p.errs.length||G.over?"disabled":""}>Resolve turn ${G.turn}</button>`}
+function costNote(id,c){const el=$("#cost-"+id);if(!el)return;const tier=effTier(0);
+ if(c.type==="SUMMON"){const n=cleanN(c.n,tier),hh=G.hordes.find(x=>x.id===+id),v=sumH(n,hh);el.textContent=v?`Cost ${fmt0(v)} souls for ${nText(n)}${hh&&hasAb(hh,"QUAR")?" (Quartermaster discount)":""}.`:""}
+ else{const n=cleanN(c.n,99),v=sumN(n);el.textContent=v?`Returns ${fmt0(Math.floor(v*.1))} souls.`:""}}
+
+/* ===== REALM ===== */
+const CW=78,CH2=72,MG=22;
+const colOf=(o,np)=>np?"var(--cn)":o!=null&&o>=0?`var(--c${o})`:null;
+function hCircles(k,px,py,w,h,id){let inner="";if(!(k.h&&k.ht>=G.turn-1&&k.h.some(x=>x.o!==0)))return"";/* enemy hordes: a prince's horde shows its number in that prince's colour; Minor Hordes (and old snapshots without numbers) show ! */
+    const mk=[];for(const x of k.h.filter(x=>x.o!==0)){if(x.o>=0&&x.n&&x.n.length)for(const n of x.n)mk.push([colOf(x.o),String(n),x.o]);else mk.push([x.o>=0?colOf(x.o):"#c9bfb8","!",x.o])}
+    const cy=hordesOf(0).some(x=>x.loc===id)?py+h-27:py+h-10;/* above the H tags when your own hordes are on the plane */
+    mk.slice(0,2).forEach((m,i)=>{const cx=px+w-8-i*15;inner+=`<circle cx="${cx}" cy="${cy}" r="7" fill="${m[0]}" stroke="#1b0e08" stroke-width="1"/><text x="${cx}" y="${cy+4}" text-anchor="middle" font-size="11" font-weight="700" fill="${m[0]==="#c9bfb8"?"#111":"#fff"}" stroke="${m[0]==="#c9bfb8"?"#c9bfb8":"#1b0e08"}" stroke-width=".6" paint-order="stroke">${m[1]}</text>`});
+    if(mk.length>2)inner+=`<text x="${px+w-8-30}" y="${cy+4}" text-anchor="middle" font-size="11" font-weight="700" fill="#eadfd2">+${mk.length-2}</text>`;return inner}
+function mapSVG(){
+ const K=G.players[0].known,W=NX*CW+2*MG,H=NY*CH2+2*MG,C=pl=>[MG+pl.x*CW+CW/2,MG+pl.y*CH2+CH2/2];
+ let s=`<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Map of the planes">`,seen={};
+ for(const id in G.planes){const a=G.planes[id];for(const l of a.links){const key=[id,l].sort().join();if(seen[key])continue;seen[key]=1;const b=G.planes[l],dx=b.x-a.x,dy=b.y-a.y,[x1,y1]=C(a),[x2,y2]=C(b);
+  const st="#ff2d2d",hx=CW/2-5,hy=CH2/2-5;/* portals are short bright red links across the gap between two squares, never drawn inside a square */
+  if(Math.abs(dx)>1||Math.abs(dy)>1){const ax=Math.abs(dx)>1?(dx>0?-1:1):0,ay=Math.abs(dy)>1?(dy>0?-1:1):0;
+   s+=`<line x1="${x1+ax*hx}" y1="${y1+ay*hy}" x2="${x1+ax*(hx+(MG+3)*.67)}" y2="${y1+ay*(hy+(MG+3)*.67)}" stroke="${st}" stroke-width="3" stroke-dasharray="3 3"/><line x1="${x2-ax*hx}" y1="${y2-ay*hy}" x2="${x2-ax*(hx+(MG+3)*.67)}" y2="${y2-ay*(hy+(MG+3)*.67)}" stroke="${st}" stroke-width="3" stroke-dasharray="3 3"/>`}
+  else{const sx=Math.sign(dx),sy=Math.sign(dy);s+=`<line x1="${x1+sx*hx}" y1="${y1+sy*hy}" x2="${x2-sx*hx}" y2="${y2-sy*hy}" stroke="${st}" stroke-width="3" stroke-linecap="round"/>`}}}
+ for(const id in G.planes){const pl=G.planes[id],k=K[id],px=MG+pl.x*CW+5,py=MG+pl.y*CH2+5,w=CW-10,h=CH2-10,sel=UI.sel===id;
+  const col=k&&k.full?colOf(k.o,k.np):null;
+  let inner="";
+  if(!k)inner=`<rect x="${px}" y="${py}" width="${w}" height="${h}" rx="4" fill="#150b0f" stroke="#33212a" stroke-dasharray="3 3"/><text x="${px+w/2}" y="${py+h/2+4}" text-anchor="middle" font-size="11" fill="#5d4850">${id}</text>`;
+  else if(!k.full)inner=`<rect x="${px}" y="${py}" width="${w}" height="${h}" rx="4" fill="#1a0f14" stroke="#7a6a62" stroke-dasharray="4 3"/><text x="${px+w/2}" y="${py+h/2-2}" text-anchor="middle" font-size="12" fill="#a39186">${id}</text><text x="${px+w/2}" y="${py+h/2+13}" text-anchor="middle" font-size="10" fill="#7d6c63">unexplored</text>`;
+  else{const age=G.turn-k.t,dim=age>0;
+   inner=`<rect x="${px}" y="${py}" width="${w}" height="${h}" rx="4" fill="${col||"#26171e"}" fill-opacity="${col?.2:1}" stroke="${col||"#7a6a62"}" ${dim?'stroke-dasharray="5 2"':""} stroke-width="1.5"/>
+   <text x="${px+6}" y="${py+15}" font-size="12.5" font-weight="500" fill="#eadfd2">${id}</text>
+   <text x="${px+6}" y="${py+30}" font-size="11" fill="#c9b8aa">${k.np?"Minor":k.o!=null&&k.o>=0?"d"+k.d:"free"}</text>
+   <text x="${px+6}" y="${py+43}" font-size="10.5" fill="#a39186">v${k.q}${dim?" · −"+age:""}</text>`;
+   if(k.o===0&&id===G.players[0].home)inner+=`<text x="${px+w-6}" y="${py+15}" text-anchor="end" font-size="9.5" fill="#dcae52">HOME</text>`;}
+  if(k)inner+=hCircles(k,px,py,w,h,id);
+  const mine=hordesOf(0).filter(x=>x.loc===id);
+  mine.forEach((x,i)=>{inner+=`<rect x="${px+4+i*22}" y="${py+h-14}" width="20" height="12" rx="2" fill="#e8782e"/><text x="${px+14+i*22}" y="${py+h-4.5}" text-anchor="middle" font-size="9.5" font-weight="700" fill="#1b0e08">H${hno(x)}</text>`});
+  if(sel)inner+=`<rect x="${px-2}" y="${py-2}" width="${w+4}" height="${h+4}" rx="6" fill="none" stroke="#dcae52" stroke-width="2.5"/>`;
+  s+=`<g data-act="plane" data-id="${id}" tabindex="0" role="button" aria-label="Plane ${id}" style="cursor:pointer">${inner}</g>`}
+ return s+"</svg>"}
+const hordeLines=k=>(k.h||[]).filter(x=>x.o!==0).flatMap(x=>{
+ const ab=y=>y.a?(y.a.length?` — ${y.a.map(a=>ABIL[a]?ABIL[a].n:a).join(", ")}`:" — no abilities yet"):"",str=p=>p==null?"strength unknown":"~"+fmt0(p);
+ if(x.o>=0&&x.l&&x.l.length)return x.l.map(y=>`${short(x.o)} Horde ${y.n} ${str(y.p)}${y.c?` (${y.c})`:""}${y.g?` · General ${y.g}${ab(y)}`:""}`);
+ const cs=(x.l||[]).map(y=>y.c).filter(Boolean).join("; ");
+ return[`${x.o===-1?"Minor Horde":short(x.o)} ${str(x.p)}${cs?` (${cs})`:""}`]}).join("<br>");
+function planeDetail(id){
+ const pl=G.planes[id];let k=G.players[0].known[id];
+ if(k&&pl.owner===0)k=Object.assign({},k,{o:0,d:pl.dom,q:pl.q,np:null,t:G.turn,full:true});
+ if(!k)return`<div class="card"><h3>${id}</h3><div class="note">Nothing is known about this plane. Reach a neighbouring plane to learn it exists.</div></div>`;
+ if(!k.full)return`<div class="card"><h3>${id} · unexplored</h3><div class="note">A portal from a plane you know leads here. Send a horde to MOVE and DOMINATE there, or SCRY, to learn what holds it.</div>${k.h&&k.ht>=G.turn-1&&k.h.some(x=>x.o!==0)?`<div class="warn">Hordes seen here:<br>${hordeLines(k)}</div>`:""}${sendBtns(id)}</div>`;
+ const holder=k.np?`${k.np} (Minor Power)`:k.o!=null&&k.o>=0?(k.o===0?"You":G.players[k.o].name):"No one";
+ const hs=hordeLines(k);
+ return`<div class="card"><h3>Plane ${id}</h3><div class="gen" style="margin-bottom:6px">${pl.name}</div>
+ <div class="kv" style="margin-bottom:8px"><span>Holder <b>${holder}</b></span><span>Domination <b>${k.d} ${DOM[k.d].n}</b></span><span>Value <b>${k.q}/7 ${QN[k.q]}</b></span>${pl.owner===0?`<span>Producing <b>${fmt0(yieldNow(pl))}</b> souls a turn, out of ${fmt0(maxNow(pl))} at full domination</span>`:`<span>Yield <b>${fmt0(QV(k.q))}</b> at full</span>`}<span>Defense <b>${defOf(id,k)}</b></span><span>Seen <b>${ageLabel(k.t)}</b></span></div>
+ ${hs?`<div class="warn">Hordes seen here:<br>${hs}</div>`:""}
+ ${hordesOf(0).filter(x=>x.loc===id&&total(x)).map(x=>`<div class="note">Your Horde ${hno(x)} is here: strength ~${fmt0(hstats(x).str)}.</div>`).join("")}
+ <div class="note">Portals to: ${pl.links.map(l=>`<a class="ref" role="button" tabindex="0" data-act="plane" data-id="${l}">${l}</a>`).join(" ")}</div>${sendBtns(id)}</div>`}
+function sendBtns(id){
+ const hs=hordesOf(0).filter(h=>total(h)&&h.loc!==id);
+ const b=(h,c)=>{const on=h.cmd&&h.cmd.type===c&&h.cmd.target===id;return `<button class="btn sm${on?" on":""}" data-act="send" data-h="${h.id}" data-id="${id}" data-cmd="${c}">Horde ${hno(h)} ${cmdName(c)}</button>`};
+ return hs.length?`<div class="tools" style="margin:10px 0 0">${hs.map(h=>b(h,"DOMINATE")+b(h,"MARCH")+(raidBarred(id)?"":b(h,"RAID"))).join("")}</div>`:""}
+function defOf(id,k){const n=defNum(id,k);return n==null?"?":n?`~${fmt0(n)}`:"–"}
+const dsm=(n,mine)=>n?`<span class="d ${mine?(n>0?"up":"dn"):"eq"}"> ${n>0?"▲":"▼"}${fmt0(Math.abs(n))}</span>`:"";
+function renderRealm(){
+ const K=G.players[0].known;
+ let h=`<h2>The Abyss</h2><p class="sub">Dashed outlines are stale or unexplored. Select a plane to read it and send a horde. The map wraps at every edge.</p>`;
+ h+=`<div class="mapbox">${mapSVG()}</div><div class="legend">${G.players.map((p,i)=>`<span><i style="background:var(--c${i})"></i>${i?short(i):"You"}</span>`).join("")}<span><i style="background:var(--cn)"></i>Minor Power</span><span>d = domination/defense · v = plane value · H = your hordes · ! = Minor Horde · numbered circle = a prince's horde, in that prince's color.<br>Solid and dotted red lines indicate a connection between planes that hordes can move through.</span></div>`;
+ h+=`<div class="sec">${UI.sel?`<div id="pdetail">${planeDetail(UI.sel)}</div>`:`<div class="card"><h3>Plane</h3><div class="note">Select a plane on the map.</div></div>`}</div>`;
+ const live=id=>{const pl=G.planes[id];return pl.owner===0?Object.assign({},K[id],{o:0,d:pl.dom,q:pl.q,np:null,t:G.turn,full:true}):K[id]};
+ const grp=id=>{const k=live(id);return k.np?998:k.o!=null&&k.o>=0?k.o:999}; /* you, then each rival, then minor powers, then planes no one holds */
+ const grpName=g=>g===0?"You":g===998?"Minor Powers":g===999?"Held by no one":G.players[g].name;
+ const rows=Object.keys(K).filter(id=>K[id].full).sort((a,b)=>grp(a)-grp(b)||idCmp(a,b));
+ const gcount={};rows.forEach(id=>{const g=grp(id);gcount[g]=(gcount[g]||0)+1});let lastG=null;
+ const lastMine=rows.filter(id=>grp(id)===0).pop();
+ const mineTotal=ownedPlanes(0).reduce((a,p)=>a+yieldNow(p),0),mineMax=ownedPlanes(0).reduce((a,p)=>a+maxNow(p),0);
+ h+=`<div class="sec card"><h3>Known planes</h3><div class="scroll"><table><tr><th>Plane</th><th>Holder</th><th class="r">Dom</th><th class="r">Val</th><th class="r">Souls / turn</th><th class="r">Defense</th><th>Seen</th></tr>${rows.map(id=>{const k=live(id),mine=k.o===0,g=grp(id),gh=g!==lastG?`<tr class="grp"><td colspan="7">${grpName(g)} · ${gcount[g]} plane${gcount[g]>1?"s":""}</td></tr>`:"";lastG=g;const v=rowVals(id),pv=G.prev&&G.prev[id],dd=key=>pv&&v&&pv[key]!=null&&v[key]!=null?dsm(v[key]-pv[key],mine):"";return`${gh}<tr class="click rc" style="--rc:${colOf(k.o,k.np)||"var(--cf)"}" data-act="plane" data-id="${id}"><td>${id}</td><td>${k.np?"Minor Power":k.o!=null&&k.o>=0?(mine?"You":short(k.o)):"–"}</td><td class="r">${k.d}${dd("d")}</td><td class="r">${k.q}${dd("q")}</td><td class="r">${mine?`${fmt0(yieldNow(G.planes[id]))} of ${fmt0(maxNow(G.planes[id]))}`:`<span style="color:var(--dim)">up to ${fmt0(QV(k.q))}</span>`}${dd("y")}</td><td class="r">${defOf(id,k)}${dd("f")}</td><td>${ageLabel(k.t)}</td></tr>${g===0&&id===lastMine?`<tr><td colspan="4"><b>Your planes produce</b></td><td class="r"><b>${fmt0(mineTotal)} of ${fmt0(mineMax)}</b></td><td colspan="2"></td></tr>`:""}`}).join("")}</table></div><p class="note">Row colors match the map: orange is you, the rival colors are your rivals, grey-brown is a Minor Power (select its plane to see its name and what you know), and plain grey is a plane no one holds. Planes are grouped by holder and in letter order within each group. Arrows show the change since last turn; no arrow means no change. Your own planes are always current. Souls / turn for planes you hold shows the total yield now out of the most the plane can give at full domination, both after your Chaos and Shadow Horde bonuses. Other planes show their best case before bonuses. Defense is offense plus defense: for your planes it includes your Shadow Horde, for others it is the planar defense you last saw and may be stale or low.</p></div>`;
+ $("#main").innerHTML=h}
+
+/* ===== STANDING ===== */
+const VPH={"Carnage":"Souls value of enemy demons and populations destroyed. Counts double against Minor Powers.","Planes dominated":"Each plane first taken: value × 3,000.","Demons killed and lost":"100 × tier of every enemy demon you destroy, plus 75 × tier of every demon you lose. A demon that dies for you scores more than one that merely stands in a horde (50 × tier).","Horde strength":"50 × tier of every demon you now command.","Chaos Power":"50,000 × your rank.","Planes held":"Domination × value × 1,000 for each plane you hold.","Souls consumed (10%)":"10% of souls spent, not souls banked."};
+function chaosTable(){const me=G.players[0];return`<div class="scroll"><table><tr><th>Rank</th><th>Name</th><th class="r">Highest tier</th><th class="r">Yield bonus</th><th class="r">Cost to reach</th><th class="r">Invested to date</th><th class="r">Generals</th><th class="r">Points</th></tr>${RK.slice(1).map((r,i)=>{const n=i+1,you=n===me.rank;return`<tr style="${you?"background:var(--panel2);color:var(--gold)":""}"><td>${n}</td><td>${r.n}${you?" (you)":""}</td><td class="r">${r.t}</td><td class="r">+${Math.round(r.b*100)}%</td><td class="r">${r.c?fmt0(r.c):"–"}</td><td class="r">${!r.c?"–":n<=me.rank?`${fmt0(r.c)} (reached)`:n===me.rank+1?`${fmt0(me.foment)} (${Math.min(99,Math.floor(me.foment/r.c*100))}%)`:"0"}</td><td class="r">${r.g}</td><td class="r">${fmt0(n*50000)}</td></tr>`}).join("")}</table></div><p class="note">Cost is the souls you invest with FOMENT CHAOS to reach that rank. Your FOMENT CHAOS souls add up over the whole game and are never lost when you rise a rank, so each cost is a running total, not a fresh price. Invested to date shows each rank you have reached in full, your running total toward the next one, and nothing for the ranks beyond it. Yield bonus is the percentage added to what all your planes pay. Highest tier is the strongest demon you can summon: twice your rank, except rank 9 (tier 19) and rank 10 (tier 22). Fast demons hold the odd tiers and Heavy demons the even ones. Generals is the total you can control, Fast and Heavy together. Reaching rank 10 starts the end game and adds a 15% score bonus.</p>`}
+function renderStanding(){
+ const me=G.players[0],v=vp(0),ranks=G.players.map(p=>p.rank).sort((a,b)=>b-a),cr=1+ranks.filter(x=>x>me.rank).length;
+ let h=`<h2>Degree of victory</h2><p class="sub">You are #${vpRank(0)} of ${G.players.length} on victory points. Rivals' totals stay hidden until the game ends.</p>`;
+ h+=`<div class="grid cols2"><div class="card"><h3>Your victory points</h3><div class="scroll"><table>${v.parts.map(p=>`<tr><td>${p[0]}<div class="note">${VPH[p[0]]||"15% on top of everything else."}</div></td><td class="r">${fmt0(p[1])}</td></tr>`).join("")}<tr><td><b>Total</b></td><td class="r"><b>${fmt0(v.total)}</b></td></tr></table></div></div>`;
+ const left=G.end?Math.max(0,G.end.at-G.turn+1):null;
+ h+=`<div class="card"><h3>How the game ends</h3>
+ <p class="note" style="margin-top:0">The first of these to happen starts a countdown. Later triggers change nothing. The game also ends after turn ${MAXT}.</p>
+ <div class="kv" style="display:grid;gap:10px">
+ <div><b>A prince reaches Count of Chaos (rank 7): fifteen turns</b><div class="bar-in"><i style="width:${Math.min(100,ranks[0]/7*100)}%"></i></div><span class="note">Highest Chaos rank: ${ranks[0]} of 7.</span></div>
+ <div><b>Every plane dominated once: ten turns</b><div class="bar-in"><i style="width:${G.everDom.length/NP*100}%"></i></div><span class="note">${G.everDom.length} of ${NP} planes.</span></div>
+ <div><b>Every prince meets every other: fifteen turns</b><div class="bar-in"><i style="width:${G.players.reduce((a,p)=>a+p.met.length,0)/(G.players.length*(G.players.length-1))*100}%"></i></div><span class="note">You have met ${me.met.length} of ${G.players.length-1} rivals.</span></div></div>
+ ${left!=null?`<p class="cd" style="margin:12px 0 0">Triggered: ${G.end.reason}. ${left} turn${left===1?"":"s"} remain.</p>`:""}</div></div>`;
+ h+=princesCard();
+ h+=`<div class="sec"><h3>Chaos Power ranks</h3><div class="card">${chaosTable()}</div></div>`;
+ h+=`<div class="sec"><h3>Rules at a glance</h3><div class="card"><details><summary>How a turn works</summary><p class="note">All princes give orders in secret and everything resolves at once: summon costs, then movement, then fights, then new demons arrive, domination grows by one on planes that were not attacked, and total yield is paid into the Well.</p></details>
+ <details><summary>How a fight works</summary><p class="note">A fight lasts up to six rounds. Each round the generals match wits, and the better plan helps its horde. The stronger horde has an edge in the clash, and the winner of each round pushes the other back and keeps some momentum that carries into the next round. Both sides lose demons every round, and a round can end in a stalemate, a gain, disarray or a rout. A horde that has lost most of its strength, falls into disarray or is routed breaks and retreats. A horde that attacks and does not break the defender is repulsed, even if it is the stronger. A horde that retreats goes back the way it came, or to a friendly plane nearby, or to an empty one; you do not choose. If a horde has nowhere to go it is destroyed. Two hordes that both moved into a plane meet in a meeting engagement, and only a broken horde retreats. Every demon destroyed scores its soul cost for the side that destroyed it. A demon with a purge rating also destroys some weaker enemy demons every round: see Purge below.</p></details>
+ <details><summary>Purge</summary><p class="note">Some demons carry a purge rating. At the end of every round of a fight, each side's best purge rating destroys 10% of each kind of enemy demon whose tier is no higher than that rating, and never fewer than 1 of each kind present. The highest purge in the horde counts, and more purge demons do not stack. It fires whether that side is winning or losing, and the destroyed demons count as casualties. Purge also adds to the losses that can break a horde. ${DK.filter(k=>DT[k].purge).map(k=>`${DT[k].n} (purge ${DT[k].purge}) reaches ${DK.filter(j=>DT[j].t<=DT[k].purge).map(j=>DT[j].n).join(", ")}`).join("; ")}. Purge does not affect planes: a plane's own defense never purges.</p></details>
+ <details><summary>Prototype assumptions</summary><p class="note">Every demon is Fast or Heavy. Fast demons move 3 planes a turn and give less strength per soul; Heavy demons move 1 plane a turn and give more. In the first three rounds of a fight, a force made only of Fast demons adds 3 to its tactics roll against a force made only of Heavy demons. A horde moves at the pace of its slowest demon. Planes you hold cost half a move to cross. A general is Fast or Heavy and can only summon demons of its class. The Shadow Horde adds a third of its strength to the defense of every plane you hold, all of it at home. Plane quality odds are treated as weights because the deck's table adds to 110%.</p></details></div></div>`;
+ h+=`<div class="sec"><h3>Result code</h3><p class="note">A result code is a short block of text that records how your game went: the final or current standings, how every prince scored, and the orders you gave each turn. Send it to whoever you want to see your game.</p><div class="tools"><button class="btn" data-mp="rescode">Make my result code</button><button class="btn" data-mp="resbox">Read a result code</button></div></div>`;
+ h+=`<div class="sec"><h3>Save code</h3><p class="note">A save code holds your whole game, so you can carry on from this exact moment if your browser ever loses it (browsers sometimes do, especially on phones and tablets, and after the game is updated). Copy one now and then and keep it somewhere safe.</p><div class="tools"><button class="btn" data-mp="savecode">Make my save code</button><button class="btn" data-mp="savebox">Restore a saved game</button></div></div>`;
+ h+=`<div class="sec"><button class="btn" data-act="newgame">${UI.confirmNew?"Click again to abandon this game":"Start a new game"}</button></div>`;
+ $("#main").innerHTML=h}
+
+/* ===== GAME OVER ===== */
+function showOver(){
+ const o=$("#over");if(UI.hideOver){o.hidden=true;return}
+ const sc=G.players.map((p,i)=>({i,v:vp(i)})).sort((a,b)=>b.v.total-a.v.total),w=sc[0],mg=sc[1]?Math.round((w.v.total/sc[1].v.total-1)*100):0;
+ const deg=mg>=50?"Crushing":mg>=20?"Decisive":mg>=5?"Narrow":"Photo finish";
+ o.hidden=false;
+ o.innerHTML=`<div class="box"><h2 style="font-size:40px;color:var(--ember)">${w.i===0?"You are King of Demons":`${G.players[w.i].name} is King of Demons`}</h2><p class="sub">Game No. ${G.no}. ${deg} victory: ${mg}% ahead of second place after ${G.turn-1} turns.</p>
+ <div class="card"><table><tr><th>#</th><th>Prince</th><th class="r">Points</th><th class="r">Chaos</th><th class="r">Planes</th></tr>${sc.map((x,k)=>`<tr><td>${k+1}</td><td style="color:var(--c${x.i})">${G.players[x.i].name}</td><td class="r">${fmt0(x.v.total)}</td><td class="r">${G.players[x.i].rank}</td><td class="r">${ownedPlanes(x.i).length}</td></tr>`).join("")}</table></div>
+ <div class="tools" style="margin-top:14px"><button class="btn pri" data-act="playagain">Play again</button><button class="btn" data-mp="rescode">Result code</button><button class="btn" data-act="closeover">Review the final report</button></div></div>`}
+
+/* ===== EVENTS ===== */
+function renderAll(){renderHeader();({report:renderReport,orders:renderOrders,realm:renderRealm,standing:renderStanding})[UI.tab]();if(G.over)showOver();else $("#over").hidden=true}
+function doResolve(){if(G.over)return;resolveTurn();UI.rep=null;UI.tab="report";UI.filter="all";UI.hideOver=false;save();renderAll();window.scrollTo(0,0)}
+function act(t){const d=t.dataset,P=G.players[0];
+ switch(d.act){
+  case"tab":UI.tab=d.id;(G.seenTabs=G.seenTabs||{})[d.id]=true;save();if(d.plane)UI.sel=d.plane;renderAll();window.scrollTo(0,0);break;
+  case"plane":UI.sel=d.id;UI.tab="realm";renderAll();{const el=$("#pdetail");if(el&&t.closest("svg")===null)window.scrollTo(0,0)}break;
+  case"horde":UI.tab="orders";renderAll();setTimeout(()=>{const el=document.getElementById("hc-"+d.id);if(el)el.scrollIntoView({block:"center"})},0);break;
+  case"filter":UI.filter=d.id;renderAll();break;
+  case"pdf":exportPdf();break;
+  case"battle":UI.open[d.k]=!UI.open[d.k];renderReport();break;
+  case"gdet":{UI.open["gd"+d.id]=!UI.open["gd"+d.id];const y=window.scrollY;({report:renderReport,orders:renderOrders,realm:renderRealm,standing:renderStanding})[UI.tab]();window.scrollTo(0,y);break}
+  case"pvp":{UI.open["vp"+d.id]=!UI.open["vp"+d.id];const y=window.scrollY;({report:renderReport,orders:renderOrders,realm:renderRealm,standing:renderStanding})[UI.tab]();window.scrollTo(0,y);break}
+  case"send":{const h=G.hordes.find(x=>x.id===+d.h);const on=h.cmd&&h.cmd.type===d.cmd&&h.cmd.target===d.id;h.cmd=on?{type:"HOLD"}:{type:d.cmd,target:d.id};renderAll();break}
+  case"abil":{UI.open.abil=!UI.open.abil;const y=window.scrollY;renderOrders();window.scrollTo(0,y);break}
+  case"dtab":{UI.open.dtab=!UI.open.dtab;const y=window.scrollY;renderOrders();window.scrollTo(0,y);break}
+  case"resolve":doResolve();break;
+  case"pp":{const i=+d.i,c=P.princely[i],p=calcPlan(),other=c.souls||0;c.souls=Math.max(0,Math.floor((p.rem+other)*+d.f));if(c.type==="SCRY")c.souls=Math.max(SCRYU,scrySnap(c.souls));renderOrders();break}
+  case"lastp":P.princely=clone(P.lastP);renderOrders();break;
+  case"clearp":setDefaults();renderOrders();break;
+  case"newgame":if(UI.confirmNew){UI.confirmNew=false;newGame();UI.tab="report";UI.rep=null;save();renderAll();window.scrollTo(0,0)}else{UI.confirmNew=true;renderStanding()}break;
+  case"playagain":newGame();UI.tab="report";UI.rep=null;UI.hideOver=false;save();renderAll();window.scrollTo(0,0);break;
+  case"closeover":UI.hideOver=true;UI.tab="report";renderAll();break}}
+document.addEventListener("click",e=>{const t=e.target.closest("[data-act]");if(t)act(t)});
+document.addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.matches&&e.target.matches("[data-act][tabindex]")){e.preventDefault();act(e.target)}});
+function onField(e){const t=e.target,k=t.dataset.k;if(!k)return;const P=G.players[0],v=t.value,hid=t.dataset.h;
+ const H=hid&&hid!=="S"?G.hordes.find(x=>x.id===+hid):null;
+ if(k==="rep"){UI.rep=+v===G.reports.length-1?null:+v;renderReport();return}
+ if(e.type==="input"){
+  if(k==="qty"){const n=hid==="S"?P.shadowCmd.n:H.cmd.n;n[t.dataset.d]=Math.max(0,Math.floor(+v||0));renderSums()}
+  else if(k==="ps"){P.princely[+t.dataset.i].souls=Math.max(0,Math.floor(+v||0));renderSums()}
+  return}
+ if(k==="cmd"){const old=H.cmd.target;H.cmd={type:v};if(v==="SUMMON")H.cmd.n={};if(v==="DOMINATE"||v==="MARCH"||v==="RAID")H.cmd.target=old||"";renderOrders()}
+ else if(k==="tgt"){H.cmd.target=v;renderOrders()}
+ else if(k==="scmd"){P.shadowCmd=v?{type:v,n:{}}:null;renderOrders()}
+ else if(k==="pc"){const c=P.princely[+t.dataset.i];c.type=v;if(v==="UNLEASH")c.cls="H";if(v!=="UNLEASH")delete c.name;c.souls=v==="UNLEASH"?UNLEASH:v==="SCRY"?SCRYU:v==="FORGE"?forgeCost(G.turn):v==="BREAK"?BREAKC:0;if(v!=="FORGE")delete c.target;renderOrders()}
+ else if(k==="pu"){P.princely[+t.dataset.i].cls=v==="F"?"F":"H";renderOrders()}
+ else if(k==="pt"){const c=P.princely[+t.dataset.i];c.target=v===""?null:+v;renderSums()}
+ else if(k==="ps"){const c=P.princely[+t.dataset.i];if(c.type==="SCRY"){c.souls=Math.max(SCRYU,scrySnap(c.souls));t.value=c.souls}renderSums()}
+ else if(k==="qty")renderSums()}
+document.addEventListener("change",onField);document.addEventListener("input",e=>{const t=e.target;if(t.dataset&&t.dataset.k==="pun"){const c=G.players[0].princely[+t.dataset.i];const v=t.value.replace(/[^A-Za-z ]/g,"").replace(/ {2,}/g," ").replace(/^ /,"");if(v!==t.value)t.value=v;if(c)c.name=v.slice(0,24);return}if(t.type==="number")onField(e)});
