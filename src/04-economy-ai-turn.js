@@ -7,7 +7,7 @@ const yieldNow=pl=>pl.owner==null||pl.owner<0?0:Math.round(QV(pl.q)*DOM[pl.dom].
 const maxNow=pl=>pl.owner==null||pl.owner<0?0:Math.round(QV(pl.q)*(1+RK[G.players[pl.owner].rank].b)*(1+shadowBonus(pl.owner)));
 function defNum(id,k){const pl=G.planes[id];if(pl.owner===ME){const s=pdStats(pl);return Math.round(s.s)}
  {const g=(k.h||[]).find(x=>x.o===-1);if(g)return g.p;if(k.np)return null}
- if(k.o!=null&&k.o>=0&&k.d>0){const d=DOM[k.d];return d.o+d.d}return 0}
+ if(k.o!=null&&k.o>=0&&k.d>0)return pubDef(id,k);return 0}
 /* Values the Known Planes table shows for one plane; owned planes are read live. */
 function rowVals(id){const pl=G.planes[id];let k=G.players[ME].known[id];if(!k||!k.full)return null;if(pl.owner===ME)k=Object.assign({},k,{o:ME,d:pl.dom,q:pl.q,np:null});
  return{d:k.d,q:k.q,y:pl.owner===ME?yieldNow(pl):QV(k.q),f:defNum(id,k)}}
@@ -47,7 +47,7 @@ function aiPlan(p){
  const fo=Math.floor(w*.2);if(fo>0&&P.rank<10){P.princely.push({type:"FOMENT",souls:fo});w-=fo}
  let budget=Math.floor(w*.85);
  const want=4000+1300*G.turn*P.agg;
- const sb=Math.floor(budget*.1);if(sb>=100){const k=allowed.includes("Dre")?"Dre":allowed[0];P.shadowCmd={type:"SUMMON",n:{[k]:Math.floor(sb/DT[k].cost)}};budget-=sb}
+ const sb=Math.floor(budget*.1);if(sb>=100){const k=allowed.includes("Dre")?"Dre":allowed[0];P.shadowCmd={type:"SSUMMON",n:{[k]:Math.floor(sb/DT[k].cost)}};budget-=sb}
  for(const h of hs){
   const s=hstats(h);let done=false;
   const ready=s.val>=2200+350*G.turn;
@@ -77,7 +77,7 @@ function resolveTurn(){
  const T=G.turn;G.ev=[];G.fq={};
  for(const h of G.hordes)if(h.owner>=0)h.pd=Object.assign({},h.demons);/* demons before this turn, for the change shown on the horde card */
  const HS=humanSeats(),BS={};
- if(G.players[0].human){const P0=G.players[0];(G.hist=G.hist||[]).push({t:T,p:P0.princely.filter(c=>c.type).map(c=>[c.type,c.souls|0,c.target==null?null:c.target,c.name||null]),h:G.hordes.filter(h=>h.owner===0).map(h=>[h.id,h.cmd.type,h.cmd.target||null])})}/* what the human prince ordered this turn, for the result code */
+ if(G.players[0].human){const P0=G.players[0];(G.hist=G.hist||[]).push({t:T,p:P0.princely.filter(c=>c.type).map(c=>[c.type,c.souls|0,c.target==null?null:c.target,c.name||null]),h:G.hordes.filter(h=>h.owner===0).map(h=>[h.id,h.cmd.type,h.cmd.target||null]),s:(P0.shadowCmd&&(P0.shadowCmd.type==="SSUMMON"||P0.shadowCmd.type==="SUMMON")?["SHADOW SUMMON",Object.keys(P0.shadowCmd.n||{}).reduce((a,k)=>a+(DT[k]?Math.max(0,Math.floor(+P0.shadowCmd.n[k]||0))*DT[k].cost:0),0)]:null)})}/* what the human prince ordered this turn, for the result code */
  for(const s of HS)as(s,()=>{const me=G.players[s]; /* the start-of-turn picture each human prince's report compares against */
   BS[s]={well:me.well,income:income(s),planes:ownedPlanes(s).length,demons:demonCount(s),rank:me.rank,vpr:vpRank(s),vp:vp(s).total};
   const pv={};for(const id in me.known){const v=rowVals(id);if(v)pv[id]=v}setPrev(s,pv)})
@@ -86,13 +86,13 @@ function resolveTurn(){
  for(const p of G.players)if(!p.human&&!p.elim)aiPlan(p.id);
  /* 1. summon spending */
  for(const P of G.players){
-  const tier=effTier(P.id);
+  const tier=effTier(P.id);if(P.shadowCmd&&P.shadowCmd.type==="SUMMON")P.shadowCmd.type="SSUMMON";/* SHADOW SUMMON (older orders called it SUMMON) */
   const items=hordesOf(P.id).map(h=>({h,c:h.cmd,shadow:false}));
   if(P.shadowCmd&&P.shadowCmd.type)items.push({h:null,c:P.shadowCmd,shadow:true});
   for(const it of items){const c=it.c,h=it.h;
    if(c.type==="DISBAND"&&!it.shadow){let val=0,nn=0;for(const k in h.demons){val+=h.demons[k]*DT[k].cost;nn+=h.demons[k]}
     const back=Math.floor(val*.1);P.well+=back;it.res={disband:true,back,n:nn};h.demons={};h.pend=null;h.gone=true;h.t.disbanded=true;h.cmd={type:"HOLD"}}
-   else if(c.type==="SUMMON"){const n=cleanN(c.n,tier,it.shadow?"F":h.cls),cost=sumH(n,it.shadow?null:h);
+   else if(c.type==="SUMMON"||c.type==="SSUMMON"){const n=cleanN(c.n,tier,it.shadow?"F":h.cls),cost=sumH(n,it.shadow?null:h);
     if(cost>0&&cost<=P.well){P.well-=cost;P.consumed+=cost;it.res={summon:n,cost};if(it.shadow)P.pendS=n;else h.pend=n}
     else it.res={fail:cost>P.well?"not enough souls":"nothing to summon"}}
    if(it.shadow)P.shadowRes=it.res;else h.t.res=it.res}}

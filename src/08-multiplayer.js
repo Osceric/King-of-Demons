@@ -26,8 +26,8 @@ function viewFor(s){
   const o={id:p.id,x:p.x,y:p.y,links:p.links,name:p.name,short:p.short};
   if(known[id]&&known[id].q!=null)o.q=p.q;planes[id]=o}
  const players=G.players.map((_,i)=>{const r=G.players[sw(i)],o=clone2(r);o.id=i;o.ai=!r.human;o.color=`var(--c${i})`;o.human=i===0;delete o.email;delete o.reports;delete o.echoP;o.met=(r.met||[]).map(sw);
-  if(i!==0){for(const k of["princely","shadowCmd","known","prev","pendS","scryR","lastP","shadow","unleash","shadowRes","noOrders"])delete o[k]}
-  else{o.known=walk(clone2(r.known||{}));delete o.prev}
+  if(i!==0){o.shs=Math.round(shadowStr(sw(i)));for(const k of["princely","shadowCmd","known","prev","pendS","scryR","lastP","shadow","unleash","shadowRes","noOrders"])delete o[k]}
+  else{o.known=walk(clone2(r.known||{}));delete o.prev;if(r.sh){o.sh={};for(const q in r.sh)o.sh[sw(+q)]=r.sh[q]}}
   return o});
  const reps=repsOf(s),last=reps[reps.length-1];
  return{seed:0,ver:G.ver,pal:G.players.map((_,i)=>i===0?0:(G.pal?G.pal[sw(i)===0?s:sw(i)]:i)),fv:G.over?G.players.map((_,i)=>vp(sw(i))):null,no:G.no,turn:G.turn,planes,hordes:hordesOf(s).map(h=>{const o=clone2(h);o.owner=0;return o}),nextH:G.nextH,usedGen:G.usedGen,players,
@@ -46,7 +46,7 @@ function applyOrders(o){
  const sw=n=>n===s?0:n===0?s:n;
  const pl=(Array.isArray(o.p)?o.p:[]).slice(0,4).map(c=>{const r={type:PCH_OK(c&&c.type)?c.type:"",souls:Math.max(0,Math.floor(+(c&&c.souls)||0))};if(r.type==="UNLEASH"){r.cls=c&&c.cls==="F"?"F":"H";r.name=cleanName(c&&c.name)}if(r.type==="FORGE"){r.target=Number.isInteger(c.target)?sw(c.target):null;r.souls=forgeCost(G.turn)}return r});
  while(pl.length<4)pl.push({type:"",souls:0});
- P.princely=pl;P.shadowCmd=o.sc&&typeof o.sc.type==="string"?o.sc:null;
+ P.princely=pl;P.shadowCmd=o.sc&&typeof o.sc.type==="string"?o.sc:null;if(P.shadowCmd&&P.shadowCmd.type==="SUMMON")P.shadowCmd.type="SSUMMON";
  (G.got||(G.got={}))[s]=Date.now();return P.name}
 
 /* ---- Mail (copyable; Gmail drafts when the connector is available) ---- */
@@ -84,7 +84,7 @@ async function makeOrders(){const P=G.players[0];
 const resObj=()=>({k:"res",v:G.ver,g:G.no,sd:G.seed0,cfg:G.cfg,mode:MODE,turn:G.turn,over:!!G.over,end:G.end?G.end.reason:null,at:Date.now(),
  pl:G.players.map((p,i)=>{let v=null,pn=null;try{if(MODE!=="player"||i===0||G.fv)v=(G.fv&&G.fv[i])||vp(i)}catch(e){}try{if(MODE!=="player"||i===0)pn=ownedPlanes(i).length}catch(e){}return{n:p.name,h:p.human?1:0,rk:p.rank,vp:v?v.total:null,pa:v?v.parts.map(x=>[x[0],x[1]]):[],pn}}),hist:G.hist||[]});
 function resHTML(o){const f=n=>n==null?"–":fmt0(n),pl=o.pl||[],sc=pl.map((p,i)=>({p,i})).sort((a,b)=>(b.p.vp||0)-(a.p.vp||0));
- const ord=t=>[...(t.p||[]).map(c=>`${c[0]} ${f(c[1])}${c[2]!=null?" → "+c[2]:""}${c[3]?" ("+c[3]+")":""}`),...(t.h||[]).map(h=>`H${h[0]} ${h[1]}${h[2]?" "+h[2]:""}`)].join("; ");
+ const ord=t=>[...(t.p||[]).map(c=>`${c[0]} ${f(c[1])}${c[2]!=null?" → "+c[2]:""}${c[3]?" ("+c[3]+")":""}`),...(t.h||[]).map(h=>`H${h[0]} ${h[1]}${h[2]?" "+h[2]:""}`),...(t.s?[`${t.s[0]} ${f(t.s[1])}`]:[])].join("; ");
  return`<div class="card"><h3 style="margin-top:0">${esc(pl[0]?pl[0].n:"Player")}'s game</h3><p class="note">Game No. ${esc(o.g)}, version ${esc(o.v)}, seed ${esc(o.sd)}, map ${esc(o.cfg&&o.cfg.nx)}×${esc(o.cfg&&o.cfg.ny)}, mode ${esc(o.mode)}. ${o.over?"Finished":"In progress"} after ${Math.max(0,(o.turn||1)-(o.over?1:0))} turns${o.end?`. Ending trigger: ${esc(o.end)}`:""}. Recorded ${esc(new Date(o.at||0).toLocaleString())}.</p>
  <table><tr><th>#</th><th>Prince</th><th class="r">Points</th><th class="r">Chaos</th><th class="r">Planes</th></tr>${sc.map((x,k)=>`<tr><td>${k+1}</td><td>${esc(x.p.n)}${x.p.h?"":" (AI)"}</td><td class="r">${f(x.p.vp)}</td><td class="r">${f(x.p.rk)}</td><td class="r">${f(x.p.pn)}</td></tr>`).join("")}</table>
  ${sc.map(x=>x.p.pa&&x.p.pa.length?`<details><summary>${esc(x.p.n)}: points breakdown</summary><p class="note">${x.p.pa.map(r=>`${esc(r[0])} ${f(r[1])}`).join("; ")}</p></details>`:"").join("")}</div>

@@ -469,3 +469,15 @@ v1.127: New horde order RAID (cmd RAID, one turn only). Target must be a plane h
 ## v2.19
 - Purge starts sooner and runs one step higher through most of the ladder: Brazenhorn 1, Hezrou 2, Malflesh 3, Slagmaw 4, Hate Fiend 6, Soulhammer 8, Balor 10, Shogoth 12, Ungol 14 (was Hezrou 1, Malflesh 2, Slagfiend 3, Hate Fiend 5, Soulhammer 7, Balor 9, Shogoth 11, Ungol 13).
 - Slagfiend renamed Slagmaw. Rules text and the "Purged by Heavy Tier" columns follow the table automatically.
+
+## v2.20
+- Shadow Horde strength is now public. The Defense column on Known Planes (and the plane detail) for a prince's plane = domination strength + the owner's Shadow Horde strength (all of it at their home plane, a third elsewhere), read live.
+- The odds estimate uses that real defense number (jitter narrowed from 0.9-1.4x to 0.9-1.2x because the shadow part is no longer unseen). Example in test: an attack that was ~100% against a bare plane drops to ~13% when a 4,500-strength Shadow Horde defends it.
+- A paid SCRY (2,500+ souls) also reads the makeup (demon kinds and counts) of the Shadow Horde of every prince who holds a plane within its reach. The latest reading is kept per prince (`players[0].sh`) and shown in the plane detail with the turn it was read. The free SCRY shows only strength.
+- Multiplayer: each player's copy carries every prince's public Shadow strength (`shs`) and remaps their scried makeups to their own seat numbering.
+- Rules text: SCRY description, Shadow Horde card and "Prototype assumptions" updated.
+
+## v2.21
+- Purge now reaches the Shadow Horde. When a horde fights a prince's planar defenses, its purge destroys 10% of each Shadow Horde kind within reach (min 1 of each kind present), scaled by the share defending that plane (all at the home plane, a third elsewhere). The defense strength drops by the matching share. A plane's own defense still never purges.
+- Shadow Horde SUMMON renamed SHADOW SUMMON (internal type SSUMMON; older orders using SUMMON are converted on load). Function unchanged.
+- Result codes / Turn by turn now list the command, e.g. "SHADOW SUMMON 3,000" (souls spent).

@@ -21,12 +21,13 @@ function visH(id,me){
 function snap(id,extra){const K=G.players[ME].known,p=G.planes[id];K[id]=Object.assign(K[id]||{},{t:G.turn,o:p.owner,d:p.dom,q:p.q,np:p.npc?p.npcName:null,full:true,fs:(K[id]&&K[id].full)?K[id].fs:G.turn},extra||{})}
 function stub(id){const K=G.players[ME].known;if(!K[id])K[id]={t:-1,full:false}}
 function updateKnow(scryR){
- scryR=Math.max(1,scryR||0); /* a free SCRY every turn: every plane adjacent to your holdings and hordes is revealed */
+ const paid=(scryR||0)>=2;scryR=Math.max(1,scryR||0); /* a free SCRY every turn: every plane adjacent to your holdings and hordes is revealed */
  for(const id in G.players[ME].known){const k=G.players[ME].known[id];if(k.o===ME&&G.planes[id].owner!==ME)snap(id)} /* a plane you held and lost is never shown as yours */
  const mine=new Set();for(const id in G.planes)if(G.planes[id].owner===ME)mine.add(id);
  for(const h of hordesOf(ME))mine.add(h.loc);
  for(const id of mine){snap(id,{h:visH(id,ME),ht:G.turn});for(const n of G.planes[id].links)stub(n)}
- if(scryR){const dm=multiDist([...mine]);for(const id in dm)if(dm[id]<=scryR&&!mine.has(id)){snap(id,{h:visH(id,ME),ht:G.turn});for(const n of G.planes[id].links)stub(n)}}
+ if(scryR){const dm=multiDist([...mine]);for(const id in dm)if(dm[id]<=scryR&&!mine.has(id)){snap(id,{h:visH(id,ME),ht:G.turn});for(const n of G.planes[id].links)stub(n)}
+  if(paid){const P=G.players[ME];P.sh=P.sh||{};for(const id in dm)if(dm[id]<=scryR){const o=G.planes[id].owner;if(o!=null&&o>=0&&o!==ME)P.sh[o]={t:G.turn,d:Object.assign({},G.players[o].shadow)}}}}/* a paid SCRY also reads the makeup of the Shadow Horde of every prince who holds a plane in its reach */
  {const K=G.players[ME].known;/* Farsighted: the hordes (not the planes) within two planes of one of your Farsighted generals */
   for(const fh of hordesOf(ME))if(total(fh)&&hasAb(fh,"FARS")){const dd=distMap(fh.loc);for(const id in dd)if(dd[id]<=2&&!mine.has(id)){const hs=visH(id,ME);if(K[id]||hs.length)K[id]=Object.assign(K[id]||{t:-1,full:false},{h:hs,ht:G.turn})}}
   /* Judge: say what a newly read general carries, once */
@@ -45,9 +46,13 @@ const bandOf=(arr,v)=>{let b=0;for(let i=0;i<arr.length;i++)if(v>=arr[i].lo)b=i;
 function forceOf(pl,owner,hs){return{owner,hordes:hs}}
 function forcesAt(pl){const m=new Map();for(const h of G.hordes){if(h.loc!==pl.id||!total(h))continue;if(!m.has(h.owner))m.set(h.owner,[]);m.get(h.owner).push(h)}return[...m].map(([o,hs])=>forceOf(pl,o,hs))}
 function shadowStr(o){let s=0;const S=G.players[o].shadow;for(const k in S)s+=S[k]*DT[k].st;return s}
+/* A Shadow Horde's strength is public. In the real game it is read live; in a player's own copy of the game it is carried in "shs". */
+const pubSh=o=>{const P=G.players[o];return P.shadow?shadowStr(o):(P.shs||0)};
+/* what the Known Planes table and the odds show as a prince plane's defense: domination plus the public Shadow Horde (all of it at their home, a third elsewhere) */
+const pubDef=(id,k)=>{const d=DOM[k.d],o=k.o,has=o!=null&&o>=0;return d.o+d.d+(has?Math.round(pubSh(o)*(id===G.players[o].home?1:.33)):0)};
 /* planar defense strength: the domination level's own strength plus the owner's Shadow Horde (all of it at home, half elsewhere) */
 function pdStats(pl){const d=DOM[pl.dom],has=pl.owner!=null&&pl.owner>=0,sh=has?shadowStr(pl.owner):0,f=has&&pl.id===G.players[pl.owner].home?1:.33;return{o:d.o,d:d.d,s:d.o+d.d+sh*f,f}}
-function pdForce(pl){const s=pdStats(pl);return{owner:pl.owner,planar:true,hordes:[],s0:s.s,rem:1,dom:pl.dom}}
+function pdForce(pl){const s=pdStats(pl);return{owner:pl.owner,planar:true,hordes:[],s0:s.s,rem:1,dom:pl.dom,f:s.f,shf:pl.owner!=null&&pl.owner>=0?shadowStr(pl.owner)*s.f:0}}
 const fStr=F=>{if(F.planar)return F.s0*F.rem;let t=0;for(const h of F.hordes)t+=hstats(h).str;return t};
 function applyFrac(F,f){let kv=0,kn=0;const bt={};
  const kill1=(S,k,c,kill)=>{S[k]=c-kill;if(!S[k])delete S[k];kv+=kill*DT[k].cost;kn+=kill;if(kill)bt[k]=(bt[k]||0)+kill};
@@ -57,7 +62,12 @@ function applyFrac(F,f){let kv=0,kn=0;const bt={};
  return{kv,kn,bt}}
 function purgeOf(F){let t=0;for(const h of F.hordes||[])for(const k in h.demons)if(DT[k].purge)t=Math.max(t,DT[k].purge);return t>0&&forceAb(F,"WARL")?t+1:t}
 /* Purge (nerfed): at the end of every round each side's best purge rating destroys 10% of the enemy's demons of that tier or lower */
-function purgeRound(F,thr){let kv=0,kn=0;const bt={};if(!thr||F.planar)return{kv,kn,bt};
+function purgeRound(F,thr){let kv=0,kn=0;const bt={};if(!thr)return{kv,kn,bt};
+ if(F.planar){/* purge reaches a prince's Shadow Horde when its planar defenses are fought: 10% of each kind within reach (never fewer than 1), scaled by the share that defends here (all of it at home, a third elsewhere) */
+  if(F.owner>=0&&F.shf>0){const S=G.players[F.owner].shadow;let before=0,lost=0;for(const k in S)before+=S[k]*DT[k].st;
+   for(const k of Object.keys(S))if(DT[k].t<=thr){const c=S[k],x=Math.min(c,Math.max(1,Math.floor(c*.1*(F.f||1)+rnd())));if(x>0){S[k]=c-x;if(!S[k])delete S[k];kv+=x*DT[k].cost;kn+=x;bt[k]=(bt[k]||0)+x;lost+=x*DT[k].st}}
+   if(before>0&&F.s0>0)F.rem=Math.max(0,F.rem*(1-(F.shf/F.s0)*(lost/before)))}
+  return{kv,kn,bt}}
  for(const h of F.hordes)for(const k of Object.keys(h.demons))if(DT[k].t<=thr){const c=h.demons[k],x=Math.min(c,Math.max(1,Math.floor(c*.1+rnd())));if(x>0){h.demons[k]=c-x;if(!h.demons[k])delete h.demons[k];kv+=x*DT[k].cost;kn+=x;bt[k]=(bt[k]||0)+x}}
  return{kv,kn,bt}}
 function purge(F,thr){let kv=0,kn=0;const bt={};if(!thr||F.planar)return{kv,kn,bt};
@@ -238,7 +248,7 @@ function oddsFor(h,id,K){
  const foes=[];let unknown=false,prince=false,pdS=0;
  for(const x of(k.h||[]).filter(x=>x.o!==0)){if(x.p==null)unknown=true;else foes.push({s:x.p,j:[.85,1.2]})}
  if(k.np&&!(k.h||[]).some(x=>x.o===-1)&&npcStr(k.q)>0)foes.push({s:npcStr(k.q),j:[.85,1.2]});
- if(k.o!=null&&k.o>0&&k.d>0&&!bonded(h.owner,k.o)){prince=true;pdS=DOM[k.d].o+DOM[k.d].d;foes.push({s:pdS,j:[.9,1.4]})}/* the owner's unseen Shadow Horde can add to a prince's defenses */
+ if(k.o!=null&&k.o>0&&k.d>0&&!bonded(h.owner,k.o)){prince=true;pdS=pubDef(id,k);foes.push({s:pdS,j:[.9,1.2]})}/* the plane's defense now includes the owner's public Shadow Horde strength */
  if(unknown||!foes.length)return unknown?{unknown:true}:null;
  const N=300,sv=G.seed;let win=0;
  try{G.seed=(0x9E3779B1^Math.imul(h.id+1,2654435761)^Math.imul(G.turn+7,40503)^Math.imul(id.charCodeAt(0)*97+id.length,977))|0;
