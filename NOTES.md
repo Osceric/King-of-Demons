@@ -505,3 +505,7 @@ v1.127: New horde order RAID (cmd RAID, one turn only). Target must be a plane h
 
 ## v2.26
 - The word "league" no longer appears in the game's text: "End multiplayer game and return to setup", "Click again to delete this multiplayer game". Code identifiers (G.league and similar) are unchanged. Notes and code comments say multiplayer game (MPG).
+
+## v2.27
+- Purge destroys 20% (was 10%) of each affected kind per round of combat, still at least 1 per kind. This includes a prince's Shadow Horde in planar-defense fights (full 20% at the home plane, a third of that elsewhere). Rules text and demon tooltips updated.
+- Why: nerf, not eliminate, the Jim strategy (no Foment, 30% of summons to the Shadow Horde). Sims (80 games, Jim 30% Shadow vs 3 Slap-level rivals): wins 74% to 56%; vs Kick-level rivals 34% to 26%; Patient 4% still beats Jim either way. Purged demons per all-AI game rose 939 to 1,585; danger-level win rates and game length barely moved.

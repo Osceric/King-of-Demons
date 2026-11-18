@@ -64,12 +64,12 @@ function applyFrac(F,f){let kv=0,kn=0;const bt={};
 function purgeOf(F){let t=0;for(const h of F.hordes||[])for(const k in h.demons)if(DT[k].purge)t=Math.max(t,DT[k].purge);return t>0&&forceAb(F,"WARL")?t+1:t}
 /* Purge (nerfed): at the end of every round each side's best purge rating destroys 10% of the enemy's demons of that tier or lower */
 function purgeRound(F,thr){let kv=0,kn=0;const bt={};if(!thr)return{kv,kn,bt};
- if(F.planar){/* purge reaches a prince's Shadow Horde when its planar defenses are fought: 10% of each kind within reach (never fewer than 1), scaled by the share that defends here (all of it at home, a third elsewhere) */
+ if(F.planar){/* purge reaches a prince's Shadow Horde when its planar defenses are fought: 20% of each kind within reach (never fewer than 1), scaled by the share that defends here (all of it at home, a third elsewhere) */
   if(F.owner>=0&&F.shf>0){const S=G.players[F.owner].shadow;let before=0,lost=0;for(const k in S)before+=S[k]*DT[k].st;
-   for(const k of Object.keys(S))if(DT[k].t<=thr){const c=S[k],x=Math.min(c,Math.max(1,Math.floor(c*.1*(F.f||1)+rnd())));if(x>0){S[k]=c-x;if(!S[k])delete S[k];kv+=x*DT[k].cost;kn+=x;bt[k]=(bt[k]||0)+x;lost+=x*DT[k].st}}
+   for(const k of Object.keys(S))if(DT[k].t<=thr){const c=S[k],x=Math.min(c,Math.max(1,Math.floor(c*.2*(F.f||1)+rnd())));if(x>0){S[k]=c-x;if(!S[k])delete S[k];kv+=x*DT[k].cost;kn+=x;bt[k]=(bt[k]||0)+x;lost+=x*DT[k].st}}
    if(before>0&&F.s0>0)F.rem=Math.max(0,F.rem*(1-(F.shf/F.s0)*(lost/before)))}
   return{kv,kn,bt}}
- for(const h of F.hordes)for(const k of Object.keys(h.demons))if(DT[k].t<=thr){const c=h.demons[k],x=Math.min(c,Math.max(1,Math.floor(c*.1+rnd())));if(x>0){h.demons[k]=c-x;if(!h.demons[k])delete h.demons[k];kv+=x*DT[k].cost;kn+=x;bt[k]=(bt[k]||0)+x}}
+ for(const h of F.hordes)for(const k of Object.keys(h.demons))if(DT[k].t<=thr){const c=h.demons[k],x=Math.min(c,Math.max(1,Math.floor(c*.2+rnd())));if(x>0){h.demons[k]=c-x;if(!h.demons[k])delete h.demons[k];kv+=x*DT[k].cost;kn+=x;bt[k]=(bt[k]||0)+x}}
  return{kv,kn,bt}}
 function purge(F,thr){let kv=0,kn=0;const bt={};if(!thr||F.planar)return{kv,kn,bt};
  for(const h of F.hordes)for(const k of Object.keys(h.demons))if(DT[k].t<=thr){const c=h.demons[k];kv+=c*DT[k].cost;kn+=c;bt[k]=(bt[k]||0)+c;delete h.demons[k]}
