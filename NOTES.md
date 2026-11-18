@@ -509,3 +509,9 @@ v1.127: New horde order RAID (cmd RAID, one turn only). Target must be a plane h
 ## v2.27
 - Purge destroys 20% (was 10%) of each affected kind per round of combat, still at least 1 per kind. This includes a prince's Shadow Horde in planar-defense fights (full 20% at the home plane, a third of that elsewhere). Rules text and demon tooltips updated.
 - Why: nerf, not eliminate, the Jim strategy (no Foment, 30% of summons to the Shadow Horde). Sims (80 games, Jim 30% Shadow vs 3 Slap-level rivals): wins 74% to 56%; vs Kick-level rivals 34% to 26%; Patient 4% still beats Jim either way. Purged demons per all-AI game rose 939 to 1,585; danger-level win rates and game length barely moved.
+
+## v2.28
+- New-game screen: "Your rivals" is now a full heading like "Name your demon prince". Each rival has its own full-width dropdown, and each choice starts "Danger Level: ". The win-percentage text is gone from the picker and the rules (the ranges stay in the notes and code until they are checked against human play).
+
+## v2.29
+- Rivals picker text: "Choose how dangerous each rival prince will be. The details of its strategy remain a secret." plus a NOTE that a small minority of princes may also be Peaceful or Grudge (separate from danger level), revealed when you can see one of their planes, by adjacency or SCRY.
