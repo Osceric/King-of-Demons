@@ -28,6 +28,7 @@ function updateKnow(scryR){
  for(const id of mine){snap(id,{h:visH(id,ME),ht:G.turn});for(const n of G.planes[id].links)stub(n)}
  if(scryR){const dm=multiDist([...mine]);for(const id in dm)if(dm[id]<=scryR&&!mine.has(id)){snap(id,{h:visH(id,ME),ht:G.turn});for(const n of G.planes[id].links)stub(n)}
   if(paid){const P=G.players[ME];P.sh=P.sh||{};for(const id in dm)if(dm[id]<=scryR){const o=G.planes[id].owner;if(o!=null&&o>=0&&o!==ME)P.sh[o]={t:G.turn,d:Object.assign({},G.players[o].shadow)}}}}/* a paid SCRY also reads the makeup of the Shadow Horde of every prince who holds a plane in its reach */
+ {const P=G.players[ME];P.pk=P.pk||{};const dm2=multiDist([...mine]);for(const id in dm2)if(dm2[id]<=scryR){const o=G.planes[id].owner;if(o!=null&&o>=0&&o!==ME&&G.players[o].pers&&!P.pk[o]){P.pk[o]=G.turn;if(P.human&&G.ev&&G.turn<=PEACE_T){const q=PERS[G.players[o].pers];ev(ME,{sev:"info",pri:2,text:`You have learned that [[X:${o}]] is ${q.n}: it ${q.d}`})}}}}/* a prince's personality shows when one of its planes lies in your SCRY reach (the free SCRY covers adjacent planes) */
  {const K=G.players[ME].known;/* Farsighted: the hordes (not the planes) within two planes of one of your Farsighted generals */
   for(const fh of hordesOf(ME))if(total(fh)&&hasAb(fh,"FARS")){const dd=distMap(fh.loc);for(const id in dd)if(dd[id]<=2&&!mine.has(id)){const hs=visH(id,ME);if(K[id]||hs.length)K[id]=Object.assign(K[id]||{t:-1,full:false},{h:hs,ht:G.turn})}}
   /* Judge: say what a newly read general carries, once */

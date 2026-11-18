@@ -1,4 +1,4 @@
-/* ===== MULTIPLAYER: league (GM) and player modes ===== */
+/* ===== MULTIPLAYER (MPG): game master (GM) and player modes ===== */
 const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const b64u=u=>{let s="";for(let i=0;i<u.length;i+=8192)s+=String.fromCharCode.apply(null,u.subarray(i,i+8192));return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")};
 const unb64u=s=>{s=s.replace(/-/g,"+").replace(/_/g,"/");while(s.length%4)s+="=";const b=atob(s),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u};
@@ -26,8 +26,8 @@ function viewFor(s){
   const o={id:p.id,x:p.x,y:p.y,links:p.links,name:p.name,short:p.short};
   if(known[id]&&known[id].q!=null)o.q=p.q;planes[id]=o}
  const players=G.players.map((_,i)=>{const r=G.players[sw(i)],o=clone2(r);o.id=i;o.ai=!r.human;o.color=`var(--c${i})`;o.human=i===0;delete o.email;delete o.reports;delete o.echoP;o.met=(r.met||[]).map(sw);
-  if(i!==0){o.shs=Math.round(shadowStr(sw(i)));for(const k of["princely","shadowCmd","known","prev","pendS","scryR","lastP","shadow","unleash","shadowRes","noOrders"])delete o[k]}
-  else{o.known=walk(clone2(r.known||{}));delete o.prev;if(r.sh){o.sh={};for(const q in r.sh)o.sh[sw(+q)]=r.sh[q]}}
+  if(i!==0){o.shs=Math.round(shadowStr(sw(i)));for(const k of["princely","shadowCmd","known","prev","pendS","scryR","lastP","shadow","unleash","shadowRes","noOrders","pk","strat"])delete o[k];if(!(real.pk&&real.pk[sw(i)]))delete o.pers}
+  else{if(r.pk){o.pk={};for(const q in r.pk)o.pk[sw(+q)]=r.pk[q]}o.known=walk(clone2(r.known||{}));delete o.prev;if(r.sh){o.sh={};for(const q in r.sh)o.sh[sw(+q)]=r.sh[q]}}
   return o});
  const reps=repsOf(s),last=reps[reps.length-1];
  return{seed:0,ver:G.ver,pal:G.players.map((_,i)=>i===0?0:(G.pal?G.pal[sw(i)===0?s:sw(i)]:i)),fv:G.over?G.players.map((_,i)=>vp(sw(i))):null,no:G.no,turn:G.turn,planes,hordes:hordesOf(s).map(h=>{const o=clone2(h);o.owner=0;return o}),nextH:G.nextH,usedGen:G.usedGen,players,
@@ -113,7 +113,7 @@ renderAll=function(){
  try{applyPal(G&&G.pal)}catch(e){}
  if(MODE==="gm"){renderGMHeader();return renderGM()}
  if(MODE==="player"&&!G){renderJoinHeader();return renderJoin()}
- _ra();if(MODE==='solo'&&G&&G.askName&&!G.league&&!$('#mpmodal'))modal(`<h2>Name your demon prince</h2><p class="sub">${window.OLDGAME?"Your saved game came from version 1.81 or earlier, which can no longer be played, so a new game has begun. ":""}Choose the name you will rule under, or keep the one the Abyss gave you.</p>${window.DIAG&&window.DIAG.store==="blocked"?`<p class="note" style="color:#e8604c">This browser is not letting the page save your game, so reloading or closing the tab will start a new one.</p>`:(window.DIAG&&window.DIAG.boots>0&&!window.OLDGAME?`<p class="note">No saved game was found, although this browser last opened King of Demons on ${new Date(window.DIAG.last).toLocaleString()}.</p>`:"")}<input type="text" id="pname" maxlength="40" value="${esc(G.players[0].name)}" aria-label="Prince name"><div class="row"><button class="btn pri" data-mp="pname">Begin</button><button class="btn" data-mp="pkeep">Keep this name</button></div>`)};
+ _ra();if(MODE==='solo'&&G&&G.askName&&!G.league&&!$('#mpmodal'))modal(`<h2>Name your demon prince</h2><p class="sub">${window.OLDGAME?"Your saved game came from version 1.81 or earlier, which can no longer be played, so a new game has begun. ":""}Choose the name you will rule under, or keep the one the Abyss gave you.</p>${window.DIAG&&window.DIAG.store==="blocked"?`<p class="note" style="color:#e8604c">This browser is not letting the page save your game, so reloading or closing the tab will start a new one.</p>`:(window.DIAG&&window.DIAG.boots>0&&!window.OLDGAME?`<p class="note">No saved game was found, although this browser last opened King of Demons on ${new Date(window.DIAG.last).toLocaleString()}.</p>`:"")}<input type="text" id="pname" maxlength="40" value="${esc(G.players[0].name)}" aria-label="Prince name"><h3 style="margin:14px 0 2px">Your rivals</h3><p class="note" style="margin:0 0 8px">Choose how dangerous each rival prince is: how often it tends to win against the others. How it plays stays a secret.</p>${G.players.slice(1).map((p,i)=>`<div class="row" style="align-items:center;gap:8px;margin:4px 0"><span style="flex:1;color:var(--c${i+1})">${esc(p.name)}</span><select id="dg${i}" aria-label="Danger of ${esc(p.name)}">${DANGER.map((d,k)=>`<option value="${k}"${k===DANGER_DEF?" selected":""}>${d.n} (${d.d})</option>`).join("")}</select></div>`).join("")}<div class="row"><button class="btn pri" data-mp="pname">Begin</button><button class="btn" data-mp="pkeep">Keep this name</button></div>`)};
 const _rh=renderHeader;
 renderHeader=function(){_rh();const t=$("#tabs");if(t)t.insertAdjacentHTML("beforeend",MODE==="player"?`<button class="btn sm" data-mp="turnbox" style="margin-left:auto">Load turn code</button>`:`<button class="btn sm" data-mp="menu" style="margin-left:auto">Multiplayer</button>`)};
 function bareHeader(sub){$("#gameno").textContent=G&&G.no?`Game No. ${G.no}v${GAME_VERSION}`:`King of Demons v${GAME_VERSION}`;$("#prince").innerHTML=sub;$("#meters").innerHTML="";$("#tabs").innerHTML=MODE==="player"?"":`<button class="btn sm" data-mp="menu">Multiplayer</button>`;$("#over").hidden=true}
@@ -148,7 +148,7 @@ function renderGM(){renderGMHeader();
  h+=`<div class="card"><h3>2 · Collect orders</h3><p class="note">Paste each reply's orders code here. Missing princes keep their standing horde orders and harvest all their souls.</p><textarea id="ocodes" placeholder="Paste an orders code"></textarea><div class="row"><button class="btn" data-mp="gotorders">Add orders</button></div>${GMX.msgs.map(m=>`<div class="msg ${m.bad?"bad":""}">${esc(m.t)}</div>`).join("")}</div>`;
  const miss=hs.filter(s=>!got[s]&&!G.players[s].elim);
  h+=`<div class="card"><h3>3 · Resolve</h3><p class="note">${miss.length?`Still missing: ${miss.map(s=>esc(G.players[s].name)).join(", ")}.`:"All human princes have sent orders."}</p><div class="row"><button class="btn pri" data-mp="resolve"${G.over?" disabled":""}>${GMX.confirm?"Click again to resolve":`Resolve turn ${T}`}</button></div>${G.over?`<div class="msg">The game is over.</div>`:""}</div>`;
- h+=`<div class="card"><h3>Backup</h3><div class="row"><button class="btn sm" data-mp="end">End league and return to setup</button></div></div></div>`;
+ h+=`<div class="card"><h3>Backup</h3><div class="row"><button class="btn sm" data-mp="end">End multiplayer game and return to setup</button></div></div></div>`;
  $("#main").innerHTML=h}
 function mailHTML(){if(!GMX.mail)return"";const sent=G.sent||{},n=GMX.mail.filter(m=>sent[m.s]).length;
  return`<div class="row"><button class="btn sm" data-mp="cpall">Copy all messages</button><span class="note">${n} of ${GMX.mail.length} marked sent</span></div>`+GMX.mail.map((m,i)=>`<div class="msg"><b>${esc(G.players[m.s].name)}</b> · <span class="note">${esc(m.to||"no email entered")} · code ${Math.round(m.size/1000*10)/10} KB</span> ${sent[m.s]?`<span class="ok">sent</span>`:""}<div class="row"><button class="btn sm" data-mp="cp" data-i="${i}" data-w="to">Copy address</button><button class="btn sm" data-mp="cp" data-i="${i}" data-w="subject">Copy subject</button><button class="btn sm" data-mp="cp" data-i="${i}" data-w="body">Copy message</button><button class="btn sm" data-mp="sent" data-i="${i}">${sent[m.s]?"Unmark sent":"Mark sent"}</button></div></div>`).join("")+`<p class="note">Paste each message into a new email or chat. Gmail drafts are not connected.</p>`}
@@ -183,14 +183,14 @@ async function gmAct(d,t){
  else if(a==="resolve"){const miss=humanSeats().filter(s=>!(G.got||{})[s]&&!G.players[s].elim);
   if(miss.length&&!GMX.confirm){GMX.confirm=true;return renderGM()}
   GMX.confirm=false;resolveTurn();G.got={};G.sent={};GMX.mail=null;GMX.msgs=[{t:`Turn ${G.turn-1} resolved. Prepare the mail for turn ${G.turn}.`}];save();renderGM()}
- else if(a==="end"){if(GMX.endc){G=null;try{localStorage.removeItem("kodGM")}catch(e){}GMX.endc=false;renderAll()}else{GMX.endc=true;t.textContent="Click again to delete this league"}}}
+ else if(a==="end"){if(GMX.endc){G=null;try{localStorage.removeItem("kodGM")}catch(e){}GMX.endc=false;renderAll()}else{GMX.endc=true;t.textContent="Click again to delete this multiplayer game"}}}
 document.addEventListener("click",async e=>{const t=e.target.closest("[data-mp]");if(!t)return;const d=t.dataset,a=d.mp;
  try{
   if(a==="menu")showMenu();
   else if(a==="close")closeModal();
   else if(a==="mode"){closeModal();setMode(d.m)}
   else if(a==="pkeep"){delete G.askName;save();closeModal()}
-  else if(a==="pname"){const v=cleanName($("#pname").value,40);const sd=G.seed0!=null?G.seed0:G.seed;if(v&&v!==G.players[0].name){newGame({name:v,seed:sd})}else delete G.askName;UI.tab="report";UI.rep=null;save();closeModal();renderAll()}
+  else if(a==="pname"){const v=cleanName($("#pname").value,40);const sd=G.seed0!=null?G.seed0:G.seed;const dg=G.players.slice(1).map((_,i)=>{const e=$("#dg"+i);return e?+e.value:DANGER_DEF});if((v&&v!==G.players[0].name)||dg.some(x=>x!==DANGER_DEF)){newGame({name:v||G.players[0].name,seed:sd,danger:dg})}else delete G.askName;UI.tab="report";UI.rep=null;save();closeModal();renderAll()}
   else if(a==="names"){modal(`<h2>AI prince names</h2><p class="sub">One name per line. Each new game gives its AI-controlled seats names drawn from this list, without repeats. Needs at least 3 names; add more for variety. Games already under way keep their names.</p><textarea id="nlist" style="min-height:260px">${esc(nameList().join("\n"))}</textarea><div class="row"><button class="btn pri" data-mp="nsave">Save names</button><button class="btn" data-mp="nreset">Restore the standard list</button><button class="btn" data-mp="close">Close</button></div><div id="mpmsg"></div>`)}
   else if(a==="nsave"){const l=[...new Set($("#nlist").value.split("\n").map(s=>s.trim()).filter(Boolean))];
    if(l.length<3)mpMsg("Enter at least 3 different names.",1);else{try{localStorage.setItem("kodAIN",JSON.stringify(l))}catch(e){}mpMsg(`Saved ${l.length} names. They apply to the next game you start.`)}}

@@ -29,28 +29,31 @@ const effTier=p=>RK[G.players[p].rank].t;
 function aiTarget(h,P){
  const s=hstats(h),d=costMap(h.loc,h.owner),dh=distMap(h.loc);let best=null,bs=0;
  for(const id in G.planes){const pl=G.planes[id];if(pl.owner===h.owner||dh[id]>9)continue;
+  let hunt=false;if(pl.owner!=null&&pl.owner>=0&&G.turn<=PEACE_T){const me=G.players[h.owner],tg=G.players[pl.owner];
+   if(tg.pers)continue;/* NPC princes leave Peaceful and Grudge princes alone */
+   if(me.pers){if(!(G.hit&&G.hit[h.owner]&&G.hit[h.owner][pl.owner]))continue;hunt=me.pers==="GRUDGE"}}/* they attack only a prince who has attacked them */
   let tS=0;
   const g=G.hordes.find(x=>x.owner===-1&&x.loc===id&&total(x));
   if(g){tS=hstats(g).str}else if(pl.npc)continue;
   if(pl.owner!=null){tS+=pdStats(pl).s}
   for(const e of G.hordes)if(e.loc===id&&e.owner>=0&&e.owner!==h.owner&&total(e)){tS+=hstats(e).str}
   const r=tS>0?s.str/tS:9;
-  if(r<1.6/P.agg)continue;
-  const sc=(pl.q+2)*(pl.owner==null?1.2:1)/(d[id]+1.5)/(1+(h.cls==="H"?.25*d[id]:0));if(sc>bs){bs=sc;best=id}}
+  if(r<(hunt?1.0:1.6/P.agg))continue;
+  const sc=(hunt?3:1)*(pl.q+2)*(pl.owner==null?1.2:1)/(d[id]+1.5)/(1+(h.cls==="H"?.25*d[id]:0));if(sc>bs){bs=sc;best=id}}
  return best}
 function aiPlan(p){
- const P=G.players[p],rk=RK[P.rank],hs=hordesOf(p);let w=P.well;
+ const P=G.players[p],rk=RK[P.rank],hs=hordesOf(p),prof=STRAT[P.strat]||{fom:true};let w=P.well;if(prof.save)w=w>=HARV_CAP?Math.max(0,w-(HARV_CAP-1000)):Math.floor(w*(1-prof.save));/* a saver plans with only part of the Well; the rest is harvested */
  P.princely=[];P.shadowCmd=null;
  const allowed=DK.filter(k=>DT[k].t<=rk.t),eff=k=>DT[k].st/DT[k].cost;
  const choose=cls=>{const s=allowed.filter(k=>DT[k].c===cls).sort((a,b)=>eff(b)-eff(a));return rnd()<.65?s[0]:pick(s.slice(0,Math.min(3,s.length)))};
  if(ownsHome(P.id)&&hs.length<capOf(P.id)&&w>=UNLEASH+3000&&G.turn>2){P.princely.push({type:"UNLEASH",souls:UNLEASH,cls:rnd()<.5?"F":"H"});w-=UNLEASH}
- const fo=Math.floor(w*.2);if(fo>0&&P.rank<10){P.princely.push({type:"FOMENT",souls:fo});w-=fo}
+ const fo=Math.floor(w*.2);if(fo>0&&P.rank<10){if(prof.fom)P.princely.push({type:"FOMENT",souls:fo});w-=fo}
  let budget=Math.floor(w*.85);
  const want=4000+1300*G.turn*P.agg;
  const sb=Math.floor(budget*.1);if(sb>=100){const k=allowed.includes("Dre")?"Dre":allowed[0];P.shadowCmd={type:"SSUMMON",n:{[k]:Math.floor(sb/DT[k].cost)}};budget-=sb}
  for(const h of hs){
   const s=hstats(h);let done=false;
-  const ready=s.val>=2200+350*G.turn;
+  const hunting=P.pers==="GRUDGE"&&G.turn<=PEACE_T&&G.hit&&G.hit[p]&&Object.keys(G.hit[p]).length>0,ready=s.val>=(2200+350*G.turn)*(hunting?.5:1);
   if(ready){const t=aiTarget(h,P);if(t){h.cmd={type:"DOMINATE",target:t};continue}}
   if(budget>=300&&s.val<want){
    const spend=Math.min(budget,Math.max(600,want-s.val)),n={};let rem=spend;
@@ -142,6 +145,7 @@ function resolveTurn(){
  /* 3. movement */
  for(const h of G.hordes)if(h.owner>=0&&(h.cmd.type==="DOMINATE"||h.cmd.type==="MARCH"||h.cmd.type==="RAID")){const tp=G.planes[h.cmd.target];if(tp&&tp.owner!=null&&bonded(h.owner,tp.owner)){h.cmd={type:"HOLD"};h.t.pact=tp.id}}/* a Blood Pact forbids dominating a partner's plane */
  for(const h of G.hordes)if(h.owner>=0&&h.cmd.type==="RAID"){const tp=G.planes[h.cmd.target];if(!tp||tp.npc||tp.owner==null||tp.owner<0||tp.owner===h.owner){h.t.badraid=h.cmd.target||true;h.cmd={type:"HOLD"}}}/* only planes held by another prince can be raided */
+ G.hit=G.hit||{};for(const h of G.hordes)if(h.owner>=0&&(h.cmd.type==="DOMINATE"||h.cmd.type==="MARCH"||h.cmd.type==="RAID")){const tp=G.planes[h.cmd.target];if(tp&&tp.owner!=null&&tp.owner>=0&&tp.owner!==h.owner)(G.hit[tp.owner]=G.hit[tp.owner]||{})[h.owner]=G.turn}/* an attack is an order that ends on a plane another prince owns (not a Blood Pact partner's, not a minor or unowned plane) */
  for(const h of G.hordes)if(h.cmd.type==="DOMINATE"||h.cmd.type==="MARCH"||h.cmd.type==="RAID")moveHorde(h);
  /* 4. conflicts */
  const ids=Object.keys(G.planes);

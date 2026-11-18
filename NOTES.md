@@ -481,3 +481,27 @@ v1.127: New horde order RAID (cmd RAID, one turn only). Target must be a plane h
 - Purge now reaches the Shadow Horde. When a horde fights a prince's planar defenses, its purge destroys 10% of each Shadow Horde kind within reach (min 1 of each kind present), scaled by the share defending that plane (all at the home plane, a third elsewhere). The defense strength drops by the matching share. A plane's own defense still never purges.
 - Shadow Horde SUMMON renamed SHADOW SUMMON (internal type SSUMMON; older orders using SUMMON are converted on load). Function unchanged.
 - Result codes / Turn by turn now list the command, e.g. "SHADOW SUMMON 3,000" (souls spent).
+
+## v2.22
+- NPC personalities (first 20 turns only, PEACE_T=20). Each game-run prince gets one at the start: 67% none (normal), 16.5% Peaceful, 16.5% Grudge. Human seats never have one.
+- Peaceful: attacks no prince who has not attacked it. Grudge: same peace, but a prince who attacks it is hunted: lower attack threshold (1.0 instead of 1.6), 3x target priority, and its hordes are ready at half the usual strength.
+- Other NPC princes never attack a Peaceful or Grudge prince through turn 20. Players are not restricted.
+- An attack is a DOMINATE, MARCH or RAID order that ends on a plane another prince owns (G.hit[victim][attacker]=turn). Minor/unowned planes and Blood Pact partners' planes do not count. Every personality, including a Grudge hunt, ends after turn 20.
+- Hidden until revealed: a prince's personality shows (princes list, plus a turn event) when one of its planes is in your SCRY reach, which includes planes next to yours. The multiplayer views strip unrevealed personalities. Rules text: "Princely personalities".
+- Sims (80 games each, seat 1 forced): NPCs attacked a Peaceful/Grudge prince by T20 in 0 of 80 games; an unprovoked Peaceful/Grudge prince attacked no one by T20 (normal: 6/80). Provoked at T6, Grudge attacked the provoker in 46/80 by T20 (Peaceful 15/80, normal 13/80). Protected princes win more often when left alone (38% vs 23%).
+
+## v2.23
+- AI strategy profiles (STRAT) and four Danger levels (DANGER): Low (<25% win), Moderate (25-50), High (51-74), Extreme (75+). Each level has a pool of strategies from the sims: Low = aggressive-pathetic, balanced-pathetic, aggressive-mediocre; Moderate = passive-pathetic, passive-mediocre, balanced-mediocre; High = passive-strong, Hedger; Extreme = balanced-strong, aggressive-strong. A profile sets attack readiness (agg), whether the prince Foments, and how much of its Well it saves for harvest (up to 80%, spending down to 249k once the Well reaches 250k).
+- New-game name screen now has a "Your rivals" picker: Random or a Danger level for each rival prince. The strategy itself stays hidden; the Danger level shows beside each rival on the princes list. Random = uniform over the four levels. Princes get a profile when a game is created (older saves keep the old planner).
+- Check (120 all-AI games, each level on every seat equally): wins Low 2-8%, Moderate 3-5%, High 36-40%, Extreme 53%. High and Extreme separate clearly; Low and Moderate do not separate within a mixed field.
+
+## v2.24
+- Danger levels reduced to three and renamed: "Strong Verbal Harassment and a Slap" (old Low + Moderate, under 50% win, six strategies), "A Kick in the Teeth and a Knee to the Groin" (old High, 51-74%, default), "Literal Armageddon" (old Extreme, 75%+). The Random option is gone; every rival starts on the default level, so new games and league AI seats are all "Kick in the Teeth" unless changed on the name screen.
+- P.danger is now a key (L/H/X). v2.23 saves that stored 0-3 are mapped by dangerOf().
+- Check (120 all-AI games with one Slap, two Kicks and one Armageddon per game): win rate per seat Slap 4%, Kick 25%, Armageddon 45%.
+
+## v2.25
+- The princes list shows a short Danger label (Slap, Kick, Armageddon). The full names stay on the name screen picker and in the rules text.
+
+## v2.26
+- The word "league" no longer appears in the game's text: "End multiplayer game and return to setup", "Click again to delete this multiplayer game". Code identifiers (G.league and similar) are unchanged. Notes and code comments say multiplayer game (MPG).

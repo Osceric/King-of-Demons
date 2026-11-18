@@ -159,7 +159,7 @@ const DK=Object.keys(DT);
 /* Every demon is Fast (class "F": 3 planes a turn, lower strength per soul) or Heavy (class "H": 1 plane a turn, higher strength per soul). A horde moves at the speed of its SLOWEST demon. Friendly planes cost half a move to enter. Each demon has one Strength value (st); there is no offense, defense or speed. Tiers run 1 to 22: Fast demons hold the odd tiers and Heavy the even ones. A horde is single-class: its general is Fast or Heavy when unleashed and can summon only that class. */
 const CLS={F:"Fast",H:"Heavy"};
 /* Bump on every published release; shown after the game number, e.g. 377560v29. */
-const GAME_VERSION="2.21";const MIN_VER="2.0";/* saved games and turn codes from older versions (1.81 and earlier carry no stamp) are no longer supported */
+const GAME_VERSION="2.26";const MIN_VER="2.0";/* saved games and turn codes from older versions (1.81 and earlier carry no stamp) are no longer supported */
 /* prince colors: you are always color 1 (orange); the other 11 palette colors are dealt to the rival princes at random, fixed for the life of a game by its seed */
 const PAL=["#e8782e","#4db6c9","#a98be0","#8cc276","#d4688f","#e0c34a","#e8dfc8","#a8342e","#2d55b0","#2e8b4f","#b9d84a","#9a6a4a"];
 function mkPal(n,seed){let x=((+seed||1)*2654435761+12345)>>>0;const r=()=>(x=(Math.imul(x,1664525)+1013904223)>>>0)/4294967296,a=[1,2,3,4,5,6,7,8,9,10,11];for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return[0].concat(Array.from({length:Math.max(0,n-1)},(_,i)=>a[i%11]))}
@@ -207,6 +207,12 @@ let G=null;
 function rnd(){let t=G.seed=(G.seed+0x6D2B79F5)|0;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}
 const ri=(a,b)=>a+Math.floor(rnd()*(b-a+1)),pick=a=>a[Math.floor(rnd()*a.length)];
 const pid=(x,y)=>COLS[x]+String(y).padStart(2,"0");
+/* AI strategy profiles (agg = attack readiness, fom = spends 20% on Foment, save = share of the Well left unspent to harvest until it reaches the cap) and the four Danger levels, which are measured win rates against default princes */
+const STRAT={AW:{agg:1.3,fom:true},BW:{agg:1,fom:true},AM:{agg:1.3,fom:false},PW:{agg:.7,fom:true},PM:{agg:.7,fom:false},BM:{agg:1,fom:false},PS:{agg:.7,fom:true,save:.7},HEDGE:{agg:.7,fom:true,save:.8},BS:{agg:1,fom:true,save:.7},AS:{agg:1.3,fom:true,save:.7}};
+const DANGER=[{k:"L",s:"Slap",n:"Strong Verbal Harassment and a Slap",d:"under 50% win",pool:["AW","BW","AM","PW","PM","BM"]},{k:"H",s:"Kick",n:"A Kick in the Teeth and a Knee to the Groin",d:"51-74% win",pool:["PS","HEDGE"]},{k:"X",s:"Armageddon",n:"Literal Armageddon",d:"75%+ win",pool:["BS","AS"]}],DANGER_DEF=1;
+const dangerOf=p=>{const k=typeof p.danger==="string"?p.danger:["L","L","H","X"][p.danger];return DANGER.find(d=>d.k===k)};/* v2.23 saves stored 0-3 */
+const PEACE_T=20;/* NPC personalities last through this turn */
+const PERS={PEACE:{n:"Peaceful",d:"attacks no prince who has not attacked it, and rival NPC princes leave it alone, through turn 20."},GRUDGE:{n:"Grudge",d:"keeps the same peace through turn 20, but a prince who attacks it is hunted hard until then."}};
 const HARV_CAP=250000;/* harvest shuts off while the Well holds this many souls */
 const TIP_WELL=`Your Well of Souls: the souls you hold right now. You spend them on commands. At the end of the turn, unspent souls are harvested: every 3 return as 4 next turn. Harvest shuts off while your Well holds ${HARV_CAP.toLocaleString("en-US")} or more souls.`,TIP_INC="Total Yield: the souls your planes pay into the Well each turn, after your Chaos and Shadow Horde bonuses. It is paid on top of any harvest, and the harvest limit does not affect it. A plane's Yield is determined by a plane's Value (shown as v on the realm map) and its Domination level (shown as d on the realm map).  Clicking on a plane will show its current yield and maximum potential yield in the detail section.";
 const fmt0=n=>Math.round(n).toLocaleString("en-US");
@@ -276,9 +282,9 @@ const ownsHome=p=>{const P=G.players[p],hp=G.planes[P.home];return !!hp&&hp.owne
 
 /* ===== NEW GAME ===== */
 function spreadHomes(n){const ids=Object.keys(G.planes),hs=[pid(1,NY>1?1:0)];while(hs.length<n){const ds=hs.map(h=>distMap(h));let best=null,bd=-1;for(const id of ids){if(hs.includes(id))continue;const m=Math.min(...ds.map(d=>d[id]));if(m>bd){bd=m;best=id}}hs.push(best)}return hs}
-function newGame(opts){opts=opts||{};const seats=opts.seats; /* league games pass seats: [{human,name,email}] for 2-8 princes, plus nx,ny map size (ny even) */
+function newGame(opts){opts=opts||{};const seats=opts.seats; /* multiplayer games (MPG) pass seats: [{human,name,email}] for 2-8 princes, plus nx,ny map size (ny even) */
  setDims(opts.nx,opts.ny);const NPL=seats?seats.length:4;
- G={seed:opts.seed!=null?opts.seed:(Date.now()^0x5bd1e995)|0,no:null,turn:1,planes:null,hordes:[],nextH:1,usedGen:[],players:[],reports:[],everDom:[],end:null,over:false,usedNpcN:[],bonds:[]};
+ G={seed:opts.seed!=null?opts.seed:(Date.now()^0x5bd1e995)|0,no:null,turn:1,planes:null,hordes:[],nextH:1,usedGen:[],players:[],reports:[],everDom:[],end:null,over:false,usedNpcN:[],bonds:[],hit:{}};
  G.seed0=G.seed;G.ver=GAME_VERSION;G.cfg={nx:NX,ny:NY};G.no=gameNo();if(seats)G.league={gm:true,created:Date.now()};
  G.planes=genMap();G.pal=mkPal(NPL,G.seed);
  const homeIds=(NX===10&&NY===6&&NPL===4)?[pid(1,1),pid(6,1),pid(3,4),pid(8,4)]:spreadHomes(NPL);
@@ -287,6 +293,9 @@ function newGame(opts){opts=opts||{};const seats=opts.seats; /* league games pas
   const sd=seats&&seats[i],human=seats?!!(sd&&sd.human):i===0;if(human&&sd&&cleanName(sd.name,40))nm=cleanName(sd.name,40);if(!seats&&i===0&&cleanName(opts.name,40))nm=cleanName(opts.name,40);
   const hp=G.planes[homeIds[i]];hp.q=7;hp.owner=i;hp.dom=6;
   const P={id:i,name:nm,human,email:(sd&&sd.email)||"",agg:i?AGG[i-1]:1,color:`var(--c${i})`,rank:1,rise:1,well:10000,foment:0,hret:0,consumed:0,carnage:0,domVal:0,home:hp.id,shadow:{},met:[],princely:[],lastP:null,known:{}};
+  if(!human){const r=rnd(),rl=rnd(),rs=rnd(),ai=G.players.filter(q=>!q.human).length,od=opts.danger&&opts.danger[ai];
+   P.pers=r<.165?"PEACE":r<.33?"GRUDGE":null;const lv=od!=null&&od>=0&&od<DANGER.length?od:DANGER_DEF,pool=DANGER[lv].pool;
+   P.danger=DANGER[lv].k;P.strat=pool[Math.floor(rs*pool.length)];P.agg=STRAT[P.strat].agg}/* each game-run prince gets a Danger level (chosen, default A Kick in the Teeth) and a hidden strategy from that level's pool *//* 67% of NPC princes are unpredictable (none); the rest are Peaceful or Grudge */
   G.players.push(P);
   newHorde(i,hp.id,{Maw:25},"H");
  });
@@ -331,6 +340,7 @@ function updateKnow(scryR){
  for(const id of mine){snap(id,{h:visH(id,ME),ht:G.turn});for(const n of G.planes[id].links)stub(n)}
  if(scryR){const dm=multiDist([...mine]);for(const id in dm)if(dm[id]<=scryR&&!mine.has(id)){snap(id,{h:visH(id,ME),ht:G.turn});for(const n of G.planes[id].links)stub(n)}
   if(paid){const P=G.players[ME];P.sh=P.sh||{};for(const id in dm)if(dm[id]<=scryR){const o=G.planes[id].owner;if(o!=null&&o>=0&&o!==ME)P.sh[o]={t:G.turn,d:Object.assign({},G.players[o].shadow)}}}}/* a paid SCRY also reads the makeup of the Shadow Horde of every prince who holds a plane in its reach */
+ {const P=G.players[ME];P.pk=P.pk||{};const dm2=multiDist([...mine]);for(const id in dm2)if(dm2[id]<=scryR){const o=G.planes[id].owner;if(o!=null&&o>=0&&o!==ME&&G.players[o].pers&&!P.pk[o]){P.pk[o]=G.turn;if(P.human&&G.ev&&G.turn<=PEACE_T){const q=PERS[G.players[o].pers];ev(ME,{sev:"info",pri:2,text:`You have learned that [[X:${o}]] is ${q.n}: it ${q.d}`})}}}}/* a prince's personality shows when one of its planes lies in your SCRY reach (the free SCRY covers adjacent planes) */
  {const K=G.players[ME].known;/* Farsighted: the hordes (not the planes) within two planes of one of your Farsighted generals */
   for(const fh of hordesOf(ME))if(total(fh)&&hasAb(fh,"FARS")){const dd=distMap(fh.loc);for(const id in dd)if(dd[id]<=2&&!mine.has(id)){const hs=visH(id,ME);if(K[id]||hs.length)K[id]=Object.assign(K[id]||{t:-1,full:false},{h:hs,ht:G.turn})}}
   /* Judge: say what a newly read general carries, once */
@@ -591,28 +601,31 @@ const effTier=p=>RK[G.players[p].rank].t;
 function aiTarget(h,P){
  const s=hstats(h),d=costMap(h.loc,h.owner),dh=distMap(h.loc);let best=null,bs=0;
  for(const id in G.planes){const pl=G.planes[id];if(pl.owner===h.owner||dh[id]>9)continue;
+  let hunt=false;if(pl.owner!=null&&pl.owner>=0&&G.turn<=PEACE_T){const me=G.players[h.owner],tg=G.players[pl.owner];
+   if(tg.pers)continue;/* NPC princes leave Peaceful and Grudge princes alone */
+   if(me.pers){if(!(G.hit&&G.hit[h.owner]&&G.hit[h.owner][pl.owner]))continue;hunt=me.pers==="GRUDGE"}}/* they attack only a prince who has attacked them */
   let tS=0;
   const g=G.hordes.find(x=>x.owner===-1&&x.loc===id&&total(x));
   if(g){tS=hstats(g).str}else if(pl.npc)continue;
   if(pl.owner!=null){tS+=pdStats(pl).s}
   for(const e of G.hordes)if(e.loc===id&&e.owner>=0&&e.owner!==h.owner&&total(e)){tS+=hstats(e).str}
   const r=tS>0?s.str/tS:9;
-  if(r<1.6/P.agg)continue;
-  const sc=(pl.q+2)*(pl.owner==null?1.2:1)/(d[id]+1.5)/(1+(h.cls==="H"?.25*d[id]:0));if(sc>bs){bs=sc;best=id}}
+  if(r<(hunt?1.0:1.6/P.agg))continue;
+  const sc=(hunt?3:1)*(pl.q+2)*(pl.owner==null?1.2:1)/(d[id]+1.5)/(1+(h.cls==="H"?.25*d[id]:0));if(sc>bs){bs=sc;best=id}}
  return best}
 function aiPlan(p){
- const P=G.players[p],rk=RK[P.rank],hs=hordesOf(p);let w=P.well;
+ const P=G.players[p],rk=RK[P.rank],hs=hordesOf(p),prof=STRAT[P.strat]||{fom:true};let w=P.well;if(prof.save)w=w>=HARV_CAP?Math.max(0,w-(HARV_CAP-1000)):Math.floor(w*(1-prof.save));/* a saver plans with only part of the Well; the rest is harvested */
  P.princely=[];P.shadowCmd=null;
  const allowed=DK.filter(k=>DT[k].t<=rk.t),eff=k=>DT[k].st/DT[k].cost;
  const choose=cls=>{const s=allowed.filter(k=>DT[k].c===cls).sort((a,b)=>eff(b)-eff(a));return rnd()<.65?s[0]:pick(s.slice(0,Math.min(3,s.length)))};
  if(ownsHome(P.id)&&hs.length<capOf(P.id)&&w>=UNLEASH+3000&&G.turn>2){P.princely.push({type:"UNLEASH",souls:UNLEASH,cls:rnd()<.5?"F":"H"});w-=UNLEASH}
- const fo=Math.floor(w*.2);if(fo>0&&P.rank<10){P.princely.push({type:"FOMENT",souls:fo});w-=fo}
+ const fo=Math.floor(w*.2);if(fo>0&&P.rank<10){if(prof.fom)P.princely.push({type:"FOMENT",souls:fo});w-=fo}
  let budget=Math.floor(w*.85);
  const want=4000+1300*G.turn*P.agg;
  const sb=Math.floor(budget*.1);if(sb>=100){const k=allowed.includes("Dre")?"Dre":allowed[0];P.shadowCmd={type:"SSUMMON",n:{[k]:Math.floor(sb/DT[k].cost)}};budget-=sb}
  for(const h of hs){
   const s=hstats(h);let done=false;
-  const ready=s.val>=2200+350*G.turn;
+  const hunting=P.pers==="GRUDGE"&&G.turn<=PEACE_T&&G.hit&&G.hit[p]&&Object.keys(G.hit[p]).length>0,ready=s.val>=(2200+350*G.turn)*(hunting?.5:1);
   if(ready){const t=aiTarget(h,P);if(t){h.cmd={type:"DOMINATE",target:t};continue}}
   if(budget>=300&&s.val<want){
    const spend=Math.min(budget,Math.max(600,want-s.val)),n={};let rem=spend;
@@ -704,6 +717,7 @@ function resolveTurn(){
  /* 3. movement */
  for(const h of G.hordes)if(h.owner>=0&&(h.cmd.type==="DOMINATE"||h.cmd.type==="MARCH"||h.cmd.type==="RAID")){const tp=G.planes[h.cmd.target];if(tp&&tp.owner!=null&&bonded(h.owner,tp.owner)){h.cmd={type:"HOLD"};h.t.pact=tp.id}}/* a Blood Pact forbids dominating a partner's plane */
  for(const h of G.hordes)if(h.owner>=0&&h.cmd.type==="RAID"){const tp=G.planes[h.cmd.target];if(!tp||tp.npc||tp.owner==null||tp.owner<0||tp.owner===h.owner){h.t.badraid=h.cmd.target||true;h.cmd={type:"HOLD"}}}/* only planes held by another prince can be raided */
+ G.hit=G.hit||{};for(const h of G.hordes)if(h.owner>=0&&(h.cmd.type==="DOMINATE"||h.cmd.type==="MARCH"||h.cmd.type==="RAID")){const tp=G.planes[h.cmd.target];if(tp&&tp.owner!=null&&tp.owner>=0&&tp.owner!==h.owner)(G.hit[tp.owner]=G.hit[tp.owner]||{})[h.owner]=G.turn}/* an attack is an order that ends on a plane another prince owns (not a Blood Pact partner's, not a minor or unowned plane) */
  for(const h of G.hordes)if(h.cmd.type==="DOMINATE"||h.cmd.type==="MARCH"||h.cmd.type==="RAID")moveHorde(h);
  /* 4. conflicts */
  const ids=Object.keys(G.planes);
@@ -969,7 +983,9 @@ function renderHeader(){
 const isAI=i=>{const p=G.players[i];return p.ai!==undefined?p.ai:!p.human};
 function aiOpenTag(i){if(i===0||!isAI(i))return"";const p=G.players[i];return p.open?` <span class="pill s-info" title="Order a Blood Pact with this prince now and it will answer">Open to a Blood Pact</span>`:` <span class="pill" title="This prince will not answer a Blood Pact offer this turn">Closed to a Blood Pact</span>`}
 function bondTag(i){if(i===0)return"";const k=(G.bonds||[]).find(k=>((k.a===0&&k.b===i)||(k.a===i&&k.b===0))&&k.from<=G.turn&&k.until>=G.turn);if(!k)return"";const left=k.until-G.turn+1;return` <span class="pill s-good" title="Blood Pact: no fighting between you, no taking each other's planes, +${fmt0(k.inc)} souls a turn each">Blood Pact · ${left} turn${left===1?"":"s"} left · +${fmt0(k.inc)} souls/turn</span>`}
-function princesCard(){return`<div class="sec card"><h3>The princes of the Abyss</h3><p class="note" style="margin-top:0">These are the demon princes who contend for the throne. Their colors match the map. A Blood Pact shows beside the prince you share it with. A prince run by the game says each turn whether it is open to a Blood Pact; an open one always answers the first prince who offers.</p><div style="display:grid;gap:6px">${G.players.map((p,i)=>{const dd=G.over&&i!==0,op=dd&&UI.open["vp"+i];return`<div><i style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--c${i});margin-right:8px"></i><b style="color:var(--c${i})">${esc(p.name)}</b>${i===0?` <span class="note">(you)</span>`:""} <span class="note">· ${RK[p.rank].n}</span>${bondTag(i)?"&ensp;&ensp;"+bondTag(i):""}${aiOpenTag(i)?"&ensp;&ensp;"+aiOpenTag(i):""}${dd?`&ensp;<button class="pill s-info" data-act="pvp" data-id="${i}" aria-expanded="${!!op}" title="Show this prince's victory points">Points ${fmt0(vp(i).total)} ${op?"▴":"▾"}</button>`:""}${op?vpTable(i):""}</div>`}).join("")}</div></div>`}
+function dangerTag(i){const p=G.players[i];return i===0||p.danger==null?"":`<span class="note">· Danger: ${dangerOf(p).s}</span>`}
+function persTag(i){const p=G.players[i],k=G.players[0].pk;if(i===0||!p.pers||!k||!k[i])return"";const q=PERS[p.pers];return G.turn<=PEACE_T?`<span class="note">· <b>${q.n}</b>: ${q.d}</span>`:`<span class="note">· was ${q.n} (ended at turn ${PEACE_T})</span>`}
+function princesCard(){return`<div class="sec card"><h3>The princes of the Abyss</h3><p class="note" style="margin-top:0">These are the demon princes who contend for the throne. Their colors match the map. A Blood Pact shows beside the prince you share it with. A prince run by the game says each turn whether it is open to a Blood Pact; an open one always answers the first prince who offers.</p><div style="display:grid;gap:6px">${G.players.map((p,i)=>{const dd=G.over&&i!==0,op=dd&&UI.open["vp"+i];return`<div><i style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--c${i});margin-right:8px"></i><b style="color:var(--c${i})">${esc(p.name)}</b>${i===0?` <span class="note">(you)</span>`:""} <span class="note">· ${RK[p.rank].n}</span>${bondTag(i)?"&ensp;&ensp;"+bondTag(i):""}${aiOpenTag(i)?"&ensp;&ensp;"+aiOpenTag(i):""}${dangerTag(i)?"&ensp;&ensp;"+dangerTag(i):""}${persTag(i)?"&ensp;&ensp;"+persTag(i):""}${dd?`&ensp;<button class="pill s-info" data-act="pvp" data-id="${i}" aria-expanded="${!!op}" title="Show this prince's victory points">Points ${fmt0(vp(i).total)} ${op?"▴":"▾"}</button>`:""}${op?vpTable(i):""}</div>`}).join("")}</div></div>`}
 function vpTable(i){const v=(G.fv&&G.fv[i])||vp(i);return`<div class="card" style="margin:8px 0 4px"><h3 style="margin-top:0">${esc(G.players[i].name)}'s victory points</h3><div class="scroll"><table>${v.parts.map(p=>`<tr><td>${p[0]}<div class="note">${VPH[p[0]]||"15% on top of everything else."}</div></td><td class="r">${fmt0(p[1])}</td></tr>`).join("")}<tr><td><b>Total</b></td><td class="r"><b>${fmt0(v.total)}</b></td></tr></table></div></div>`}
 function renderReport(){
  const R=G.reports,idx=UI.rep==null?R.length-1:UI.rep,r=R[idx],latest=idx===R.length-1;
@@ -1278,6 +1294,7 @@ function renderStanding(){
  h+=`<div class="sec"><h3>Rules at a glance</h3><div class="card"><details><summary>How a turn works</summary><p class="note">All princes give orders in secret and everything resolves at once: summon costs, then movement, then fights, then new demons arrive, domination grows by one on planes that were not attacked, and total yield is paid into the Well.</p></details>
  <details><summary>How a fight works</summary><p class="note">A fight lasts up to six rounds. Each round the generals match wits, and the better plan helps its horde. The stronger horde has an edge in the clash, and the winner of each round pushes the other back and keeps some momentum that carries into the next round. Both sides lose demons every round, and a round can end in a stalemate, a gain, disarray or a rout. A horde that has lost most of its strength, falls into disarray or is routed breaks and retreats. A horde that attacks and does not break the defender is repulsed, even if it is the stronger. A horde that retreats goes back the way it came, or to a friendly plane nearby, or to an empty one; you do not choose. If a horde has nowhere to go it is destroyed. Two hordes that both moved into a plane meet in a meeting engagement, and only a broken horde retreats. Every demon destroyed scores its soul cost for the side that destroyed it. A demon with a purge rating also destroys some weaker enemy demons every round: see Purge below.</p></details>
  <details><summary>Purge</summary><p class="note">Some demons carry a purge rating. At the end of every round of a fight, each side's best purge rating destroys 10% of each kind of enemy demon whose tier is no higher than that rating, and never fewer than 1 of each kind present. The highest purge in the horde counts, and more purge demons do not stack. It fires whether that side is winning or losing, and the destroyed demons count as casualties. Purge also adds to the losses that can break a horde. ${DK.filter(k=>DT[k].purge).map(k=>`${DT[k].n} (purge ${DT[k].purge}) reaches ${DK.filter(j=>DT[j].t<=DT[k].purge).map(j=>DT[j].n).join(", ")}`).join("; ")}. Purge also reaches a prince's Shadow Horde: when a horde fights a prince's planar defenses, its purge destroys 10% of each kind of Shadow Horde demon within its reach, and never fewer than 1 of each kind present. All of the Shadow Horde defends the prince's home plane and a third of it defends any other plane, and the purge is scaled to match. A plane's own defense never purges.</p></details>
+ <details><summary>Rival princes: danger and personality</summary><p class="note">Each rival prince run by the game has a Danger level: Strong Verbal Harassment and a Slap, A Kick in the Teeth and a Knee to the Groin, or Literal Armageddon. It is how often that prince tends to win against the others, and you can choose it when a game begins; the middle level is the default. How the prince plays to reach that level stays hidden. About a third of the princes run by the game have a personality for the first 20 turns: Peaceful or Grudge. A Peaceful prince attacks no prince who has not attacked it, and the other game-run princes leave it alone. A Grudge prince keeps the same peace, but a prince who attacks it is hunted hard until turn 20. An attack is a DOMINATE, MARCH or RAID that ends on a plane the prince owns; fights over minor or unowned planes, or a Blood Pact partner's plane, do not count. Everyone else plays normally, and every personality ends after turn 20. A prince's personality is hidden until one of its planes lies in your SCRY reach, which includes any plane next to your own.</p></details>
  <details><summary>Prototype assumptions</summary><p class="note">Every demon is Fast or Heavy. Fast demons move 3 planes a turn and give less strength per soul; Heavy demons move 1 plane a turn and give more. In the first three rounds of a fight, a force made only of Fast demons adds 3 to its tactics roll against a force made only of Heavy demons. A horde moves at the pace of its slowest demon. Planes you hold cost half a move to cross. A general is Fast or Heavy and can only summon demons of its class. The Shadow Horde adds a third of its strength to the defense of every plane you hold, all of it at home. A Shadow Horde's strength is public, so it is part of the defense shown on a prince's planes and in the odds; only a SCRY shows which demons it holds. Plane quality odds are treated as weights because the deck's table adds to 110%.</p></details></div></div>`;
  h+=`<div class="sec"><h3>Result code</h3><p class="note">A result code is a short block of text that records how your game went: the final or current standings, how every prince scored, and the orders you gave each turn. Send it to whoever you want to see your game.</p><div class="tools"><button class="btn" data-mp="rescode">Make my result code</button><button class="btn" data-mp="resbox">Read a result code</button></div></div>`;
  h+=`<div class="sec"><h3>Save code</h3><p class="note">A save code holds your whole game, so you can carry on from this exact moment if your browser ever loses it (browsers sometimes do, especially on phones and tablets, and after the game is updated). Copy one now and then and keep it somewhere safe.</p><div class="tools"><button class="btn" data-mp="savecode">Make my save code</button><button class="btn" data-mp="savebox">Restore a saved game</button></div></div>`;
@@ -1335,7 +1352,7 @@ function onField(e){const t=e.target,k=t.dataset.k;if(!k)return;const P=G.player
  else if(k==="ps"){const c=P.princely[+t.dataset.i];if(c.type==="SCRY"){c.souls=Math.max(SCRYU,scrySnap(c.souls));t.value=c.souls}renderSums()}
  else if(k==="qty")renderSums()}
 document.addEventListener("change",onField);document.addEventListener("input",e=>{const t=e.target;if(t.dataset&&t.dataset.k==="pun"){const c=G.players[0].princely[+t.dataset.i];const v=t.value.replace(/[^A-Za-z ]/g,"").replace(/ {2,}/g," ").replace(/^ /,"");if(v!==t.value)t.value=v;if(c)c.name=v.slice(0,24);return}if(t.type==="number")onField(e)});
-/* ===== MULTIPLAYER: league (GM) and player modes ===== */
+/* ===== MULTIPLAYER (MPG): game master (GM) and player modes ===== */
 const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const b64u=u=>{let s="";for(let i=0;i<u.length;i+=8192)s+=String.fromCharCode.apply(null,u.subarray(i,i+8192));return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")};
 const unb64u=s=>{s=s.replace(/-/g,"+").replace(/_/g,"/");while(s.length%4)s+="=";const b=atob(s),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u};
@@ -1363,8 +1380,8 @@ function viewFor(s){
   const o={id:p.id,x:p.x,y:p.y,links:p.links,name:p.name,short:p.short};
   if(known[id]&&known[id].q!=null)o.q=p.q;planes[id]=o}
  const players=G.players.map((_,i)=>{const r=G.players[sw(i)],o=clone2(r);o.id=i;o.ai=!r.human;o.color=`var(--c${i})`;o.human=i===0;delete o.email;delete o.reports;delete o.echoP;o.met=(r.met||[]).map(sw);
-  if(i!==0){o.shs=Math.round(shadowStr(sw(i)));for(const k of["princely","shadowCmd","known","prev","pendS","scryR","lastP","shadow","unleash","shadowRes","noOrders"])delete o[k]}
-  else{o.known=walk(clone2(r.known||{}));delete o.prev;if(r.sh){o.sh={};for(const q in r.sh)o.sh[sw(+q)]=r.sh[q]}}
+  if(i!==0){o.shs=Math.round(shadowStr(sw(i)));for(const k of["princely","shadowCmd","known","prev","pendS","scryR","lastP","shadow","unleash","shadowRes","noOrders","pk","strat"])delete o[k];if(!(real.pk&&real.pk[sw(i)]))delete o.pers}
+  else{if(r.pk){o.pk={};for(const q in r.pk)o.pk[sw(+q)]=r.pk[q]}o.known=walk(clone2(r.known||{}));delete o.prev;if(r.sh){o.sh={};for(const q in r.sh)o.sh[sw(+q)]=r.sh[q]}}
   return o});
  const reps=repsOf(s),last=reps[reps.length-1];
  return{seed:0,ver:G.ver,pal:G.players.map((_,i)=>i===0?0:(G.pal?G.pal[sw(i)===0?s:sw(i)]:i)),fv:G.over?G.players.map((_,i)=>vp(sw(i))):null,no:G.no,turn:G.turn,planes,hordes:hordesOf(s).map(h=>{const o=clone2(h);o.owner=0;return o}),nextH:G.nextH,usedGen:G.usedGen,players,
@@ -1450,7 +1467,7 @@ renderAll=function(){
  try{applyPal(G&&G.pal)}catch(e){}
  if(MODE==="gm"){renderGMHeader();return renderGM()}
  if(MODE==="player"&&!G){renderJoinHeader();return renderJoin()}
- _ra();if(MODE==='solo'&&G&&G.askName&&!G.league&&!$('#mpmodal'))modal(`<h2>Name your demon prince</h2><p class="sub">${window.OLDGAME?"Your saved game came from version 1.81 or earlier, which can no longer be played, so a new game has begun. ":""}Choose the name you will rule under, or keep the one the Abyss gave you.</p>${window.DIAG&&window.DIAG.store==="blocked"?`<p class="note" style="color:#e8604c">This browser is not letting the page save your game, so reloading or closing the tab will start a new one.</p>`:(window.DIAG&&window.DIAG.boots>0&&!window.OLDGAME?`<p class="note">No saved game was found, although this browser last opened King of Demons on ${new Date(window.DIAG.last).toLocaleString()}.</p>`:"")}<input type="text" id="pname" maxlength="40" value="${esc(G.players[0].name)}" aria-label="Prince name"><div class="row"><button class="btn pri" data-mp="pname">Begin</button><button class="btn" data-mp="pkeep">Keep this name</button></div>`)};
+ _ra();if(MODE==='solo'&&G&&G.askName&&!G.league&&!$('#mpmodal'))modal(`<h2>Name your demon prince</h2><p class="sub">${window.OLDGAME?"Your saved game came from version 1.81 or earlier, which can no longer be played, so a new game has begun. ":""}Choose the name you will rule under, or keep the one the Abyss gave you.</p>${window.DIAG&&window.DIAG.store==="blocked"?`<p class="note" style="color:#e8604c">This browser is not letting the page save your game, so reloading or closing the tab will start a new one.</p>`:(window.DIAG&&window.DIAG.boots>0&&!window.OLDGAME?`<p class="note">No saved game was found, although this browser last opened King of Demons on ${new Date(window.DIAG.last).toLocaleString()}.</p>`:"")}<input type="text" id="pname" maxlength="40" value="${esc(G.players[0].name)}" aria-label="Prince name"><h3 style="margin:14px 0 2px">Your rivals</h3><p class="note" style="margin:0 0 8px">Choose how dangerous each rival prince is: how often it tends to win against the others. How it plays stays a secret.</p>${G.players.slice(1).map((p,i)=>`<div class="row" style="align-items:center;gap:8px;margin:4px 0"><span style="flex:1;color:var(--c${i+1})">${esc(p.name)}</span><select id="dg${i}" aria-label="Danger of ${esc(p.name)}">${DANGER.map((d,k)=>`<option value="${k}"${k===DANGER_DEF?" selected":""}>${d.n} (${d.d})</option>`).join("")}</select></div>`).join("")}<div class="row"><button class="btn pri" data-mp="pname">Begin</button><button class="btn" data-mp="pkeep">Keep this name</button></div>`)};
 const _rh=renderHeader;
 renderHeader=function(){_rh();const t=$("#tabs");if(t)t.insertAdjacentHTML("beforeend",MODE==="player"?`<button class="btn sm" data-mp="turnbox" style="margin-left:auto">Load turn code</button>`:`<button class="btn sm" data-mp="menu" style="margin-left:auto">Multiplayer</button>`)};
 function bareHeader(sub){$("#gameno").textContent=G&&G.no?`Game No. ${G.no}v${GAME_VERSION}`:`King of Demons v${GAME_VERSION}`;$("#prince").innerHTML=sub;$("#meters").innerHTML="";$("#tabs").innerHTML=MODE==="player"?"":`<button class="btn sm" data-mp="menu">Multiplayer</button>`;$("#over").hidden=true}
@@ -1485,7 +1502,7 @@ function renderGM(){renderGMHeader();
  h+=`<div class="card"><h3>2 · Collect orders</h3><p class="note">Paste each reply's orders code here. Missing princes keep their standing horde orders and harvest all their souls.</p><textarea id="ocodes" placeholder="Paste an orders code"></textarea><div class="row"><button class="btn" data-mp="gotorders">Add orders</button></div>${GMX.msgs.map(m=>`<div class="msg ${m.bad?"bad":""}">${esc(m.t)}</div>`).join("")}</div>`;
  const miss=hs.filter(s=>!got[s]&&!G.players[s].elim);
  h+=`<div class="card"><h3>3 · Resolve</h3><p class="note">${miss.length?`Still missing: ${miss.map(s=>esc(G.players[s].name)).join(", ")}.`:"All human princes have sent orders."}</p><div class="row"><button class="btn pri" data-mp="resolve"${G.over?" disabled":""}>${GMX.confirm?"Click again to resolve":`Resolve turn ${T}`}</button></div>${G.over?`<div class="msg">The game is over.</div>`:""}</div>`;
- h+=`<div class="card"><h3>Backup</h3><div class="row"><button class="btn sm" data-mp="end">End league and return to setup</button></div></div></div>`;
+ h+=`<div class="card"><h3>Backup</h3><div class="row"><button class="btn sm" data-mp="end">End multiplayer game and return to setup</button></div></div></div>`;
  $("#main").innerHTML=h}
 function mailHTML(){if(!GMX.mail)return"";const sent=G.sent||{},n=GMX.mail.filter(m=>sent[m.s]).length;
  return`<div class="row"><button class="btn sm" data-mp="cpall">Copy all messages</button><span class="note">${n} of ${GMX.mail.length} marked sent</span></div>`+GMX.mail.map((m,i)=>`<div class="msg"><b>${esc(G.players[m.s].name)}</b> · <span class="note">${esc(m.to||"no email entered")} · code ${Math.round(m.size/1000*10)/10} KB</span> ${sent[m.s]?`<span class="ok">sent</span>`:""}<div class="row"><button class="btn sm" data-mp="cp" data-i="${i}" data-w="to">Copy address</button><button class="btn sm" data-mp="cp" data-i="${i}" data-w="subject">Copy subject</button><button class="btn sm" data-mp="cp" data-i="${i}" data-w="body">Copy message</button><button class="btn sm" data-mp="sent" data-i="${i}">${sent[m.s]?"Unmark sent":"Mark sent"}</button></div></div>`).join("")+`<p class="note">Paste each message into a new email or chat. Gmail drafts are not connected.</p>`}
@@ -1520,14 +1537,14 @@ async function gmAct(d,t){
  else if(a==="resolve"){const miss=humanSeats().filter(s=>!(G.got||{})[s]&&!G.players[s].elim);
   if(miss.length&&!GMX.confirm){GMX.confirm=true;return renderGM()}
   GMX.confirm=false;resolveTurn();G.got={};G.sent={};GMX.mail=null;GMX.msgs=[{t:`Turn ${G.turn-1} resolved. Prepare the mail for turn ${G.turn}.`}];save();renderGM()}
- else if(a==="end"){if(GMX.endc){G=null;try{localStorage.removeItem("kodGM")}catch(e){}GMX.endc=false;renderAll()}else{GMX.endc=true;t.textContent="Click again to delete this league"}}}
+ else if(a==="end"){if(GMX.endc){G=null;try{localStorage.removeItem("kodGM")}catch(e){}GMX.endc=false;renderAll()}else{GMX.endc=true;t.textContent="Click again to delete this multiplayer game"}}}
 document.addEventListener("click",async e=>{const t=e.target.closest("[data-mp]");if(!t)return;const d=t.dataset,a=d.mp;
  try{
   if(a==="menu")showMenu();
   else if(a==="close")closeModal();
   else if(a==="mode"){closeModal();setMode(d.m)}
   else if(a==="pkeep"){delete G.askName;save();closeModal()}
-  else if(a==="pname"){const v=cleanName($("#pname").value,40);const sd=G.seed0!=null?G.seed0:G.seed;if(v&&v!==G.players[0].name){newGame({name:v,seed:sd})}else delete G.askName;UI.tab="report";UI.rep=null;save();closeModal();renderAll()}
+  else if(a==="pname"){const v=cleanName($("#pname").value,40);const sd=G.seed0!=null?G.seed0:G.seed;const dg=G.players.slice(1).map((_,i)=>{const e=$("#dg"+i);return e?+e.value:DANGER_DEF});if((v&&v!==G.players[0].name)||dg.some(x=>x!==DANGER_DEF)){newGame({name:v||G.players[0].name,seed:sd,danger:dg})}else delete G.askName;UI.tab="report";UI.rep=null;save();closeModal();renderAll()}
   else if(a==="names"){modal(`<h2>AI prince names</h2><p class="sub">One name per line. Each new game gives its AI-controlled seats names drawn from this list, without repeats. Needs at least 3 names; add more for variety. Games already under way keep their names.</p><textarea id="nlist" style="min-height:260px">${esc(nameList().join("\n"))}</textarea><div class="row"><button class="btn pri" data-mp="nsave">Save names</button><button class="btn" data-mp="nreset">Restore the standard list</button><button class="btn" data-mp="close">Close</button></div><div id="mpmsg"></div>`)}
   else if(a==="nsave"){const l=[...new Set($("#nlist").value.split("\n").map(s=>s.trim()).filter(Boolean))];
    if(l.length<3)mpMsg("Enter at least 3 different names.",1);else{try{localStorage.setItem("kodAIN",JSON.stringify(l))}catch(e){}mpMsg(`Saved ${l.length} names. They apply to the next game you start.`)}}
