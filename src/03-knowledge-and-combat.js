@@ -28,7 +28,7 @@ function updateKnow(scryR){
  for(const id of mine){snap(id,{h:visH(id,ME),ht:G.turn});for(const n of G.planes[id].links)stub(n)}
  if(scryR){const dm=multiDist([...mine]);for(const id in dm)if(dm[id]<=scryR&&!mine.has(id)){snap(id,{h:visH(id,ME),ht:G.turn});for(const n of G.planes[id].links)stub(n)}
   if(paid){const P=G.players[ME];P.sh=P.sh||{};for(const id in dm)if(dm[id]<=scryR){const o=G.planes[id].owner;if(o!=null&&o>=0&&o!==ME)P.sh[o]={t:G.turn,d:Object.assign({},G.players[o].shadow)}}}}/* a paid SCRY also reads the makeup of the Shadow Horde of every prince who holds a plane in its reach */
- {const P=G.players[ME];P.pk=P.pk||{};const dm2=multiDist([...mine]);for(const id in dm2)if(dm2[id]<=scryR){const o=G.planes[id].owner;if(o!=null&&o>=0&&o!==ME&&G.players[o].pers&&!P.pk[o]){P.pk[o]=G.turn;if(P.human&&G.ev&&G.turn<=PEACE_T){const q=PERS[G.players[o].pers];ev(ME,{sev:"info",pri:2,text:`You have learned that [[X:${o}]] is ${q.n}: it ${q.d}`})}}}}/* a prince's personality shows when one of its planes lies in your SCRY reach (the free SCRY covers adjacent planes) */
+ {const P=G.players[ME];P.pk=P.pk||{};const dm2=multiDist([...mine]);for(const id in dm2)if(dm2[id]<=scryR){const o=G.planes[id].owner;if(o!=null&&o>=0&&o!==ME&&!P.pk[o]){P.pk[o]=G.turn;if(G.players[o].pers&&P.human&&G.ev&&G.turn<=PEACE_T){const q=PERS[G.players[o].pers];ev(ME,{sev:"info",pri:2,text:`You have learned that [[X:${o}]] is ${q.n}: it ${q.d}`})}}}}/* a prince's personality shows when one of its planes lies in your SCRY reach (the free SCRY covers adjacent planes) */
  {const K=G.players[ME].known;/* Farsighted: the hordes (not the planes) within two planes of one of your Farsighted generals */
   for(const fh of hordesOf(ME))if(total(fh)&&hasAb(fh,"FARS")){const dd=distMap(fh.loc);for(const id in dd)if(dd[id]<=2&&!mine.has(id)){const hs=visH(id,ME);if(K[id]||hs.length)K[id]=Object.assign(K[id]||{t:-1,full:false},{h:hs,ht:G.turn})}}
   /* Judge: say what a newly read general carries, once */
@@ -41,7 +41,7 @@ function updateKnow(scryR){
 const TBANDS=[{n:"Tie",lo:0,w:0,l:0},{n:"Better Plan",lo:2,w:.1,l:-.09},{n:"Loser Outclassed",lo:5,w:.2,l:-.17},{n:"Disastrous Decision",lo:8,w:.33,l:-.25},{n:"Catastrophic Imbalance",lo:11,w:.5,l:-.33}];
 const SBANDS=[{n:"Even",lo:1,bonus:0},{n:"Minor Advantage",lo:1.5,bonus:1},{n:"Advantaged",lo:2,bonus:2},{n:"Strong Advantage",lo:3,bonus:3},{n:"Overwhelming",lo:4,bonus:6}];
 const MRES=[{n:"Stalemate",lo:0,w:.15,l:.15,mom:0},{n:"Gaining minor advantage",lo:3,w:.1,l:.15,mom:1},{n:"Clear advantage gained",lo:6,w:.08,l:.2,mom:3},{n:"Enemy in Disarray",lo:8,w:.08,l:.3,mom:5},{n:"Rout",lo:10,w:.08,l:.5,mom:0}];
-const DEFB=1.15,DEFH=1.25,DEFT=1.25,DEFTH=1.4,BROKEN=.6,MAXR=6;
+const DEFB=1.15,DEFH=1.25,DEFT=1.25,DEFTH=1.4,BROKEN=.6,MAXR=6,HOLDR=2;/* HOLDR: in a drawn meeting engagement a force that is this many times stronger than the other, and than what else waits on the plane, keeps the field */
 const roll3=()=>ri(1,6)+ri(1,6)+ri(1,6);
 const bandOf=(arr,v)=>{let b=0;for(let i=0;i<arr.length;i++)if(v>=arr[i].lo)b=i;return b};
 function forceOf(pl,owner,hs){return{owner,hordes:hs}}
@@ -158,7 +158,7 @@ function takePlane(pl,no,how){
  if(HUM(old))as(old,()=>snap(pl.id));P.domVal+=Math.max(1,pl.q);if(!G.everDom.includes(pl.id))G.everDom.push(pl.id);
  for(const h of hordesOf(no))if(h.loc===pl.id)h.t.took=pl.id;
  for(const s of humanSeats()){
-  if(no===s){ev(s,{sev:"good",pri:old!=null&&old>=0?2:3,text:`You now hold [[P:${pl.id}]] (${pl.name}), domination ${pl.dom}.${old!=null&&old>=0?` Taken from [[X:${old}]].`:""}`,plane:pl.id,hl:`took [[P:${pl.id}]]${old!=null&&old>=0?" from [[X:"+old+"]]":""}`})}
+  if(no===s){ev(s,{kind:"take",sev:"good",pri:old!=null&&old>=0?2:3,text:`You now hold [[P:${pl.id}]] (${pl.name}), domination ${pl.dom}.${old!=null&&old>=0?` Taken from [[X:${old}]].`:""}`,plane:pl.id,hl:`took [[P:${pl.id}]]${old!=null&&old>=0?" from [[X:"+old+"]]":""}`})}
   else if(old===s){ev(s,{sev:"bad",pri:1,text:`[[P:${pl.id}]] (${pl.name}) fell to [[X:${no}]].`,plane:pl.id,lost:pl.id,hl:`lost [[P:${pl.id}]] to [[X:${no}]]`})}}
  if(old!=null&&old>=0&&old!==no)meet(old,no);
 }
@@ -192,6 +192,12 @@ function runFight(pl,A,B,mode){
  {const ap=F=>forceAb(F,"ANTI")?1.07:1;credit(B.owner,{kv:tot[0].kv*(mn(A)?2:1)*ap(B)});credit(A.owner,{kv:tot[1].kv*(mn(B)?2:1)*ap(A)})}lostSouls(A.owner,tot[0].kv);lostSouls(B.owner,tot[1].kv);
  const bk=res.broken;let out;
  if(mode==="att")out=(bk[1]&&!bk[0])?"atkwin":"atkfail";else out=(bk[0]&&!bk[1])?"meetB":(bk[1]&&!bk[0])?"meetA":"meetBoth";
+ if(mode!=="att"&&out==="meetBoth"&&!bk[0]&&!bk[1]){/* a draw: both would withdraw, unless one force clearly outmatches the other and whatever else holds the plane */
+  const sA=fStr(A),sB=fStr(B);let oth=0,anyF=false;
+  for(const f of forcesAt(pl)){if(f.owner===A.owner||f.owner===B.owner)continue;oth+=fStr(f);anyF=true}
+  if(!anyF&&pl.owner!=null&&pl.owner>=0&&pl.dom>0&&pl.owner!==A.owner&&pl.owner!==B.owner)oth=pdStats(pl).s;
+  const win=(s,t,w)=>s>=HOLDR*t&&s>=HOLDR*oth&&!bonded(w.owner,pl.owner);
+  if(win(sA,sB,A))out="meetA";else if(win(sB,sA,B))out="meetB"}
  const rs=out==="atkwin"?[1]:out==="atkfail"?[0]:out==="meetA"?[1]:out==="meetB"?[0]:[0,1];
  const rets=[[],[]],FF=[A,B];
  for(const i of rs)rets[i]=retreatForce(FF[i],pl,mode==="att"&&i===1,FF[1-i]);

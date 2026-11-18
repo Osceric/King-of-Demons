@@ -31,9 +31,9 @@ const DK=Object.keys(DT);
 /* Every demon is Fast (class "F": 3 planes a turn, lower strength per soul) or Heavy (class "H": 1 plane a turn, higher strength per soul). A horde moves at the speed of its SLOWEST demon. Friendly planes cost half a move to enter. Each demon has one Strength value (st); there is no offense, defense or speed. Tiers run 1 to 22: Fast demons hold the odd tiers and Heavy the even ones. A horde is single-class: its general is Fast or Heavy when unleashed and can summon only that class. */
 const CLS={F:"Fast",H:"Heavy"};
 /* Bump on every published release; shown after the game number, e.g. 377560v29. */
-const GAME_VERSION="2.31";const MIN_VER="2.0";/* saved games and turn codes from older versions (1.81 and earlier carry no stamp) are no longer supported */
-/* prince colors: you are always color 1 (orange); the other 11 palette colors are dealt to the rival princes at random, fixed for the life of a game by its seed */
-const PAL=["#e8782e","#4db6c9","#a98be0","#8cc276","#d4688f","#e0c34a","#e8dfc8","#a8342e","#2d55b0","#2e8b4f","#b9d84a","#9a6a4a"];
+const GAME_VERSION="2.48";const MIN_VER="2.0";/* saved games and turn codes from older versions (1.81 and earlier carry no stamp) are no longer supported */
+/* prince colors: you are always color 1 (green); the other 11 palette colors are dealt to the rival princes at random, fixed for the life of a game by its seed */
+const PAL=["#8cc276","#4db6c9","#a98be0","#e8782e","#d4688f","#e0c34a","#f7f2e4","#a8342e","#2d55b0","#2e8b4f","#b9d84a","#9a6a4a"];
 function mkPal(n,seed){let x=((+seed||1)*2654435761+12345)>>>0;const r=()=>(x=(Math.imul(x,1664525)+1013904223)>>>0)/4294967296,a=[1,2,3,4,5,6,7,8,9,10,11];for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return[0].concat(Array.from({length:Math.max(0,n-1)},(_,i)=>a[i%11]))}
 function applyPal(p){const d=document.documentElement.style;for(let i=0;i<12;i++)d.setProperty("--c"+i,PAL[p&&p[i]!=null?p[i]:i])}
 const verNum=v=>{const m=String(v).split(".");return(+m[0]||0)*10000+(+m[1]||0)};/* "1.100" is later than "1.99" */
@@ -85,7 +85,7 @@ const DANGER=[{k:"L",s:"Slap",n:"Strong Verbal Harassment and a Slap",d:"under 5
 const dangerOf=p=>{const k=typeof p.danger==="string"?p.danger:["L","L","H","X"][p.danger];return DANGER.find(d=>d.k===k)};/* v2.23 saves stored 0-3 */
 const PEACE_T=20;/* NPC personalities last through this turn */
 const PERS={PEACE:{n:"Peaceful",d:"attacks no prince who has not attacked it, and rival NPC princes leave it alone, through turn 20."},GRUDGE:{n:"Grudge",d:"keeps the same peace through turn 20, but a prince who attacks it is hunted hard until then."}};
-const HARV_CAP=250000;/* harvest shuts off while the Well holds this many souls */
+const HARV_CAP=75000;/* harvest shuts off while the Well holds this many souls */
 const TIP_WELL=`Your Well of Souls: the souls you hold right now. You spend them on commands. At the end of the turn, unspent souls are harvested: every 3 return as 4 next turn. Harvest shuts off while your Well holds ${HARV_CAP.toLocaleString("en-US")} or more souls.`,TIP_INC="Total Yield: the souls your planes pay into the Well each turn, after your Chaos and Shadow Horde bonuses. It is paid on top of any harvest, and the harvest limit does not affect it. A plane's Yield is determined by a plane's Value (shown as v on the realm map) and its Domination level (shown as d on the realm map).  Clicking on a plane will show its current yield and maximum potential yield in the detail section.";
 const fmt0=n=>Math.round(n).toLocaleString("en-US");
 const cleanName=(s,n)=>String(s==null?"":s).replace(/[^A-Za-z ]/g,"").replace(/ +/g," ").trim().slice(0,n||24).trim();

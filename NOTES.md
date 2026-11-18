@@ -521,3 +521,56 @@ v1.127: New horde order RAID (cmd RAID, one turn only). Target must be a plane h
 
 ## v2.31
 - UNLEASH GENERAL is greyed out in the princely command dropdown when you have no free general slot (generals held, less any being disbanded, plus other UNLEASH orders, against your Chaos rank limit), labelled "(no free general slot)", or "(needs a home plane)" if you have lost your home. If the order is already chosen when the slots fill up, the order error now reads: YOU CANNOT UNLEASH ANOTHER GENERAL UNTIL YOU ACHIEVE A HIGHER CHAOS POWER RANK WITH THE FOMENT CHAOS COMMAND, with your count and a note that disbanding a general frees a slot.
+
+## v2.32
+- The princes list now reads "Danger Level: Kick" (was "Danger: Kick").
+
+## v2.33
+- The princes list shows "Personality:" for every game-run prince: "Undiscovered" until one of its planes is in your SCRY reach (adjacent, or SCRY), then Peaceful, Grudge or None. Princes with no personality are now marked as seen too, so a plain prince no longer stays "Undiscovered" forever. The reveal event still appears only for Peaceful and Grudge. After turn 20 a revealed personality reads "(ended at turn 20)".
+
+## v2.34
+- A revealed prince with no personality now reads "Personality: Flexible" (was "None").
+
+## v2.35
+- Reports: a plane taken by force is now one event. The "X is broken. C01 lies open." line is dropped and "You now hold C01 (name), domination N. Taken from Y." is appended to the "Took the plane" battle line for that plane, so the fight, the defeat and the new holding read as one item. A fight against a different prince at the same plane (for example a meeting engagement just before) stays its own event. A plane taken with no fight keeps its own line. The report headline is unchanged. Done in mergeTakes() (05); events are tagged kind:"take"/"broke". Reports already saved keep their old form.
+
+## v2.36
+- Fix to v2.35: a merged capture line used the "You now hold" line's priority (3), which floated it above an earlier fight at the same plane and reversed the story. It now keeps the battle's priority (5), so fights at one plane read in the order they happened. A plane taken from another prince still ranks higher (priority 2).
+
+## v2.37
+- Turn order: the first stage is now two stages. Summon stage (SUMMON, SHADOW SUMMON, DISBAND for every prince), then Prince stage (Foment, Unleash General, Scry, Blood Pact, Break Pact). Summoned demons join their horde (or the Shadow Horde) immediately and fight the same turn, and an unleashed general appears immediately (it takes orders from next turn). Nothing another prince does with his hordes can interrupt a summon or princely command; only a Blood Pact can be denied, by a betrayal. The old "arrive after the fights" stage is gone, so there is no case where a destroyed horde loses its summons or a lost home plane refunds an Unleash. Summons still use the rank held at the start of the turn (a Foment rank-up unlocks new tiers next turn, though it raises the general limit at once for later Unleash commands in the list).
+- New Gameplay tab after Standing: the order of a turn in full. "How a turn works" under Standing now points to it.
+- Command help text updated (Summon, Unleash). 60 AI games: no errors, win rates by danger level unchanged within noise (2 / 30 / 38 percent for Low / Moderate / High-Extreme mix in that run).
+
+## v2.38
+- A rank gained by Foment no longer raises the general limit for an Unleash General ordered in the same turn. The limit now uses the rank held when the turn began (`P.rank0`), the same as summon tiers, so command order does not matter and the dropdowns need no knowledge of other princely commands. Texts (Unleash help, error message, Gameplay tab) say "A rank gained this turn only applies to your orders next turn."
+
+## v2.39
+- Gameplay tab: the Movement entry now says movement is simultaneous and that hordes which cross paths or swap places pass each other without fighting. No rule change. Measured over 60 AI games: about 9.5 such crossings per game (1.2 direct swaps, 6.6 mid-route, 1.7 passing a stationary enemy horde), in 15% of turns. A step-by-step movement rule (hordes that end a step on the same plane or swap stop and fight) was designed but not built; revisit if players complain.
+
+## v2.40
+- Meeting engagements (two forces that both arrived on a plane this turn): when the fight is a draw (neither force breaks, routs, falls into disarray or slips), both used to withdraw. Now a force keeps the field if its remaining strength is at least HOLDR (2) times the other force's and at least 2 times whatever else holds the plane: the other princes' forces there, or the planar defenses if there is no force and the plane is owned and dominated by a third prince. The other force alone withdraws. Reported as "Held the field" / "Lost the field". Broken-force results are unchanged. Measured over 60 AI games: 0.52 drawn meeting engagements per game, 0.15 of them now decided this way, so the change is rare. Win rates by danger level unchanged within noise. The Gameplay tab's Fights entry now explains the order on one plane and this rule.
+
+## v2.41
+- Gameplay tab reorganised into two sections with matching headers: "Gameplay" (the standard game loop and a card on other ways to win: saver, climber, defender, raider, diplomat) and "Turn Sequence" (the former "The order of a turn"). Text only.
+
+## v2.42
+- Gameplay tab: removed the "raider" and "diplomat" examples from "Other ways to win", since their effectiveness is untested. Saver, climber and defender remain.
+
+## v2.43
+- The player's color is now green (was orange). Palette slots 0 and 3 were swapped (CSS --c0/--c3, `PAL`), so rival colors and saved games stay consistent: whichever rival held slot 3 now shows orange. The player's horde markers on the map were hard-coded orange and are now green too. UI accents such as the ember highlight are unchanged.
+
+## v2.44
+- Prince color 7 ("bone", #e8dfc8) looked like the grey of Minor Powers (#8d7f78). It is now a much lighter ivory, #f7f2e4.
+
+## v2.45
+- Gameplay tab, "Other ways to win": removed the "For example:" lead-in and the three strategy bullets (saver, climber, defender). The two paragraphs remain.
+
+## v2.46
+- A horde cannot SUMMON while an enemy horde (another prince's not in a Blood Pact with you, or a Minor Power's garrison) is on its plane at the start of the turn. Reason: summons now join at once (v2.37), so without this a horde could be topped up in the middle of a fight. Orders screen: the SUMMON option is disabled and reads "SUMMON (not allowed: an enemy horde is on this plane)"; a SUMMON already set shows an error telling you to give another order; the engine also refuses it (no souls spent) as a failed order in the report. Shadow Summon is unaffected. AI hordes no longer plan summons in that situation (0 blocked orders in 30 AI games). Win rates by danger level unchanged within noise. Help text and Gameplay tab updated.
+
+## v2.47
+- Harvest cap lowered from 250,000 to 75,000 (`HARV_CAP`). Harvest still returns 4 per 3 unspent souls, but it shuts off while the Well holds 75,000 or more after spending, so the most free souls a saver can bank per turn falls from about 83,000 to about 25,000. Reason: in a playtest of the Hedger approach (game 179669), a prince that spent back down to just under the cap each turn earned about 83,000 free souls per turn from turn 14 on, more than plane yield until turn 30. Tested in 120-game sims: a Hedger AI against three Slap AIs won 37% before and 25% after (fair share 25%). Other options tried: 15% return with a 100,000 cap overshoots (Hedger 12%, and Armageddon falls below Slap); 25% return with a 75,000 cap gives Hedger 26%. Mixed-field win rates by danger level with this change: Slap 11%, Kick 31%, Armageddon 28%, against 4 / 29 / 39 before. Armageddon no longer clearly beats Kick, so the AI danger levels need retuning later. Saved games pick up the new cap on their next turn (an existing Well above 75,000 just stops earning harvest until it is spent down).
+
+## v2.48
+- FOMENT CHAOS is not available at rank 10 (Prince of Demons), the highest chaos power rank. It did nothing there except count as spending toward the 10% "Souls consumed" points. Orders screen: the FOMENT option is greyed out and reads "FOMENT CHAOS (not allowed: you are already a Prince of Demons)"; a FOMENT already set shows an error telling you to choose another command; the engine also refuses it with no souls spent and the report shows "FOMENT CHAOS failed: ...". The AI never fomented at rank 10.

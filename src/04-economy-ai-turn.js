@@ -55,7 +55,7 @@ function aiPlan(p){
   const s=hstats(h);let done=false;
   const hunting=P.pers==="GRUDGE"&&G.turn<=PEACE_T&&G.hit&&G.hit[p]&&Object.keys(G.hit[p]).length>0,ready=s.val>=(2200+350*G.turn)*(hunting?.5:1);
   if(ready){const t=aiTarget(h,P);if(t){h.cmd={type:"DOMINATE",target:t};continue}}
-  if(budget>=300&&s.val<want){
+  if(budget>=300&&s.val<want&&!enemyHere(h.loc,P.id)){
    const spend=Math.min(budget,Math.max(600,want-s.val)),n={};let rem=spend;
    for(let i=0;i<3&&rem>0;i++){const k=choose(h.cls||"F"),c=Math.floor((i<2?rem*.6:rem)/DT[k].cost);if(c>0){n[k]=(n[k]||0)+c;rem-=c*DT[k].cost}}
    const cost=Object.keys(n).reduce((a,k)=>a+n[k]*DT[k].cost,0);
@@ -85,7 +85,7 @@ function resolveTurn(){
   BS[s]={well:me.well,income:income(s),planes:ownedPlanes(s).length,demons:demonCount(s),rank:me.rank,vpr:vpRank(s),vp:vp(s).total};
   const pv={};for(const id in me.known){const v=rowVals(id);if(v)pv[id]=v}setPrev(s,pv)})
  for(const h of G.hordes){h.t={fights:[]};h.t.cmd=clone(h.cmd)}
- for(const p of G.players){p.pendS=null;p.scryR=0;if(p.human)p.echoP=[];if(p.elim){p.princely=[];p.shadowCmd=null}}
+ for(const p of G.players){p.rank0=p.rank;p.pendS=null;p.scryR=0;if(p.human)p.echoP=[];if(p.elim){p.princely=[];p.shadowCmd=null}}
  for(const p of G.players)if(!p.human&&!p.elim)aiPlan(p.id);
  /* 1. summon spending */
  for(const P of G.players){
@@ -95,11 +95,12 @@ function resolveTurn(){
   for(const it of items){const c=it.c,h=it.h;
    if(c.type==="DISBAND"&&!it.shadow){let val=0,nn=0;for(const k in h.demons){val+=h.demons[k]*DT[k].cost;nn+=h.demons[k]}
     const back=Math.floor(val*.1);P.well+=back;it.res={disband:true,back,n:nn};h.demons={};h.pend=null;h.gone=true;h.t.disbanded=true;h.cmd={type:"HOLD"}}
+   else if(!it.shadow&&c.type==="SUMMON"&&enemyHere(h.loc,P.id)){it.res={fail:"summoning is not allowed while an enemy horde is on the plane at the start of the turn"}}/* no reinforcing in the middle of a fight; the souls are not spent */
    else if(c.type==="SUMMON"||c.type==="SSUMMON"){const n=cleanN(c.n,tier,it.shadow?"F":h.cls),cost=sumH(n,it.shadow?null:h);
-    if(cost>0&&cost<=P.well){P.well-=cost;P.consumed+=cost;it.res={summon:n,cost};if(it.shadow)P.pendS=n;else h.pend=n}
+    if(cost>0&&cost<=P.well){P.well-=cost;P.consumed+=cost;it.res={summon:n,cost};{const dst=it.shadow?P.shadow:h.demons;for(const k in n)dst[k]=(dst[k]||0)+n[k]}}/* summoned demons join their horde at once */
     else it.res={fail:cost>P.well?"not enough souls":"nothing to summon"}}
    if(it.shadow)P.shadowRes=it.res;else h.t.res=it.res}}
- /* 2. princely */
+ /* 2. princely (after summons, so a rank gained now unlocks new tiers next turn) */
  const FC=forgeCost(T),paid=[],forged=new Set(),broke=new Set();
  for(const P of G.players)if(!P.human&&activeBonds(P.id).some(k=>k.from<T)&&!P.princely.some(c=>c.type==="BREAK"||c.type==="FORGE")&&P.well>=BREAKC+FC&&rnd()<.05*P.agg)P.princely=[{type:"BREAK"},...P.princely.filter(c=>c.type)].slice(0,4);/* now and then an AI prince backstabs */
  for(const P of G.players)if(P.princely.some(c=>c.type==="BREAK")&&activeBonds(P.id).length)broke.add(P.id);
@@ -109,14 +110,15 @@ function resolveTurn(){
  for(const P of G.players){
   let list=P.princely.slice(0,4).filter(c=>c.type);
   P.noOrders=!list.length&&!!P.human;
-  let pendU=0;P.unleashCls=[];P.unleashNm=[];
+  
   for(const c of list){let s=Math.max(0,Math.min(Math.floor(c.souls||0),P.well));const e={type:c.type};
-   if(c.type==="FOMENT"){P.well-=s;P.consumed+=s;P.foment+=s;e.souls=s;
+   if(c.type==="FOMENT"&&P.rank>=10){e.fail="you are already a Prince of Demons, the highest chaos power rank"}
+   else if(c.type==="FOMENT"){P.well-=s;P.consumed+=s;P.foment+=s;e.souls=s;
     let up=false;while(P.rank<10&&P.foment>=RK[P.rank+1].c){P.rank++;up=true;P.rise=T+1;
      for(const s of humanSeats())if(s!==P.id)ev(s,{sev:"info",pri:-1,text:riseText(P.id,P.rank)});
      if(P.human)ev(P.id,{sev:"good",pri:0,text:`Chaos stirs: you rise to ${RK[P.rank].n} (rank ${P.rank}). More general slots and tier ${RK[P.rank].t} demons are yours.`,hl:`rose to ${RK[P.rank].n}`})}
     e.up=up;e.prog=P.foment;e.need=P.rank<10?RK[P.rank+1].c:0}
-   else if(c.type==="UNLEASH"){const cap=capOf(P.id);if(!ownsHome(P.id)){e.fail="no home plane"}else if(hordesOf(P.id).length+pendU<cap&&P.well>=UNLEASH){P.well-=UNLEASH;P.consumed+=UNLEASH;pendU++;(P.unleashCls=P.unleashCls||[]).push(c.cls==="F"?"F":"H");(P.unleashNm=P.unleashNm||[]).push(cleanName(c.name));e.cls=c.cls==="F"?"F":"H";e.name=cleanName(c.name);e.ok=true}else e.fail=hordesOf(P.id).length+pendU>=cap?"no free general slot":"not enough souls"}
+   else if(c.type==="UNLEASH"){const cap=Math.max(0,RK[P.rank0||P.rank].g-(P.genLost||0));/* the general limit is the rank held when the turn began */if(!ownsHome(P.id)){e.fail="no home plane"}else if(hordesOf(P.id).length<cap&&P.well>=UNLEASH){const rl=rally(P.id);if(!rl)e.fail="no home plane";else{P.well-=UNLEASH;P.consumed+=UNLEASH;const cl=c.cls==="F"?"F":"H",nh=newHorde(P.id,rl,{},cl,cleanName(c.name));nh.born=G.turn+1;e.cls=cl;e.name=cleanName(c.name);e.ok=true}}else e.fail=hordesOf(P.id).length>=cap?"no free general slot":"not enough souls"}/* the new general appears at once */
    else if(c.type==="SCRY"){const q=scrySnap(s);if(q<SCRYU)e.fail=P.well<SCRYU?"not enough souls":`it costs at least ${fmt0(SCRYU)} souls, in multiples of ${fmt0(SCRYU)}`;else{P.well-=q;P.consumed+=q;P.scryR=Math.max(P.scryR,1+q/SCRYU);e.souls=q;e.r=P.scryR}}
    else if(c.type==="FORGE"){const t=c.target;
     if(!(Number.isInteger(t)&&G.players[t]&&t!==P.id&&P.met.includes(t)))e.fail=P.met.length?"choose a rival prince you have met":"you have not met any prince yet";
@@ -136,7 +138,7 @@ function resolveTurn(){
       if(HUM(P.id))ev(P.id,{sev:"info",pri:2,text:`You broke your Blood Pact with [[X:${o}]]. Your hordes may fight theirs from this turn, and the pact income is gone.`})}}}
    if(P.human)P.echoP.push(e)}
   {const s=P.well;if(s>=HARV_CAP){if(P.human)P.echoP.push({type:"HARVEST",souls:s,off:true})}else if(s>0){P.well=0;P.hret+=Math.floor(s*4/3);if(P.human)P.echoP.push({type:"HARVEST",souls:s,ret:Math.floor(s*4/3),auto:true})}}/* harvesting scores no victory points; every unspent soul is harvested, and 3 become 4 next turn */
-  P.unleash=pendU}
+  P.unleash=0}
  for(const x of paid){/* a pact forms only when both princes paid for it. Otherwise the souls are lost and the payer is betrayed */
   const y=paid.find(z=>z.a===x.b&&z.b===x.a);
   if(y){x.e.ok=true;if(x.a<x.b){formBond(x.a,x.b,FC);const k=G.bonds.find(q=>(q.a===x.a&&q.b===x.b)||(q.a===x.b&&q.b===x.a));
@@ -155,19 +157,15 @@ function resolveTurn(){
  for(let r=0;r<4;r++){let any=false;
   for(const id of order){const pl=G.planes[id];if(resolvePlane(pl))any=true;
    if(pl.npc&&!G.hordes.some(h=>h.owner===-1&&h.loc===id&&total(h))){const nm=pl.npcName;pl.npc=false;pl.owner=null;pl.dom=0;
-    const w=forcesAt(pl)[0];if(w&&HUM(w.owner))ev(w.owner,{sev:"good",pri:3,text:`${nm} is broken. [[P:${id}]] lies open.`,plane:id,hl:`broke ${nm} at [[P:${id}]]`})}
+    const w=forcesAt(pl)[0];if(w&&HUM(w.owner))ev(w.owner,{kind:"broke",sev:"good",pri:3,text:`${nm} is broken. [[P:${id}]] lies open.`,plane:id,hl:`broke ${nm} at [[P:${id}]]`})}
    if(pl.owner==null&&!pl.npc){const fs=forcesAt(pl).filter(f=>f.owner>=0);if(fs.length===1)takePlane(pl,fs[0].owner,"claim")}}
   if(!any)break}
  resolveRaids();
- /* 5. summons arrive, unleash */
- for(const h of G.hordes){if(h.pend){for(const k in h.pend)h.demons[k]=(h.demons[k]||0)+h.pend[k];h.pend=null}}
- for(const P of G.players){if(P.pendS){for(const k in P.pendS)P.shadow[k]=(P.shadow[k]||0)+P.pendS[k];P.pendS=null}
-  for(let i=0;i<(P.unleash||0);i++){const rl=ownsHome(P.id)?rally(P.id):null;if(!rl){P.well+=UNLEASH;P.consumed-=UNLEASH;continue}{const nh=newHorde(P.id,rl,{},(P.unleashCls||[])[i]||"H",(P.unleashNm||[])[i]||"");nh.born=G.turn+1}}P.unleash=0;P.unleashNm=[];P.unleashCls=[]}
- /* 6. growth */
+ /* 5. growth */
  for(const id of ids){const pl=G.planes[id];if(pl.owner!=null&&pl.owner>=0&&!pl.hit&&pl.dom>0&&pl.dom<6)pl.dom++;pl.hit=false}
- /* 7. harvest */
+ /* 6. harvest */
  for(const P of G.players){const inc=income(P.id);P.well=P.well+Math.max(0,inc-(P.raidLost||0))+P.hret;P.hret=0;P.raidLost=0}
- /* 7b. elimination: no planes and less than a tenth of the weakest other prince's horde strength */
+ /* 6b. elimination: no planes and less than a tenth of the weakest other prince's horde strength */
  {const sv=p=>{let s=0;for(const h of hordesOf(p))s+=hstats(h).val;return s};/* the Shadow Horde cannot attack, so it does not count */
   const live=G.players.filter(P=>!P.elim),out=[];
   for(const P of live){if(ownedPlanes(P.id).length)continue;const oth=live.filter(Q=>Q.id!==P.id).map(Q=>sv(Q.id));if(oth.length&&sv(P.id)<.1*Math.min(...oth))out.push(P)}
