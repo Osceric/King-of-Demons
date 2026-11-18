@@ -515,3 +515,9 @@ v1.127: New horde order RAID (cmd RAID, one turn only). Target must be a plane h
 
 ## v2.29
 - Rivals picker text: "Choose how dangerous each rival prince will be. The details of its strategy remain a secret." plus a NOTE that a small minority of princes may also be Peaceful or Grudge (separate from danger level), revealed when you can see one of their planes, by adjacency or SCRY.
+
+## v2.30
+- Fix: the Shadow Horde SHADOW SUMMON order showed "Returns 250 souls." instead of "Cost 2,500 souls for 50 Dretch." The cost line only recognized the old SUMMON type, so the SSUMMON rename in v2.21 sent it to the dissolve text. The cost shown now matches a horde SUMMON (50 Dretch = 2,500 souls). Only the displayed text was wrong; the souls actually spent were always correct.
+
+## v2.31
+- UNLEASH GENERAL is greyed out in the princely command dropdown when you have no free general slot (generals held, less any being disbanded, plus other UNLEASH orders, against your Chaos rank limit), labelled "(no free general slot)", or "(needs a home plane)" if you have lost your home. If the order is already chosen when the slots fill up, the order error now reads: YOU CANNOT UNLEASH ANOTHER GENERAL UNTIL YOU ACHIEVE A HIGHER CHAOS POWER RANK WITH THE FOMENT CHAOS COMMAND, with your count and a note that disbanding a general frees a slot.
