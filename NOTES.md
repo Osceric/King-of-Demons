@@ -652,3 +652,27 @@ Goal: replace the save-code passing in multiplayer games with a server that hold
 
 ## v2.59 (Test artifact + PC only)
 - Gameplay tab, Turn Sequence stage 4 (Fights) replaced by the user's outline: 1 Fight Locations, 2 Fight Types, 3 Main Fight Sequence (general scrum, Blood Pact partner of the defender, defending horde, planar defenses; RAID skips the planar defenses), 4 Withdrawal. Nested numbered lists. The Combat section above it is unchanged.
+
+## v2.60 (Test artifact + PC only)
+- Summon UI shows only the highest tier your rank allows, in the horde's class (Fast only for the Shadow Horde). Reason: strength per soul is flat across tiers (Fast about 17.3 to 18.3 per 1,000 souls, Heavy about 20.0 to 20.8), higher tiers carry purge and are untouched by lower purge, and purge cannot be soaked up by fodder (it kills 20% of each kind in reach, at least 1). Any lower-tier amounts in a draft order are dropped when the box renders. The engine and the AI are unchanged and still accept any tier, so old save codes and turn codes work.
+
+## v2.61 (Test artifact + PC only)
+- A paid SCRY now also reveals the makeup (demon types) of every horde in its reach, not only the Shadow Horde makeup of princes who hold planes there. The free SCRY still shows strength only. An Unseen general still hides his horde unless a Farsighted general is within one plane of it. Plan: 1 or 2 demon types per tier with traits (governability/ungovernable, raider, ranged, and so on), the same for every player; makeup becomes hidden information worth scrying. Not built yet: the demon types and traits.
+
+## Parked: demon traits (no code, no version bump)
+- Idea: 1 or 2 demon types at every tier, the same for every player, each with a trait, so the summon choice is real. Makeup is hidden information; a paid SCRY (v2.61) and the Seer ability reveal it.
+- Trait ideas: RIOT (+15% strength when controlled; uncontrolled, it kills off other demons in the horde; control from a general with Experience 15, Age 25, Mindbreaker or Dominator; optional Governor ability raising the bonus to 25%) and ARTILLERY (+40% strength in round 1, then -20% each round; optional Shielded ability cancelling it). Other ideas: raider, defender, siege, fleet.
+- Analysis so far: Riot's control thresholds are mostly out of reach (abilities arrive at Age 10 / Experience 10 and are random; Age 25 only the starting general reaches). The summon UI offers only the top tier your rank allows, so a low-tier trait demon is on sale only briefly. Options: Riot only at high tiers, show the top two tiers, scale control with tier, or leave Riot out. Artillery needs a defined decay rule (percentage points or multiple), a cost or base-strength trade-off, and its bonus applies only to the artillery share of a horde. Shadow Horde cannot use Riot (no general).
+- Status: parked by the user on 2026-11-19.
+
+## v2.62 (Test artifact + PC only)
+- SUMMON (horde and Shadow Horde) has a "Max affordable" button under the quantity box. It fills in the most the Well can pay for after all your other commands (other summons, princely commands), counting the Quartermaster discount, and updates the cost line.
+
+## v2.63 (Test artifact + PC only)
+- The Export PDF button is hidden (`SHOW_PDF=false` in 02-data-and-setup.js). The export code and `initPdf()` are untouched; set the flag to true to bring the button back.
+
+## v2.64 (Test artifact + PC only)
+- The Multiplayer button is hidden by default. It shows when `TEST_BUILD` is true (the Test artifact copy is published with `const TEST_BUILD=false` changed to true and the title "King of Demons Test"), when the game is opened once with `#mp` on the end of the address (remembered in that browser), or when that browser is already in Game Master or player mode. Publishing the Test copy: `sed 's|<title>King of Demons</title>|<title>King of Demons Test</title>|; s|const TEST_BUILD=false|const TEST_BUILD=true|' index.html`.
+
+## v2.65 (Test artifact + PC only)
+- The Gameplay tab is renamed "Gameplay Info", about 15% smaller (12px against 14px), and set 24px apart from the other tabs (`.tab.info` in 01-shell.html).

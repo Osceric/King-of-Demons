@@ -21,9 +21,9 @@ function renderHeader(){
  $("#prince").innerHTML=`<b>${P.name}</b> · ${RK[P.rank].n}`;
  $("#meters").innerHTML=`<div><span>Turn</span> <b>${G.turn}</b></div><div title="${TIP_WELL}"><span>Well</span> <b>${fmt0(P.well)}</b></div><div title="${TIP_INC}"><span>Total Yield</span> <b>${fmt0(income(0))}</b></div><div><span>Planes</span> <b>${ownedPlanes(0).length}</b></div>`;
  const att=G.reports[G.reports.length-1].attention.filter(a=>a.sev==="bad"||a.sev==="warn").length;
- const tabs=[["report","Report",att],["orders","Orders",0],["realm","Realm",0],["standing","Standing",0],["gameplay","Gameplay",0]];
+ const tabs=[["report","Report",att],["orders","Orders",0],["realm","Realm",0],["standing","Standing",0],["gameplay","Gameplay Info",0]];
  if(!G.seenTabs){G.seenTabs={};if(G.turn>1)for(const k of["orders","realm","standing","gameplay"])G.seenTabs[k]=true}
- $("#tabs").innerHTML=tabs.map(([k,l,n])=>`<button class="tab${["orders","realm","standing","gameplay"].includes(k)&&!G.seenTabs[k]?" pulse":""}" role="tab" data-act="tab" data-id="${k}" aria-selected="${UI.tab===k}">${l}${n?`<span class="n">${n}</span>`:""}</button>`).join("")+(DL?`<button class="btn sm pdfb" id="pdfbtn" data-act="pdf" title="Save the Report, Realm and Standing tabs as a PDF">Export PDF</button>`:"")}
+ $("#tabs").innerHTML=tabs.map(([k,l,n])=>`<button class="tab${k==="gameplay"?" info":""}${["orders","realm","standing","gameplay"].includes(k)&&!G.seenTabs[k]?" pulse":""}" role="tab" data-act="tab" data-id="${k}" aria-selected="${UI.tab===k}">${l}${n?`<span class="n">${n}</span>`:""}</button>`).join("")+(DL&&SHOW_PDF?`<button class="btn sm pdfb" id="pdfbtn" data-act="pdf" title="Save the Report, Realm and Standing tabs as a PDF">Export PDF</button>`:"")}
 
 const isAI=i=>{const p=G.players[i];return p.ai!==undefined?p.ai:!p.human};
 function aiOpenTag(i){if(i===0||!isAI(i))return"";const p=G.players[i];return p.open?` <span class="pill s-info" title="Order a Blood Pact with this prince now and it will answer">Open to a Blood Pact</span>`:` <span class="pill" title="This prince will not answer a Blood Pact offer this turn">Closed to a Blood Pact</span>`}

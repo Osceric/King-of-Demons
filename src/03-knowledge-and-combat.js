@@ -3,7 +3,7 @@
 function multiDist(srcs){const d={},q=[];for(const s of srcs){d[s]=0;q.push(s)}while(q.length){const c=q.shift();for(const n of G.planes[c].links)if(!(n in d)){d[n]=d[c]+1;q.push(n)}}return d}
 const compStr=h=>Object.keys(h.demons).filter(d=>h.demons[d]>0).sort((p,q)=>DT[q].t-DT[p].t).map(d=>`${fmt0(h.demons[d])} ${DT[d].n}`).join(", ");
 /* what viewer "me" can learn about the enemy hordes on plane id: strength (hidden for Unseen), demon mix (own/held plane, or a Seer next door), general abilities (a Judge nearby) */
-function visH(id,me){
+function visH(id,me,paidScry){
  const here=G.hordes.filter(h=>h.loc===id&&h.owner!==me&&total(h));if(!here.length)return[];
  const pl=G.planes[id],mine=hordesOf(me).filter(h=>total(h)),dm=distMap(id);
  const dAb=k=>{let b=99;for(const h of mine)if(hasAb(h,k)&&dm[h.loc]!=null)b=Math.min(b,dm[h.loc]);return b};
@@ -11,7 +11,7 @@ function visH(id,me){
  const by={};
  for(const h of here){const s=hstats(h);
   const unseen=hasAb(h,"UNSE")&&!(pl.owner!=null&&pl.owner>=0&&pl.owner!==h.owner&&!bonded(pl.owner,h.owner))&&far>1;/* Farsighted within one plane overrides Unseen */
-  let strV=true,compV=seeIn||seer<=1;
+  let strV=true,compV=seeIn||seer<=1||!!paidScry;/* a paid SCRY reads the makeup of every horde in its reach */
   if(unseen){strV=seer<=1;compV=false}/* Seer vs Unseen: both cancel, only the strength shows */
   const e={n:h.owner>=0?hno(h):0,p:strV?Math.round(s.str):null};
   if(compV)e.c=compStr(h);
@@ -26,7 +26,7 @@ function updateKnow(scryR){
  const mine=new Set();for(const id in G.planes)if(G.planes[id].owner===ME)mine.add(id);
  for(const h of hordesOf(ME))mine.add(h.loc);
  for(const id of mine){snap(id,{h:visH(id,ME),ht:G.turn});for(const n of G.planes[id].links)stub(n)}
- if(scryR){const dm=multiDist([...mine]);for(const id in dm)if(dm[id]<=scryR&&!mine.has(id)){snap(id,{h:visH(id,ME),ht:G.turn});for(const n of G.planes[id].links)stub(n)}
+ if(scryR){const dm=multiDist([...mine]);for(const id in dm)if(dm[id]<=scryR&&!mine.has(id)){snap(id,{h:visH(id,ME,paid),ht:G.turn});for(const n of G.planes[id].links)stub(n)}
   if(paid){const P=G.players[ME];P.sh=P.sh||{};for(const id in dm)if(dm[id]<=scryR){const o=G.planes[id].owner;if(o!=null&&o>=0&&o!==ME)P.sh[o]={t:G.turn,d:Object.assign({},G.players[o].shadow)}}}}/* a paid SCRY also reads the makeup of the Shadow Horde of every prince who holds a plane in its reach */
  {const P=G.players[ME];P.pk=P.pk||{};const dm2=multiDist([...mine]);for(const id in dm2)if(dm2[id]<=scryR){const o=G.planes[id].owner;if(o!=null&&o>=0&&o!==ME&&!P.pk[o]){P.pk[o]=G.turn;if(G.players[o].pers&&P.human&&G.ev&&G.turn<=PEACE_T){const q=PERS[G.players[o].pers];ev(ME,{sev:"info",pri:2,text:`You have learned that [[X:${o}]] is ${q.n}: it ${q.d}`})}}}}/* a prince's personality shows when one of its planes lies in your SCRY reach (the free SCRY covers adjacent planes) */
  {const K=G.players[ME].known;/* Farsighted: the hordes (not the planes) within two planes of one of your Farsighted generals */
