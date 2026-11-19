@@ -676,3 +676,6 @@ Goal: replace the save-code passing in multiplayer games with a server that hold
 
 ## v2.65 (Test artifact + PC only)
 - The Gameplay tab is renamed "Gameplay Info", about 15% smaller (12px against 14px), and set 24px apart from the other tabs (`.tab.info` in 01-shell.html).
+
+## v2.66 (Test artifact + PC only)
+- Opening Briefing: the last paragraph now ends with "Lastly, the blinking Gameplay Info tab describes basic gameplay, and it details plane domination and plane value, combat, and the order in which the various commands are resolved." The Standing tab is described as "the third blinking tab" (Orders, Realm, Standing, Gameplay Info blink). The source said "the last blinking tab", which stopped being true once Gameplay Info began to blink after it.
