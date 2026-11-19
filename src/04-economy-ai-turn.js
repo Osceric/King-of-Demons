@@ -10,7 +10,12 @@ function defNum(id,k){const pl=G.planes[id];if(pl.owner===ME){const s=pdStats(pl
  if(k.o!=null&&k.o>=0&&k.d>0)return pubDef(id,k);return 0}
 /* Values the Known Planes table shows for one plane; owned planes are read live. */
 function rowVals(id){const pl=G.planes[id];let k=G.players[ME].known[id];if(!k||!k.full)return null;if(pl.owner===ME)k=Object.assign({},k,{o:ME,d:pl.dom,q:pl.q,np:null});
- return{d:k.d,q:k.q,y:pl.owner===ME?yieldNow(pl):QV(k.q),f:defNum(id,k)}}
+ const hz=hordeInfo(id,k);return{d:k.d,q:k.q,y:pl.owner===ME?yieldNow(pl):QV(k.q),f:defNum(id,k),hz:hz.n,sh:shNum(id,k),pd:pdNum(id,k)}}
+/* The Known Planes defense columns. Horde: strength of the hordes known to be on the plane (u = some horde there could not be read). Shadow: the holder's public Shadow Horde strength that defends the plane (all at a home plane, a third elsewhere). Planar: the domination-based planar defense. A Minor Power's plane has only its horde. */
+function hordeInfo(id,k){const pl=G.planes[id];if(pl.owner===ME){let n=0;for(const h of hordesOf(ME))if(h.loc===id&&total(h))n+=hstats(h).str;return{n:Math.round(n),u:false}}
+ let n=0,u=false;for(const x of(k.h||[])){if(x.p==null)u=true;else n+=x.p}return{n:Math.round(n),u}}
+function shNum(id,k){return k.o!=null&&k.o>=0?Math.round(pubSh(k.o)*(id===G.players[k.o].home?1:.33)):null}
+function pdNum(id,k){return k.o!=null&&k.o>=0&&k.d>0?DOM[k.d].o+DOM[k.d].d:null}
 const ownedPlanes=p=>Object.values(G.planes).filter(x=>x.owner===p);
 function demonCount(p){let n=0;for(const h of hordesOf(p))n+=total(h);for(const k in G.players[p].shadow)n+=G.players[p].shadow[k];return n}
 function vp(p){

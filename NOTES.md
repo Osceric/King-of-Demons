@@ -622,3 +622,9 @@ Goal: replace the save-code passing in multiplayer games with a server that hold
 
 ## v2.50
 - "Name your demon prince" screen: removed the "Keep this name" button. It ignored the rival Danger Level dropdowns (a player who chose levels and then pressed it lost them), and Begin already handles an unchanged name. The screen now has the single Begin button, and the intro line mentions choosing rivals.
+
+## v2.51 (Test artifact + PC only)
+- Known Planes: the single Defense column is replaced by three: Horde (strength of the hordes last seen on the plane; a Minor Power's horde is its whole defense; "+?" or "?" when a horde could not be read), Shadow (the holder's public Shadow Horde strength that defends the plane, all at home, a third elsewhere; "–" for Minor Power and unheld planes), Planar (offense + defense from the plane's domination; "–" for Minor Power and unheld planes). A prince's plane is defended by Planar + Shadow. The plane detail shows the same three. Delta arrows work per column. Note text now says green is you.
+
+## v2.52 (pushed everywhere)
+- Gameplay tab text rewritten from the user's draft (heading "Basic Gameplay"; sections: standard loop with other-ways-to-win note, Planar Domination and Value, Combat [horde vs horde, horde vs planar defenses, Minor Power planes have no planar defense, three defense columns], Turn Sequence). The old "Set before anyone moves" stage was folded into the Prince stage. Corrections vs the draft: meeting engagement applies to any hordes that arrive together, defender bonus numbers, harvest cap 75,000, RAID and Blood Pact exceptions, Slippery 3:1 end, retreat/destroy rules, Shadow Horde and Blood Pact explained.
