@@ -31,7 +31,7 @@ const DK=Object.keys(DT);
 /* Every demon is Fast (class "F": 3 planes a turn, lower strength per soul) or Heavy (class "H": 1 plane a turn, higher strength per soul). A horde moves at the speed of its SLOWEST demon. Friendly planes cost half a move to enter. Each demon has one Strength value (st); there is no offense, defense or speed. Tiers run 1 to 22: Fast demons hold the odd tiers and Heavy the even ones. A horde is single-class: its general is Fast or Heavy when unleashed and can summon only that class. */
 const CLS={F:"Fast",H:"Heavy"};
 /* Bump on every published release; shown after the game number, e.g. 377560v29. */
-const GAME_VERSION="2.52";const MIN_VER="2.0";/* saved games and turn codes from older versions (1.81 and earlier carry no stamp) are no longer supported */
+const GAME_VERSION="2.53";const MIN_VER="2.0";/* saved games and turn codes from older versions (1.81 and earlier carry no stamp) are no longer supported */
 /* prince colors: you are always color 1 (green); the other 11 palette colors are dealt to the rival princes at random, fixed for the life of a game by its seed */
 const PAL=["#8cc276","#4db6c9","#a98be0","#e8782e","#d4688f","#e0c34a","#f7f2e4","#a8342e","#2d55b0","#2e8b4f","#b9d84a","#9a6a4a"];
 function mkPal(n,seed){let x=((+seed||1)*2654435761+12345)>>>0;const r=()=>(x=(Math.imul(x,1664525)+1013904223)>>>0)/4294967296,a=[1,2,3,4,5,6,7,8,9,10,11];for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return[0].concat(Array.from({length:Math.max(0,n-1)},(_,i)=>a[i%11]))}

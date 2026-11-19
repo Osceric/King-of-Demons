@@ -628,3 +628,6 @@ Goal: replace the save-code passing in multiplayer games with a server that hold
 
 ## v2.52 (pushed everywhere)
 - Gameplay tab text rewritten from the user's draft (heading "Basic Gameplay"; sections: standard loop with other-ways-to-win note, Planar Domination and Value, Combat [horde vs horde, horde vs planar defenses, Minor Power planes have no planar defense, three defense columns], Turn Sequence). The old "Set before anyone moves" stage was folded into the Prince stage. Corrections vs the draft: meeting engagement applies to any hordes that arrive together, defender bonus numbers, harvest cap 75,000, RAID and Blood Pact exceptions, Slippery 3:1 end, retreat/destroy rules, Shadow Horde and Blood Pact explained.
+
+## v2.53 (Test artifact + PC only)
+- Gameplay tab wording: Trench Master bonus names the ability, "whatever the horde's order", "horde against horde combat above", and a note that a broken Minor Power plane is usually dominated by the victor unless the victor fled.
