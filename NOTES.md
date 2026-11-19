@@ -574,3 +574,51 @@ v1.127: New horde order RAID (cmd RAID, one turn only). Target must be a plane h
 
 ## v2.48
 - FOMENT CHAOS is not available at rank 10 (Prince of Demons), the highest chaos power rank. It did nothing there except count as spending toward the 10% "Souls consumed" points. Orders screen: the FOMENT option is greyed out and reads "FOMENT CHAOS (not allowed: you are already a Prince of Demons)"; a FOMENT already set shows an error telling you to choose another command; the engine also refuses it with no souls spent and the report shows "FOMENT CHAOS failed: ...". The AI never fomented at rank 10.
+
+## v2.49
+- The top Danger Level is renamed from "Literal Armageddon" to "Armageddon Made Manifest" (picker, rules text). The short label stays "Armageddon". Saved games are unaffected, since they store the level code (L, H, X), not the name.
+
+## Roadmap: automatic multiplayer on Cloudflare (design notes, nothing built yet; written 2026-11-18)
+Goal: replace the save-code passing in multiplayer games with a server that holds each game, so players submit orders and read results on the site. Everything free.
+
+**Turn timing (decided)**
+- A turn is processed as soon as every player has submitted orders. Turns take no time to resolve (about 10 ms for six princes), so a group that is all online can play its first 10 turns in one evening.
+- A schedule is the backstop for stragglers: orders are due at fixed times (for example 1:00 PM and 10:00 PM) and the server processes the turn then, with results ready by about 1:05 PM / 10:05 PM. Whoever has not submitted keeps their standing orders (a horde with none holds).
+- Times are stored in UTC and shown in each player's local time. Still to decide: whether "1 PM" means a fixed local time or fixed UTC (daylight saving shifts local), and whether a game may be set to strict-schedule only.
+- With turn processing on the server, email is not needed to send or receive turns. Notifications are optional extras.
+
+**Architecture**
+- The game page stays a static page on GitHub Pages. A Cloudflare Worker is the server, with one Durable Object per game holding the game state and each player's secret orders for the current turn. The same engine code (plain deterministic JS, seeded) runs inside the Worker. `viewFor()` already strips hidden information, so each player is sent only their own view.
+- The Claude artifact sandbox blocks `fetch` to other sites, so a server-backed game cannot run as a Claude artifact. The public Claude link stays solo play (or links out).
+- Storage: one row per game for the state (a row or value may be up to 8 MB, a game is about 350 KB at turn 34), reports stored one row per player per turn, few indexes to keep row writes low.
+- Identity: each player gets a secret per-game link. No email means no recovery, so the organizer can reissue a lost link.
+- Schedule trigger: a Durable Object alarm (or a Cron Trigger) per game.
+- Avoid the standard WebSocket API (it keeps the object awake and billed). Plain HTTP requests, or the WebSocket Hibernation API, are fine.
+- Cloudflare cannot be reached from the Claude workspace, so I write the Worker code and config into the KoD folder and the user runs the deploy. Deploy options: GitHub Actions with the Cloudflare wrangler action (needs a Cloudflare API token stored as a GitHub secret, by the user; lets ENG and BTN gate the deploy), or Cloudflare Workers Builds connected to the repo (no secrets in GitHub). Leaning toward GitHub Actions.
+
+**Free-plan facts (from Cloudflare docs, checked 2026-11-18; recheck before building)**
+- Allowances per day, reset 00:00 UTC: 100,000 requests, 13,000 GB-s duration, 5 million SQLite rows read, 100,000 rows written; 5 GB total Durable Object storage. Past a limit, operations fail until the reset (no charge).
+- Only SQLite-backed Durable Objects are available on the free plan.
+- Duration is billed only while an object runs or sits idle and cannot hibernate; idle objects that can hibernate (about 10 s) are not billed. Standard WebSockets block hibernation (evicted after 70 to 140 s idle). Pending I/O can hold an object for up to 15 minutes.
+- Requests count HTTP calls, RPC sessions, alarms and incoming WebSocket messages (20 to 1).
+- The docs do not say whether index updates count as rows written, and disagree on per-object storage (1 GB or 10 GB on free). Neither matters at this scale.
+
+**Capacity estimate (6-player games, 2 turns a day each, rough)**
+- About 100 requests and about 150 row writes per game per day. First limit hit is requests: roughly 450 concurrent games with the page polling every 30 s, about 1,000 without polling. Rows written about 650 games. Storage about 2,700 finished games kept forever (about 1.8 MB each if all reports are stored); archive or delete finished games. Duration is not a concern with plain HTTP.
+- With early processing the request count rises (players reload and resubmit more often during a fast evening), but a single game is far below any limit.
+
+**Notifications (all optional and opt-in; none needed for the schedule to work)**
+- Free options: Discord webhook per game channel (@mention by Discord ID); Discord bot DMs; Telegram bot (player taps a link, bot learns the chat ID); ntfy.sh (player subscribes to a secret topic); browser push (service worker, iPhones only from the Home Screen); a static calendar file with two recurring daily events (no server needed). SMS has no reliable free option.
+- Email via Brevo REST (`POST https://api.brevo.com/v3/smtp/email`, `api-key` header kept as a Worker secret): free plan is 300 emails a day (about 25 six-player games at 12 mails per game per day). The sender must be verified; with no domain, delivery from a free-provider address is unproven and may need a test send. A third-party review says free emails carry a "Powered by Brevo" badge. Email would be opt-in, addresses kept only in the game's private storage, never in any player's view, deleted at game end, one-click opt-out, no game details in the mail.
+- Suggested first set: Discord webhook and ntfy, then a Telegram bot if asked. Email last, behind the opt-in.
+
+**Suggested order of work**
+1. Worker plus Durable Object: state, orders, turn processing (early when all in, otherwise at the deadline).
+2. Game page talking to it, still hosted on GitHub Pages; keep the save-code route as an offline fallback.
+3. Schedule and deadlines, calendar file.
+4. Optional notifications.
+
+**Open questions**: local versus UTC schedule; strict-schedule games; how a lost player link is reissued; how a game is created and joined (invite link and seat claim); whether finished games are archived or deleted; per-game schedule settings.
+
+## v2.50
+- "Name your demon prince" screen: removed the "Keep this name" button. It ignored the rival Danger Level dropdowns (a player who chose levels and then pressed it lost them), and Begin already handles an unchanged name. The screen now has the single Begin button, and the intro line mentions choosing rivals.
