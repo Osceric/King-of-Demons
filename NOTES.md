@@ -631,3 +631,24 @@ Goal: replace the save-code passing in multiplayer games with a server that hold
 
 ## v2.53 (Test artifact + PC only)
 - Gameplay tab wording: Trench Master bonus names the ability, "whatever the horde's order", "horde against horde combat above", and a note that a broken Minor Power plane is usually dominated by the victor unless the victor fled.
+
+## v2.54 (Test artifact + PC only)
+- A horde that has already withdrawn this turn cannot withdraw again. If it is beaten again (the rare case of two beaten hordes both retreating to the same empty plane), it is destroyed. A draw there destroys both unless one force is at least 2:1 over the other (the usual stay rule), in which case that force lives, battered. Implemented in retreatForce (a horde already flagged `t.evicted` is treated as having nowhere to go). Not yet reflected in the Gameplay text.
+
+## v2.55 (Test artifact + PC only)
+- Defender rule: only the plane's owner (or a Minor Power's horde on its plane) is the defender, whether or not that force moved this turn. An owner's horde that arrives on its own plane joins the defense without fighting its way in. Every other force on the plane counts as an arrival, including one that has sat there for turns or an ex Blood Pact partner, so it fights the other arrivals in the scrum with no defender bonus, then the owner's horde, then the planar defenses. Change is in resolvePlane (forces split by owner instead of by whether they moved). Gameplay text not yet updated.
+
+## v2.56 (Test artifact + PC only)
+- Fight sequencing on a plane. Defenders: the plane's owner (or a Minor Power's horde) and any Blood Pact partner of the owner standing there. Everything else is an arrival (including a horde that has sat there for turns).
+- Scrum among arrivals: pairs of enemy forces fight, one or both leave. Order: the two forces whose general has the lowest Experience fight first; ties go to the lowest general Age, then the prince with the fewest victory points, then random. The winner's Experience rises after each fight, so the highest-experience general tends to fight last and sees the others weakened. A force's key is taken from its horde with the highest Experience (ties: older general). Blood Pact partners in the scrum do not fight each other.
+- Then each surviving arrival fights the owner's Blood Pact partners first (they defend, with the defender bonus), then the owner's horde, then the planar defenses. Implemented in resolvePlane (kf/cmpK keys; stays sorted partners first, owner last). Tested with a hook: three hordes at experience 5/1/3 fought in the order 1 vs 3, then the winner vs 5; and an attacker fought a partner horde, then the owner.
+- Gameplay text not yet updated.
+
+## v2.57 (Test artifact + PC only)
+- Scrum order for a prince with several hordes on one plane: the prince counts as one general with the best Experience and the best Age among them (taken separately, not added or combined).
+
+## v2.58 (Test artifact + PC only)
+- Blood Pact partners arriving together attack the defender and the planar defenses one after another. Order: scrum order (lower Experience first, so the better general goes last), except when the plane's domination is 2 or less, when the better general goes first because he can take the plane outright. If the first takes the plane, the partner cannot attack it. Domination is read when each attacker is picked; if the first attacker cuts domination the partner faces the weakened defenses. Intended (confirmed by the user): if a Minor Power's horde is destroyed while two pact partners are on the plane, nobody claims it (the claim needs exactly one prince's force there). It stays unclaimed.
+
+## v2.59 (Test artifact + PC only)
+- Gameplay tab, Turn Sequence stage 4 (Fights) replaced by the user's outline: 1 Fight Locations, 2 Fight Types, 3 Main Fight Sequence (general scrum, Blood Pact partner of the defender, defending horde, planar defenses; RAID skips the planar defenses), 4 Withdrawal. Nested numbered lists. The Combat section above it is unchanged.

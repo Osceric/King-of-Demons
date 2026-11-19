@@ -170,7 +170,7 @@ function retreatForce(F,pl,isDef,killer){const out=[];
   if(F.planar)break;
   if(h.owner===-1){/* a defeated Minor Horde is scattered: its survivors are wiped out and count as kills */
    let kv=0;for(const k in h.demons)kv+=h.demons[k]*DT[k].cost;h.demons={};if(kv&&killer&&killer.owner>=0)credit(killer.owner,{kv:kv*2});out.push({h,kind:"destroyed",to:null,kv});continue}
-  const dead=!total(h),d=dead?{kind:"destroyed",to:null}:pickDest(h,isDef&&!movedH(h));
+  const dead=!total(h)||!!(h.t&&h.t.evicted),d=dead?{kind:"destroyed",to:null}:pickDest(h,isDef&&!movedH(h));/* a horde that already withdrew this turn has nowhere left to go: if it is beaten again it is destroyed */
   if(d.kind==="destroyed"){let kv=0;for(const k in h.demons)kv+=h.demons[k]*DT[k].cost;if(kv){if(killer&&killer.owner>=0)credit(killer.owner,{kv});lostSouls(h.owner,kv)}
    h.demons={};h.from=null;h.cmd={type:"HOLD"};h.t.wiped=true;
    const rl=ownsHome(h.owner)?rally(h.owner):null;if(rl){h.loc=rl;h.abA=h.abE=null;h.exp=0;h.res=(h.res||0)+1;h.born=G.turn+1}else{h.gone=true;const P=G.players[h.owner];P.genLost=(P.genLost||0)+1;if(HUM(h.owner))ev(h.owner,{sev:"bad",pri:1,text:`${h.gen} was destroyed with no free plane to return to. The general is gone for good and your general limit falls to ${capOf(h.owner)}.`})}out.push({h,kind:"destroyed",to:null,kv});continue}
@@ -218,16 +218,22 @@ function resolvePlane(pl){
  const pdOn=()=>pl.owner!=null&&pl.owner>=0&&pl.dom>0&&fs.some(f=>f.owner!==pl.owner&&!bonded(f.owner,pl.owner)&&!isRaid(f));
  if(fs.length<2&&!pdOn())return false;
  const players=fs.filter(f=>f.owner>=0).map(f=>f.owner);players.forEach(a=>players.forEach(b=>meet(a,b)));if(pl.owner!=null&&pl.owner>=0)players.forEach(a=>meet(a,pl.owner));
- G.fq=G.fq||{};let fought=false;
+ G.fq=G.fq||{};let fought=false;const vpC={},tbC={},vpOf=o=>o<0?0:(o in vpC?vpC[o]:(vpC[o]=vp(o).total)),tbOf=o=>o in tbC?tbC[o]:(tbC[o]=rnd());
  const key=(a,b)=>pl.id+"|"+a.owner+"|"+(b.planar?"pd":b.owner),done=(a,b)=>G.fq[key(a,b)]||G.fq[key(b,a)];
  const hostilePair=(a,b)=>a.owner!==b.owner&&!bonded(a.owner,b.owner)&&!done(a,b);
  for(let guard=0;guard<14;guard++){
   fs=forcesAt(pl);
-  const mv=f=>f.hordes.every(movedH),movers=fs.filter(mv).sort((a,b)=>a.owner-b.owner),stays=fs.filter(f=>!mv(f)).sort((a,b)=>a.owner-b.owner);
+  /* Defenders: the plane's owner (or a Minor Power's horde), and any Blood Pact partner of the owner standing there. Every other force is an arrival, even one that has sat there for turns. */
+  const isOwnF=f=>pl.npc?f.owner===-1:(pl.owner!=null&&pl.owner>=0&&f.owner===pl.owner),isDf=f=>isOwnF(f)||(!pl.npc&&pl.owner!=null&&pl.owner>=0&&bonded(f.owner,pl.owner));
+  /* Scrum order: the force whose general has the least experience goes first, then the youngest general, then the prince with the fewest victory points, then luck. Whoever fights last sees the others weakened. */
+  const kf=f=>{let e=0,a=0;for(const h of f.hordes){e=Math.max(e,h.exp||0);a=Math.max(a,genAge(h))}return[e,a,vpOf(f.owner),tbOf(f.owner)]};/* a prince with several hordes on the plane counts as one general with the best Experience and the best Age among them; they are not added */
+  const cmpK=(x,y)=>{const a=kf(x),b=kf(y);for(let q=0;q<4;q++)if(a[q]!==b[q])return a[q]-b[q];return 0};
+  const movers=fs.filter(f=>!isDf(f)).sort(cmpK),stays=fs.filter(isDf).sort((a,b)=>(isOwnF(a)?1:0)-(isOwnF(b)?1:0)||a.owner-b.owner);
+  const atk=pl.dom<=2?movers.slice().reverse():movers;/* once the scrum is over, partners who arrived together attack one after another: weaker general first, except that when the plane's domination is 2 or less the better general goes first, since he can take it outright */
   let pair=null;
-  for(const a of movers){for(const b of movers)if(a.owner<b.owner&&hostilePair(a,b)){pair=[a,b,"meet"];break}if(pair)break}
-  if(!pair)for(const a of movers){for(const b of stays)if(hostilePair(a,b)){pair=[a,b,"att"];break}if(pair)break}
-  if(!pair&&pdOn()){const pd=pdForce(pl),a=movers.concat(stays).find(f=>f.owner!==pl.owner&&!bonded(f.owner,pl.owner)&&!isRaid(f)&&!done(f,pd));if(a)pair=[a,pd,"att"]}
+  for(let x=0;x<movers.length&&!pair;x++)for(let y=x+1;y<movers.length;y++)if(hostilePair(movers[x],movers[y])){pair=movers[x].owner<movers[y].owner?[movers[x],movers[y],"meet"]:[movers[y],movers[x],"meet"];break}
+  if(!pair)for(const a of atk){for(const b of stays)if(hostilePair(a,b)){pair=[a,b,"att"];break}if(pair)break}
+  if(!pair&&pdOn()){const pd=pdForce(pl),a=atk.concat(stays).find(f=>f.owner!==pl.owner&&!bonded(f.owner,pl.owner)&&!isRaid(f)&&!done(f,pd));if(a)pair=[a,pd,"att"]}
   if(!pair)for(const a of stays){for(const b of stays)if(a.owner<b.owner&&hostilePair(a,b)){pair=[a,b,"meet"];break}if(pair)break}
   if(!pair)break;
   G.fq[key(pair[0],pair[1])]=1;runFight(pl,pair[0],pair[1],pair[2]);fought=true}
