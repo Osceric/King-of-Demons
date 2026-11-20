@@ -742,3 +742,84 @@ Known Planes table: every column except Plane is now centered (headers and conte
 
 ## v2.72
 Icon tooltips. Hovering or clicking (tapping) a crown, gem, flame, horned head or shield shows a small box with its name and a one-line meaning. Works on the Abyss map icons, the Known Planes column headers and the key under the table. It closes after a few seconds, on scroll, or when you click elsewhere. The old browser title tooltip on the headers was replaced.
+
+## v2.73
+Abyss map: a faint crown watermark in the holder's color now sits on any prince's home plane that its starting prince still holds (yours and any rival home you know). It disappears when the home plane falls. Chosen from the Abyss mock-up (layer 2); the rest of the mock-up layers are not built.
+
+## v2.74
+Abyss map atmosphere and glow (from the Abyss mock-up, layers 1 and part of 2): deep red-black radial background with a faint rune lattice, an edge vignette, 34 slow embers drifting upward (switched off for reduced-motion devices), unexplored and unknown planes fade into fog, and every known plane gets a soft glow in its holder's color that grows with plane value. Not built: domination notches, inner tile light, living portals.
+
+## v2.75
+Home-plane crown watermark on the Abyss map shrunk by a third.
+
+## v2.76
+Home-plane crown watermark moved off the bottom of the tile and vertically centered, so it clears the HOME label and the H tags. It can still sit under a rival horde marker when both your horde and a rival's are on the plane.
+
+## v2.77
+Removed the home-plane crown watermark (redundant with the HOME label). Versions 2.73 to 2.76 describe its history. Atmosphere and glow from v2.74 stay. Note: only your own home plane carries the HOME label; rival home planes have no marker.
+
+## v2.78
+Abyss map "chasm": the vertical gap between planes is wider (map is 96 pixels taller) and wherever two vertically adjacent planes have no portal between them the gap is filled with a dark hatched band. Connected pairs keep their red link. East and west links always exist, so only vertical edges can be blocked. Wrap-around edges at the top and bottom are unchanged. From the "No-portal mock-ups" page, option 2. Options 4 (selection highlight) and 5 (horde reach) were liked as possible additions but not built.
+
+## v2.79
+Abyss map: removed the radial background glow and the edge vignette (flat dark background now; rune lattice and embers stay). Per-tile glow in the holder's color strengthened and spread slightly, still scaling with plane value (value 0 faint, value 7 strongest).
+
+## v2.80
+Removed the drifting embers from the Abyss map (they appeared to pop in and out). Rune lattice stays.
+
+## v2.81
+Chasm made quieter: the hatching and outline are gone. A blocked gap is now only a faint darker patch (30% opacity) with no border, so it reads as negative space rather than an object. Connected gaps still carry the red link.
+
+## v2.82
+More map tooltips (hover or click): rival and Minor Power horde markers ("Horde 2 of Ilvareth - Strength about 51 when last seen"), your own H tags (current strength), the HOME label ("Your starting plane. All of your Shadow Horde defends it."), and the red portal lines ("Hordes can only travel between planes that are joined by these red portal lines"), which now have a wider invisible hit area so they are easy to hit.
+
+## v2.83
+Taller map tiles with a horde area. Each known plane tile is 80 pixels tall (was 62) and has a thin divider just below the value row; under it sit up to two rows of horde icons: your own H tags first, then the hordes you last saw there (prince number circles in the prince's color, "!" for Minor Horde). Icons are smaller (about 13 pixels) so a row holds about four, and past two rows a "+n" note appears with its own tooltip. The map is 108 pixels taller; gaps between planes and the chasm are unchanged. From the extra-row mock-up.
+
+## v2.84
+Dotted wrap-around portal lines now have their own tooltip: "Wrap-around portal to K00. This dotted portal line is just like a solid portal line, except that it connects to a wrap-around plane on the opposite edge of the map: plane K00." Each stub names the plane it leads to.
+
+## v2.85
+Domination Level icon changed from a crown to a sword (header, key, map tiles, legend, tooltips and the note under Known Planes). Chosen from the Domination icon mock-up; the boot, whip, shackle, fist and trident were not used.
+
+## v2.86
+Domination sword tilted 45 degrees clockwise (tip toward the upper right) and drawn about 30% larger, filling more of its icon box (the first try was 25 degrees; Dennis wanted 45).
+
+## v2.87 (Test artifact + PC only)
+- Random game ending. A countdown (rank 7, every prince met, every plane dominated) no longer ends the game on a fixed turn. After the trigger the game cannot end for the first turns; then each turn has a chance of ending it, and the chance rises until the end is certain. Standard schedule (rank 7 and every prince met), counted in turns after the trigger: +12 10%, +13 15%, +14 20%, +15 35%, +16 45%, +17 55%, +18 65%, +19 75%, +20 85%, +21 95%, +22 certain. Average 15 turns, the same as the old fixed countdown (sim of 300 games: 15.0). Every plane dominated uses the same shape 5 turns earlier (+7 first chance, certain at +17, average 10). The turn limit stays at 45 (about 1% of games reach it; Dennis did not want longer games).
+- Players are told the chance in words only: under 20% "unlikely but possible", 20% up to 50% "not very likely", 50% up to 75% "likely", 75% and up "very likely". Before the first chance the text says the game cannot end for at least N more turns. The last turn before the turn limit says so. Shown in the turn report alert, the report banner and the Standing tab; the rules text and the Standing tab explain it.
+- The roll uses the game's seeded random numbers at the end of each turn's resolution (G.end is now {t0,kind,reason}). A game saved before v2.87 (G.end.at) keeps its old fixed end.
+- AI end dump. An AI knows the exact chance. From 25% up it cancels its horde summons and princely commands, buys any chaos rank that costs under 50,000 souls per rank (rank costs are cumulative Foment totals) and puts the rest of its Well into a Shadow Summon. Reason: unspent souls score nothing when the game ends, while souls put into demons score about 1.1 points each. Background: a friend's game on v2.48 was won partly by a 130,000 soul Shadow Summon on the last turn; sims showed a lone dumper gains about 6 points of win rate and that when every AI dumps the edge disappears.
+- Not run: the lone-dumper edge under the new random ending.
+
+## v2.88 (Test artifact + PC only)
+- The Chaos rank trigger now fires at rank 6 (Chaos Lord), not rank 7 (Count of Chaos). Same standard schedule as "every prince has met every other" (average 15 turns after the trigger). Standing tab: "A prince reaches Chaos Lord (rank 6)", with the progress bar out of 6.
+- Why: in 300 simulated AI games rank 7 was the first trigger only 1% of the time (average turn about 30), and rank 7 was never reached in 31% of games. With rank 6 it is the first trigger in 33 of 300 games (11%), average turn 24; "every prince met" is first in 252 (84%, average turn 19.5) and "every plane dominated" in 15 (5%, average turn 20). No game reached the turn 45 limit in that run.
+- Only the first trigger starts the countdown; later triggers change nothing (Dennis's decision). Ties on one turn go to "every plane dominated" (shorter schedule).
+- Correction to the v2.87 analysis: median turns for the first trigger are 19 (met), 21 (planes dominated) and 30 (rank 7). An earlier table printed the minimum by mistake.
+
+## v2.89 (Test artifact + PC only)
+- The "every plane dominated" trigger now needs 97% of the planes dominated once (58 of 60 on the standard map; `domNeed()` = round(planes x 0.97), so it scales with map size), not all 60. Reason text: "Nearly every plane has been dominated (58 of 60)". Standing tab bar shows progress toward 58 and says the map has 60. Schedule unchanged (average 10 turns after the trigger).
+- Why: with all 60 planes it started the countdown in only 8 of 300 simulated AI games (the last few planes are often strongly defended or behind a chasm). Dennis chose 97%, the cautious option, because this countdown is short and can shorten games a lot.
+- Sim of 300 AI games with this build: first trigger is "every prince met" in 181 (60%, average turn 18.8), planes dominated in 108 (36%, average turn 19.6), Chaos Lord in 11 (4%, average turn 24.6). Counted with ties going to the planes trigger, which is why 36% is higher than the 28% the earlier strictly-before count gave for 58 planes. Average last turn of a game is 32.4 (about 35 before v2.88/v2.89, so about 2.6 turns shorter). No game reached the turn 45 limit.
+- Standard countdown averaged 14.9 turns (12 to 19), plane countdown 9.7.
+
+## v2.90 (Test artifact + PC only)
+- Countdown lengths swapped, Dennis's call: reaching Chaos Lord (rank 6) now starts the short countdown (average 10 turns: first chance of ending at +7, certain at +17), and 97% of the planes dominated starts the standard one (average 15 turns: first chance at +12, certain at +22), same as "every prince met". If two triggers fire on one turn, the shorter countdown wins. The Standing tab labels say "averages ten turns" for rank and "averages fifteen turns" for planes and met. END_SCHED keys are now std and short (short was dom).
+- Reason: with planes at 15 and rank at 10 the average game length is about what it was before the random ending. Sim of 300 AI games: average last turn 34.1 (it was 32.4 with the v2.89 schedule and about 34 before v2.87). First trigger: met 181 games (60%, turn 18.8), planes 107 (36%, turn 19.5), rank 6 only 12 (4%, turn 24.4). No game reached the turn 45 limit. Standard countdown averaged 14.9 turns.
+- Because rank 6 is the first trigger in only about 4% of games, the shorter countdown seldom applies.
+
+## v2.91 (Test artifact + PC only)
+- End game flavor text. The plain "chance the game ends" wording is replaced by an omen line, five per situation (1 = the game cannot end yet, with the first turn it might end; 2 = unlikely but possible; 3 = not very likely; 4 = likely; 5 = very likely). Each line still says how likely the end is, so the odds stay clear. Lines live in `END_FLAV` in 02-data-and-setup.js; source is the shared spreadsheet "End Game Flavor Text" (Dennis wrote or edited most of them; all marked Keep).
+- Which line shows: picked by game and turn ((game seed + turn) mod 5), so it changes each turn, never repeats back to back, is the same on every screen within a turn, and uses none of the game's random numbers. The line appears after "End game: <reason>." in the report alert, the report banner and the Standing tab. Turn 45 (the limit) and old saves still show plain text.
+- Standing tab explanation reworded: players are never told the exact chance, only the omen.
+- Double spaces in Dennis's text are collapsed to one in the code. (Line 1A's garbled phrase was fixed in v2.92.)
+
+## v2.92 (Test artifact + PC only)
+- Flavor line 1A fixed at Dennis's wording: "Well, if they're cold they won't bother us." (was "if they're they can't bother you!"). The spreadsheet line was updated to match.
+
+## v2.93 (Test artifact + PC only)
+- Flavor text no longer speaks of reality ending. The game's end is told as a coronation (the chaos gods crowning a king), with the same likelihood wording in each line. 20 of the 25 lines were reworded from the spreadsheet; 1A and 1D are as Dennis had them (1D still has the Bell of Endings), 1E's last sentence is now "No king will be crowned before then." 2A (Dennis's frog line) keeps its wording except "crown a king" for "end reality". The spreadsheet holds the new text; the earlier reality wording is in its version history.
+
+## v2.94 (pushed everywhere, with v2.73 to v2.93)
+- Flavor text picks up Dennis's later edits in the spreadsheet: 3E ("...shuffling their notes. So, a coronation next turn..."), 4C ("Complete your plans!"), 4D ("Fortune favors the prepared.") and 5E (two sentences). Pushed to the public Claude link and GitHub together with every version since v2.72 (v2.73 to v2.94: icons and tooltips, flat map with per-tile glow and chasm, horde row, sword icon, random game ending with omen text, 97% planes and Chaos Lord triggers, AI end dump).

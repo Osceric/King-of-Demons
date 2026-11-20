@@ -37,7 +37,7 @@ function renderReport(){
  const opts=R.map((x,i)=>`<option value="${i}" ${i===idx?"selected":""}>${x.turn?`Turn ${x.turn} report`:"Opening briefing"}</option>`).reverse().join("");
  const f=UI.filter,F=(k,l)=>`<button class="chip" data-act="filter" data-id="${k}" aria-pressed="${f===k}">${l}</button>`;
  let h=`<div class="tools"><select id="repSel" data-k="rep" aria-label="Choose report">${opts}</select>${F("all","All")}${F("orders","My orders")}${F("events","Battles &amp; events")}${F("intel","Intel")}</div>`;
- if(G.end)h+=`<div class="cd"><b>End game under way.</b> ${G.end.reason}. The game ends after turn ${G.end.at}.</div>`;
+ if(G.end)h+=`<div class="cd"><b>End game under way.</b> ${G.end.reason}. ${endNote(G.turn)}</div>`;
  h+=`<h2>${r.turn?`Turn ${r.turn} report`:"Opening briefing"}</h2><p class="sub">${latest?"What happened, what you know now, and what needs you next.":"An archived report."}</p>`;
  h+=`<div class="head">${ref(r.headline)}</div>`;if(r.intro&&r.intro.length)h+=r.intro.map(t=>`<p class="note" style="max-width:70ch;margin:8px 0 8px 17px;font-size:14px;line-height:1.5">${ref(t)}</p>`).join("");
  if(!r.turn)h+=princesCard();

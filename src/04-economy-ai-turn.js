@@ -68,6 +68,13 @@ function aiPlan(p){
   }
   if(!done)h.cmd={type:"HOLD"}
  }
+ /* END GAME DUMP: the AIs know the exact chance the game ends after this turn. From 25% up, unspent souls are worth more as points now than as harvest later, so they buy any chaos rank that costs less than 50,000 souls per rank and put the rest into the Shadow Horde. */
+ if(G.end&&endChance(G.turn)>=.25){
+  for(const h of hs)if(h.cmd&&h.cmd.type==="SUMMON")h.cmd={type:"HOLD"};
+  P.princely=[];const k=allowed.filter(x=>DT[x].c==="F")[0],W=P.well;let fo=0;
+  if(P.rank<10){let best=0;for(let R=P.rank+1;R<=10;R++){const C=RK[R].c-P.foment;if(C>0&&C<=W){const g=50000*(R-P.rank)-C;if(g>best){best=g;fo=C}}}}
+  if(fo>0)P.princely=[{type:"FOMENT",souls:fo}];
+  P.shadowCmd=k&&W-fo>=DT[k].cost?{type:"SSUMMON",n:{[k]:Math.floor((W-fo)/DT[k].cost)}}:null}
 }
 
 /* ===== TURN ===== */
@@ -194,11 +201,13 @@ function resolveTurn(){
   h.stand=h.cmd.type!=="HOLD"}
  for(const s of HS){G.players[s].lastP=clone(G.players[s].princely);setDefaults(s)}
  if(!G.end){const trig=[];
-  if(G.players.some(p=>p.rank>=7))trig.push({turns:15,reason:"A prince has reached Count of Chaos (Chaos rank 7)"});
-  if(G.everDom.length>=NP)trig.push({turns:10,reason:"Every plane has been dominated"});
-  if(allMet())trig.push({turns:15,reason:"Every prince has met every other"});
-  if(trig.length){trig.sort((a,b)=>a.turns-b.turns);G.end={at:T+trig[0].turns,reason:trig[0].reason}}}/* the first countdown to start is the only one; later triggers change nothing */
- if((G.end&&T>=G.end.at)||T>=MAXT)G.over=true;
+  if(G.players.some(p=>p.rank>=6))trig.push({kind:"short",reason:"A prince has reached Chaos Lord (Chaos rank 6)"});
+  if(G.everDom.length>=domNeed())trig.push({kind:"std",reason:`Nearly every plane has been dominated (${domNeed()} of ${NP})`});
+  if(allMet())trig.push({kind:"std",reason:"Every prince has met every other"});
+  if(trig.length){trig.sort((a,b)=>(a.kind==="short"?0:1)-(b.kind==="short"?0:1));G.end={t0:T,kind:trig[0].kind,reason:trig[0].reason}}}/* the first countdown to start is the only one; later triggers change nothing */
+ if(G.end){if(G.end.t0==null){if(T>=G.end.at)G.over=true}/* a game saved before v2.87 keeps its fixed end */
+  else{const h=endHaz(G.end.kind,T-G.end.t0);if(h>=1||(h>0&&rnd()<h))G.over=true}}
+ if(T>=MAXT)G.over=true;
  {const hl=G.hist&&G.hist[G.hist.length-1];if(hl&&hl.t===T)hl.v=G.players.map((_,i)=>vp(i).total)}
  for(const s of HS){repsOf(s).push(as(s,()=>makeReport(BS[s],ECHO[s],T)));delete G.players[s].echoP}
 }
