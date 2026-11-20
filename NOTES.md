@@ -739,3 +739,6 @@ Shadow icon name changed to "Shadow Horde Strength" (header hover, key, plane de
 
 ## v2.71
 Known Planes table: every column except Plane is now centered (headers and contents). Group rows and the "Your planes produce" label stay left.
+
+## v2.72
+Icon tooltips. Hovering or clicking (tapping) a crown, gem, flame, horned head or shield shows a small box with its name and a one-line meaning. Works on the Abyss map icons, the Known Planes column headers and the key under the table. It closes after a few seconds, on scroll, or when you click elsewhere. The old browser title tooltip on the headers was replaced.
