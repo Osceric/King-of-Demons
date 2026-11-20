@@ -24,6 +24,7 @@ Project: King of Demons (KoD), a single-page HTML play-by-mail demon-prince stra
 ## Style and conduct
 - Be honest about unknown causes. Correct earlier misstatements promptly.
 - Avoid the word "league" in UI text. Use "multiplayer game" (MPG).
+- Call the computer-run princes "NPC princes" (in UI text and in conversation), not "AI players" or "AI princes": they run on an algorithm, not AI. Code comments and old NOTES entries may still say AI.
 - Player color is green. "Green is you" in the note text.
 - Flags: `SHOW_PDF=false` hides Export PDF; the Multiplayer button shows only in the test build, with `#mp` in the address, or when the mode is not solo.
 
@@ -823,3 +824,6 @@ Domination sword tilted 45 degrees clockwise (tip toward the upper right) and dr
 
 ## v2.94 (pushed everywhere, with v2.73 to v2.93)
 - Flavor text picks up Dennis's later edits in the spreadsheet: 3E ("...shuffling their notes. So, a coronation next turn..."), 4C ("Complete your plans!"), 4D ("Fortune favors the prepared.") and 5E (two sentences). Pushed to the public Claude link and GitHub together with every version since v2.72 (v2.73 to v2.94: icons and tooltips, flat map with per-tile glow and chasm, horde row, sword icon, random game ending with omen text, 97% planes and Chaos Lord triggers, AI end dump).
+
+## v2.95 (pushed everywhere)
+- Wording: the Game Master and multiplayer setup screens say "NPC princes" instead of "AI princes" (setup text, the princes list, the name-table dialog and the results table's "(NPC)" tag). Dennis: the computer-run princes are driven by an algorithm, so they are not called AI. Added to the working agreements. Code comments and earlier NOTES entries still say AI.
