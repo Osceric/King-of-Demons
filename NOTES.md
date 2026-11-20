@@ -1,5 +1,50 @@
 # KoD notes (session of 2026-11-13)
 
+# Working agreements (read this first in any new session)
+
+Project: King of Demons (KoD), a single-page HTML play-by-mail demon-prince strategy game. Owner: Dennis Dillman. Source is split in `src/` and joined by `node build.js` into `index.html`. Repo: Osceric/King-of-Demons (main); Pages: https://osceric.github.io/King-of-Demons/. On Dennis's PC the folder is `C:\Users\denni\Documents\KoD`.
+
+## Versions
+- `GAME_VERSION` is "major.minor" in `src/02-data-and-setup.js`. Bump the minor by 1 for every change to the game. `MIN_VER="2.0"` stays untouched.
+- Dennis controls version bumps and releases. Add a NOTES.md entry for every version.
+
+## Where things get deployed
+- Default: the Test artifact and the PC folder only.
+- The public Claude link and GitHub are updated only on an explicit instruction ("push everything everywhere", "update everything everywhere", "push it everywhere"). Each such instruction covers that one push only.
+- Test artifact: publish a **test copy** so its title reads "King of Demons Test" and `TEST_BUILD` is true: `sed 's|<title>King of Demons</title>|<title>King of Demons Test</title>|; s|const TEST_BUILD=false|const TEST_BUILD=true|' kod/index.html > testcopy/index.html`.
+- PC: do the file commits one after another. Commit `index.html` first, then `NOTES.md` and any changed `src/` files in a second call.
+- GitHub: copy `src/`, `index.html`, `NOTES.md`, `build.js` into the clone, commit, push `origin HEAD`.
+- Do not paste artifact links unless asked. After publishing, one sentence saying what it is.
+
+## Testing
+- ENG = engine test (`node t2.js`, expects `"bad": []`). BTN = button test (`node pwbtn.js`, expects `[]`). Report as "ENG and BTN pass".
+- Rebuild the engine file before ENG: `(echo '"use strict";'; cat src/02 03 04 05 055 056) > engine.js`.
+- A 30-game AI smoke test (`q55.js`) after anything touching the engine or AI.
+
+## Style and conduct
+- Be honest about unknown causes. Correct earlier misstatements promptly.
+- Avoid the word "league" in UI text. Use "multiplayer game" (MPG).
+- Player color is green. "Green is you" in the note text.
+- Flags: `SHOW_PDF=false` hides Export PDF; the Multiplayer button shows only in the test build, with `#mp` in the address, or when the mode is not solo.
+
+## Rules decisions already made (do not reopen without asking)
+- Turn: 1 Summon, 2 Prince stage, 3 Movement, 4 Fights, 5 Growth and harvest. Harvest stops at a Well of 75,000.
+- Fight order: defenders' home planes first, then other planes smallest attacking force first, ties by plane id. Within a plane: scrum among arrivals (lowest experience, then age, then victory points, then random), then partners of the defender, the owner's horde, then planar defense. Blood Pact partners never fight each other and cannot team up. If domination is 2 or less, the better general goes first; otherwise scrum order.
+- A horde already pushed out this turn that is beaten again is destroyed. Both sides can be destroyed; a 2:1 survivor lives on.
+- Summon screen shows only the top tier the rank allows. Shadow Horde summons Fast demons only. Purge kills 20% of units of each kind (min 1) at tiers up to the rating and cannot be soaked.
+- Free SCRY shows strength only; paid SCRY (multiples of 2,500, up to 7,500) also shows horde makeup in reach. Slippery threshold 3:1; HOLDR 2:1.
+
+## Parked or open
+- Demon traits (RIOT, ARTILLERY, governability, raider, ranged; 1 or 2 types per tier): see "Parked: demon traits". No code yet.
+- Known Planes icon set: mock-up published as a separate page; waiting for Dennis to pick an option (A icons above labels, B icons only, C icons in cells with domination pips). Not built.
+- Deal the dark-green and lime player colors last so they do not clash with the green player color.
+- AI danger levels need retuning after the harvest cap change.
+- iPad persistence test (Chrome v2.19, Safari v2.27) still open.
+- Cloudflare automatic multiplayer is design only (see roadmap).
+
+---
+
+
 ## Goal
 A single-player web take on play-by-mail games. The turn report is the core: it should let a player see what happened, what they know, and what to do next, quickly.
 
@@ -679,3 +724,18 @@ Goal: replace the save-code passing in multiplayer games with a server that hold
 
 ## v2.66 (Test artifact + PC only)
 - Opening Briefing: the last paragraph now ends with "Lastly, the blinking Gameplay Info tab describes basic gameplay, and it details plane domination and plane value, combat, and the order in which the various commands are resolved." The Standing tab is described as "the third blinking tab" (Orders, Realm, Standing, Gameplay Info blink). The source said "the last blinking tab", which stopped being true once Gameplay Info began to blink after it.
+
+## v2.67
+Known Planes (Realm tab) now uses icons: column headers are icon-only (crown Domination, gem Value, flame Souls per turn, horned head Horde, dashed violet head Shadow Horde, shield Planar defense) with the name on hover, and a key with the icon names sits under the table. Cells carry the same icon beside the number, and Domination shows six pips. Icons are inline SVG in the text color, so no image files. Explanatory note below the table now names each icon. Options B and C from the icon mock-up; Dennis chose both.
+
+## v2.68
+Icons moved from the Known Planes cells to the Abyss map. The table keeps its icon-only headers and key, but its cells are plain numbers again and the domination pips are gone. On the map each plane square now shows a crown icon with domination and a gem icon with value (replacing "d3" and "v4"); Minor Power and free planes still read "Minor" and "free". Map legend names the two icons.
+
+## v2.69
+Icon names changed: crown = "Domination Level", horned head = "Horde Strength", shield = "Planar Defense Strength" (Shadow Horde, Value and Souls per turn unchanged). Applies to the table header hover names, the key under Known Planes, the map legend, the plane detail labels and the note under the table.
+
+## v2.70
+Shadow icon name changed to "Shadow Horde Strength" (header hover, key, plane detail, note), matching Domination Level, Horde Strength and Planar Defense Strength.
+
+## v2.71
+Known Planes table: every column except Plane is now centered (headers and contents). Group rows and the "Your planes produce" label stay left.
