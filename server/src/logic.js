@@ -6,7 +6,7 @@
 const ALPHA="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 export const newKey=(n=12)=>{const b=new Uint8Array(n);crypto.getRandomValues(b);let s="";for(const x of b)s+=ALPHA[x%ALPHA.length];return s};
 const same=(a,b)=>{a=String(a||"");b=String(b||"");if(a.length!==b.length)return false;let d=0;for(let i=0;i<a.length;i++)d|=a.charCodeAt(i)^b.charCodeAt(i);return d===0};
-const CHUNK=100000,MAXBLOB=1500000,MAXCODE=250000,MAXSEATS=8;
+const CHUNK=100000,MAXBLOB=1500000,MAXCODE=250000,MAXSEATS=8,MAXREC=90000,MAXIDX=20000;
 const ok=(o)=>[200,Object.assign({ok:true},o||{})],bad=(c,m,x)=>[c,Object.assign({ok:false,error:m},x||{})];
 
 async function putBig(st,name,str){const n=Math.ceil(str.length/CHUNK)||1,was=(await st.get(`${name}:n`))||0;for(let i=n;i<was;i++)await st.delete(`${name}:${i}`);/* a smaller value leaves no old chunks behind */
@@ -19,9 +19,26 @@ function who(meta,k,seatParam){
  if(same(meta.gm,k))return{role:"gm",seat:seatParam==null||seatParam===""?null:+seatParam};
  const i=meta.seats.findIndex(s=>same(s.key,k));return i>=0?{role:"seat",seat:i}:null}
 
-export async function handle(st,{method,op,q,body}){
+export async function handle(st,{method,op,q,body,admin}){
  const meta=await st.get("meta"),now=Date.now();
  q=q||new URLSearchParams();body=body||{};
+ /* ---- game results: finished games send a copy here (the "results" room only; the Worker enforces that). Anyone may submit; only the admin key reads. ---- */
+ if(op==="submit"||op==="list"||op==="rec"){
+  if(op==="submit"){
+   if(method!=="POST")return bad(405,"Use POST.");const r=body.rec;
+   if(!r||typeof r!=="object"||r.k!=="res"||!Array.isArray(r.pl)||r.pl.length>8)return bad(400,"That is not a game result.");
+   const raw=JSON.stringify(r);if(raw.length>MAXREC)return bad(413,"That result is too large.");
+   const cl=x=>String(x==null?"":x).replace(/[^A-Za-z0-9]/g,"").slice(0,16),id=(cl(r.g)||"x")+"-"+(cl(r.sd)||"x");
+   const old=await st.get("rec:"+id);if(old&&(old.turn||0)>(r.turn|0))return ok({id,kept:true});
+   await st.put("rec:"+id,{raw,turn:r.turn|0});
+   let idx=[];try{idx=JSON.parse((await getBig(st,"idx"))||"[]")}catch(e){}
+   const sum={id,at:now,no:String(r.g||"").slice(0,16),v:String(r.v||"").slice(0,8),mode:String(r.mode||"").slice(0,8),turn:r.turn|0,over:!!r.over,end:r.end?String(r.end).slice(0,60):null,
+    n:r.pl.map(p=>[String(p&&p.n||"").slice(0,40),p&&p.h?1:0,p&&p.vp!=null?Math.round(+p.vp)||0:null,p&&p.rk!=null?+p.rk||0:null])};
+   const i=idx.findIndex(x=>x.id===id);if(i>=0)idx[i]=sum;else{idx.push(sum);if(idx.length>MAXIDX)idx.shift()}
+   await putBig(st,"idx",JSON.stringify(idx));return ok({id})}
+  if(!admin||!same(admin,q.get("k")))return bad(403,"Wrong key.");
+  if(op==="list"){let idx=[];try{idx=JSON.parse((await getBig(st,"idx"))||"[]")}catch(e){}return ok({total:idx.length,items:idx.slice(-500).reverse()})}
+  const o=await st.get("rec:"+String(q.get("id")||"").replace(/[^A-Za-z0-9-]/g,""));if(!o)return bad(404,"No such result.");return ok({rec:JSON.parse(o.raw)})}
  /* ---- cloud saves: one secret key per save, set by the first PUT ---- */
  if(op==="save"){
   const k=q.get("k")||"";if(k.length<8)return bad(400,"A save key of at least 8 characters is needed.");

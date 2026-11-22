@@ -30,3 +30,8 @@ API (all under /api/room/<name>/<op>; keys go in ?k=)
 - PUT/GET/DELETE save (?k= secret, at least 8 characters)  {blob, info}  a cloud save
 
 Limits: 2 MB per request, 1.5 MB per save, 250 KB per turn view, 2 to 8 human seats.
+
+Game results (added 2.99 work)
+- Finished games on the Cloudflare site send a copy of their result to a fixed room named "results".
+- To read them you need an admin key. In the Cloudflare dashboard: Workers & Pages > king-of-demons > Settings > Variables and Secrets > Add, type Secret, name ADMIN_KEY, any long random value. It survives deploys.
+- Open https://<your address>/test/ (the Test build on Cloudflare), press Maintenance, enter the key, Load results.

@@ -1,4 +1,6 @@
 <meta charset="utf-8">
+<script>/* GitHub Pages sends players on to the Cloudflare address (set HOME below). A browser that already holds a game here is not redirected, so the game is not stranded; it gets a banner instead. */
+(function(){var HOME="";try{if(HOME&&/github\.io$/.test(location.hostname)){var has=false;["kod1","kodP","kodGM"].forEach(function(k){try{var g=JSON.parse(localStorage.getItem(k)||"null");if(g&&g.planes&&!g.askName)has=true}catch(e){}});if(!has)location.replace(HOME+"/"+location.search+location.hash);else window.KOD_MOVED=HOME}}catch(e){}})();</script>
 <title>King of Demons</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2061,7 +2063,7 @@ function showMenu(){
 /* ===== ONLINE (Cloudflare): games without emailed codes, and cloud saves. Works only when this page is served by the King of Demons server; anywhere else (a Claude artifact, a file) it stays hidden and the code-passing game is unchanged. ===== */
 const OL={on:false,chk:false,busy:0};
 const olId=(n,a)=>{a=a||"abcdefghjkmnpqrstuvwxyz23456789";let s="";for(const x of crypto.getRandomValues(new Uint8Array(n)))s+=a[x%a.length];return s};
-async function olApi(room,op,o){o=o||{};const q=new URLSearchParams();if(o.k)q.set("k",o.k);if(o.s!=null)q.set("s",o.s);let j;
+async function olApi(room,op,o){o=o||{};const q=new URLSearchParams();if(o.k)q.set("k",o.k);if(o.s!=null)q.set("s",o.s);if(o.id)q.set("id",o.id);let j;
  try{const r=await fetch(`${location.origin}/api/room/${encodeURIComponent(room)}/${op}?${q}`,{method:o.method||"GET",headers:o.body?{"content-type":"application/json"}:{},body:o.body?JSON.stringify(o.body):undefined});j=await r.json()}catch(e){throw new Error("Could not reach the game server.")}
  if(!j||typeof j!=="object"||!("ok" in j))throw new Error("Could not reach the game server.");
  if(!j.ok){const e=new Error(j.error||"Server error.");e.srv=true;throw e}return j}
@@ -2124,7 +2126,7 @@ function olLanding(msg,confirmSolo){
  <div class="opt o-join"><button class="btn" data-ol="join">Join a multiplayer game</button><div class="od">Paste the game link your Game Master sent you (or an email turn code), then press the button above.</div><input type="text" id="lcode" placeholder="Paste the link or code here" aria-label="Game link or code"></div>
  ${opt("o-gm",`<button class="btn" data-ol="gm">Create a new multiplayer game as the Game Master</button>`,"You set up the game and send each player a private link.")}
  ${opt("o-cloud",`<button class="btn" data-ol="cloud">Save or load your game online</button>`,"Keep a copy of your game on the server so you can continue it on another device.")}
- <div id="mpmsg">${msg?`<div class="msg bad">${esc(msg)}</div>`:""}</div><p class="note">You can come back to these choices any time with the Multiplayer button.</p>`)}
+ <div id="mpmsg">${msg?`<div class="msg bad">${esc(msg)}</div>`:""}</div><p class="note">You can come back to these choices any time with the Multiplayer button.</p><p class="note">Game results, including your prince name, are collected in order to improve the quality of the game.</p>`)}
 async function olLandAct(a,d){
  if(a==="go"){closeModal();if(MODE!==d.m)setMode(d.m)}
  else if(a==="solo"){const had=lsGame("kod1");if(had&&!OL.csolo){OL.csolo=1;return olLanding("",true)}OL.csolo=0;closeModal();try{localStorage.removeItem("kod1")}catch(e){}if(MODE!=="solo")setMode("solo");else{loadG();renderAll()}}
@@ -2148,8 +2150,11 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-ol]"
    let j;try{j=await olApi(c.room,"save",{k:c.k})}catch(er){throw new Error(er.message==="No save here."?"No save was found under that key for this kind of game.":er.message)}
    OL.pend=await unpack(j.blob);const i=j.info||{};mpMsg(`Found a save: game ${esc(i.no)}, turn ${esc(i.turn)}, saved ${esc(new Date(j.at).toLocaleString())}.`);$("#cres").innerHTML=`<div class="row"><button class="btn pri" data-ol="crestore">Replace the game on this device with the saved one</button></div>`}
   else if(a==="crestore")olRestore(OL.pend);
+  else if(a==="rlist"){const k=$("#akey").value.trim();try{localStorage.setItem("kodAK",k)}catch(e2){}const j=await olApi("results","list",{k});OL.rl=j.items;
+   $("#rlist").innerHTML=`<p class="note">${j.total} game${j.total===1?"":"s"} on file${j.total>j.items.length?`, newest ${j.items.length} shown`:""}.</p><div class="rtw"><table class="rt"><tr><th>Received</th><th>Game</th><th>Mode</th><th>Ver</th><th>Turn</th><th>State</th><th>Princes (points)</th><th></th></tr>${j.items.map(x=>`<tr><td>${esc(fdate(x.at))}</td><td>${esc(x.no)}</td><td>${esc(x.mode)}</td><td>${esc(x.v)}</td><td>${x.turn}</td><td>${x.over?"finished":"unfinished"}</td><td>${x.n.map(p=>esc(p[0])+(p[1]?"":" (NPC)")+" "+(p[2]==null?"":p[2])).join("; ")}</td><td><button class="btn sm" data-ol="ropen" data-id="${esc(x.id)}">Open</button></td></tr>`).join("")}</table></div>`}
+  else if(a==="ropen"){const j=await olApi("results","rec",{k:$("#akey").value.trim(),id:d.id});$("#rout").innerHTML=resHTML(j.rec)}
  }catch(err){olErr(err)}});
-async function olStart(){await olProbe();if(!OL.on)return;
+async function olStart(){await olProbe();if(!OL.on)return;olResult();
  const m=location.hash.match(/^#o=([A-Za-z0-9_-]{4,64})\.([A-Za-z0-9]{6,32})$/);
  if(m){try{localStorage.setItem("kodOL",JSON.stringify({room:m[1],key:m[2]}))}catch(e){}try{history.replaceState(null,"",location.pathname+location.search)}catch(e){}if(MODE!=="player"){setMode("player")}}
  if(MODE==="gm"&&(!G||!G.mpg))renderAll();else if(MODE==="solo"&&G)renderHeader();
@@ -2159,6 +2164,14 @@ setInterval(()=>{if(document.hidden||!OL.on)return;
  if(MODE==="player")olSync();
  else if(MODE==="gm"&&G&&G.mpg&&G.ol&&!G.over)olCollect().then(n=>{if(n&&MODE==="gm"&&!$("#mpmodal"))renderGM()}).catch(()=>{})},20000);
 
+
+/* finished games send a copy of their result to the server (Cloudflare site only); the start screen says so */
+async function olResult(){if(!OL.on||!G||!G.over||G.rsent||OL.rbusy||MODE==="player")return;OL.rbusy=1;
+ try{await olApi("results","submit",{method:"POST",body:{rec:resObj()}});G.rsent=true;save()}catch(e){}finally{OL.rbusy=0}}
+const _ra3=renderAll;renderAll=function(){const r=_ra3.apply(this,arguments);olResult();return r};
+const akeyGet=()=>{try{return localStorage.getItem("kodAK")||""}catch(e){return""}};
+function resultsHTML(){return`<h3 style="margin-top:22px">Game results</h3><p class="note">Finished games sent in by players. Enter the admin key you set in Cloudflare (the ADMIN_KEY secret).</p><div class="row"><input type="password" id="akey" value="${esc(akeyGet())}" placeholder="Admin key" aria-label="Admin key"><button class="btn sm" data-ol="rlist">Load results</button></div><div id="rlist"></div><div id="rout"></div>`}
+const fdate=t=>{const d=new Date(t);return isNaN(d)?"":d.toLocaleString()};
 /* ---- GM screen ---- */
 const GMX={msgs:[],mail:null,link:""};
 try{GMX.link=localStorage.getItem("kodLink")||"https://claude.ai/artifact/5rD6MYEJpYzjyntTiJfWzD"}catch(e){}
@@ -2213,7 +2226,7 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-mp]"
   else if(a==="close")closeModal();
   else if(a==="mode"){closeModal();setMode(d.m)}
   else if(a==="pname"){const v=cleanName($("#pname").value,40);const sd=G.seed0!=null?G.seed0:G.seed;const dg=G.players.slice(1).map((_,i)=>{const e=$("#dg"+i);return e?+e.value:DANGER_DEF});if((v&&v!==G.players[0].name)||dg.some(x=>x!==DANGER_DEF)){newGame({name:v||G.players[0].name,seed:sd,danger:dg})}else delete G.askName;UI.tab="report";UI.rep=null;save();closeModal();renderAll()}
-  else if(a==="maint"||a==="names"){modal(`<h2>Maintenance</h2><h3>NPC prince names</h3><p class="sub">One name per line. Each new game gives its NPC seats names drawn from this list, without repeats. Needs at least 3 names; add more for variety. Games already under way keep their names.</p><p class="note">The list built into the game's code is the one every address uses. Changes saved here apply only on this Test page. To make a new list official, press Copy list and send it to Claude.</p><textarea id="nlist" style="min-height:260px">${esc(nameList().join("\n"))}</textarea><div class="row"><button class="btn pri" data-mp="nsave">Save names</button><button class="btn" data-mp="ncopy">Copy list</button><button class="btn" data-mp="nreset">Restore the code's list</button><button class="btn" data-mp="close">Close</button></div><div id="mpmsg"></div>`)}
+  else if(a==="maint"||a==="names"){modal(`<h2>Maintenance</h2><h3>NPC prince names</h3><p class="sub">One name per line. Each new game gives its NPC seats names drawn from this list, without repeats. Needs at least 3 names; add more for variety. Games already under way keep their names.</p><p class="note">The list built into the game's code is the one every address uses. Changes saved here apply only on this Test page. To make a new list official, press Copy list and send it to Claude.</p><textarea id="nlist" style="min-height:260px">${esc(nameList().join("\n"))}</textarea><div class="row"><button class="btn pri" data-mp="nsave">Save names</button><button class="btn" data-mp="ncopy">Copy list</button><button class="btn" data-mp="nreset">Restore the code's list</button><button class="btn" data-mp="close">Close</button></div><div id="mpmsg"></div>${OL.on?resultsHTML():""}`)}
   else if(a==="ncopy")copyText($("#nlist").value.split("\n").map(x=>x.trim()).filter(Boolean).join("\n"),t);
   else if(a==="nsave"){const l=[...new Set($("#nlist").value.split("\n").map(s=>s.trim()).filter(Boolean))];
    if(l.length<3)mpMsg("Enter at least 3 different names.",1);else{try{localStorage.setItem("kodAIN",JSON.stringify(l))}catch(e){}mpMsg(`Saved ${l.length} names. They apply to the next game you start.`)}}
@@ -2233,4 +2246,5 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-mp]"
 window.addEventListener("hashchange",()=>{if(location.hash==="#play"&&MODE!=="player")setMode("player")});
 initPdf();
 olStart();
+if(window.KOD_MOVED){const b=document.createElement("div");b.style.cssText="background:#dcae52;color:#1a0f12;padding:10px 14px;font:600 14px var(--body,sans-serif);text-align:center";b.innerHTML=`King of Demons has moved. <a href="${esc(window.KOD_MOVED)}" style="color:#1a0f12">Play at the new address</a>. Your saved game stays in this browser: use "Make my save code" on the Standing tab, then "Restore a saved game" at the new address (or "Save or load your game online").`;document.body.prepend(b)}
 </script>

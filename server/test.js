@@ -41,4 +41,17 @@ const call=(st,method,op,q,body)=>handle(st,{method,op,q:new URLSearchParams(q||
  [s,r]=await call(v,"GET","save","k=abcdefgh1");t("shrunk",r.blob==="small");
  [s]=await call(v,"PUT","save","k=abcdefgh1",{blob:"z".repeat(1600000)});t("too large",s===413);
  [s]=await call(v,"DELETE","save","k=abcdefgh1");[s]=await call(v,"GET","save","k=abcdefgh1");t("deleted",s===404&&![...v.m.keys()].some(k=>k.startsWith("blob")));
+ /* results */
+ const R=mk(),rec={k:"res",v:"2.98",g:"123456",sd:777,mode:"solo",turn:12,over:true,end:"x",cfg:{},pl:[{n:"Jubex <b>",h:1,rk:5,vp:120.4},{n:"Ozrakh",h:0,rk:3,vp:80}],hist:[]};
+ const ca=(m,op,q,b)=>handle(R,{method:m,op,q:new URLSearchParams(q||""),body:b,admin:"adminkey1"});
+ [s,r]=await ca("POST","submit","",{rec});t("result submit",s===200&&r.id==="123456-777");
+ [s]=await ca("POST","submit","",{rec:{k:"nope"}});t("junk refused",s===400);
+ [s]=await ca("POST","submit","",{rec:Object.assign({},rec,{hist:"h".repeat(95000)})});t("huge result refused",s===413);
+ [s,r]=await ca("POST","submit","",{rec:Object.assign({},rec,{turn:5})});t("older copy kept out",s===200&&r.kept===true);
+ [s]=await ca("GET","list","k=wrong");t("list needs admin key",s===403);
+ [s]=await handle(R,{method:"GET",op:"list",q:new URLSearchParams("k=adminkey1"),body:{}});t("no admin configured",s===403);
+ [s,r]=await ca("GET","list","k=adminkey1");t("list",s===200&&r.total===1&&r.items[0].turn===12&&r.items[0].n[0][2]===120);
+ [s,r]=await ca("GET","rec","k=adminkey1&id=123456-777");t("record roundtrip",s===200&&r.rec.pl[0].n==="Jubex <b>");
+ [s]=await ca("GET","rec","k=adminkey1&id=nope");t("missing record",s===404);
+ await ca("POST","submit","",{rec:Object.assign({},rec,{turn:14})});[s,r]=await ca("GET","list","k=adminkey1");t("newer copy replaces, no duplicate",r.total===1&&r.items[0].turn===14);
  console.log(fails?fails+" failures":"all server tests pass");process.exit(fails?1:0)})()
