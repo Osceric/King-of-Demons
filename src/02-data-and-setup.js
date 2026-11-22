@@ -226,7 +226,7 @@ function spreadHomes(n){const ids=Object.keys(G.planes),hs=[pid(1,NY>1?1:0)];whi
 function newGame(opts){opts=opts||{};const seats=opts.seats; /* multiplayer games (MPG) pass seats: [{human,name,email}] for 2-8 princes, plus nx,ny map size (ny even) */
  setDims(opts.nx,opts.ny);const NPL=seats?seats.length:4;
  G={seed:opts.seed!=null?opts.seed:(Date.now()^0x5bd1e995)|0,no:null,turn:1,planes:null,hordes:[],nextH:1,usedGen:[],players:[],reports:[],everDom:[],end:null,over:false,usedNpcN:[],bonds:[],hit:{}};
- G.seed0=G.seed;G.ver=GAME_VERSION;G.cfg={nx:NX,ny:NY};G.no=gameNo();if(seats)G.league={gm:true,created:Date.now()};
+ G.seed0=G.seed;G.ver=GAME_VERSION;G.cfg={nx:NX,ny:NY};G.no=gameNo();if(seats)G.mpg={gm:true,created:Date.now()};
  G.planes=genMap();G.pal=mkPal(NPL,G.seed);
  const homeIds=(NX===10&&NY===6&&NPL===4)?[pid(1,1),pid(6,1),pid(3,4),pid(8,4)]:spreadHomes(NPL);
  const pick=aiNames(G.seed,NPL),names=pick.map((n,i)=>i?pick[i-1]:"Thraxxamazog");

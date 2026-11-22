@@ -83,7 +83,7 @@ input[type=number]{width:92px}
 table{border-collapse:collapse;width:100%;font:12.5px var(--mono);font-variant-numeric:tabular-nums}
 th{font:500 11px var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--dim);text-align:left;padding:5px 8px;border-bottom:1px solid var(--line)}
 svg.ic{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;vertical-align:-3px;flex:none}svg.ic .f{fill:currentColor;stroke:none}
-.ic-dom{color:var(--ember)}.ic-val{color:var(--gold)}.ic-soul{color:#7fd0e0}.ic-hor{color:var(--ink)}.ic-sh{color:#a98be0}.ic-pl{color:var(--good)}
+.rico{flex:none;width:40px;text-align:center;margin-top:0;color:var(--ink)}.rico.big{margin:-6px 0;color:#ff8a2a}.ic-blast{color:#ff8a2a}.ic-swords,.ic-mtn,.ic-skull{color:var(--ink)}.ic-dom{color:var(--ember)}.ic-val{color:var(--gold)}.ic-soul{color:#7fd0e0}.ic-hor{color:var(--ink)}.ic-sh{color:#a98be0}.ic-pl{color:var(--good)}
 th.ith{text-align:right;cursor:help}th.ith svg{vertical-align:middle}
 .icv{display:inline-flex;gap:5px;align-items:center;justify-content:flex-end}
 .ickey{display:flex;flex-wrap:wrap;gap:4px 16px;margin:10px 0 2px;font-size:12px;color:var(--dim)}.ickey span{display:inline-flex;gap:5px;align-items:center}.ickey b{font-weight:500}
@@ -120,14 +120,14 @@ svg text{font-family:var(--mono)}
 details summary{cursor:pointer;color:var(--dim);font-size:13px}
 .bar-in{height:6px;background:var(--bg);border-radius:3px;overflow:hidden;margin-top:6px}.bar-in i{display:block;height:100%;background:var(--ember)}
 .pdfb{margin-left:auto;align-self:center}
-.tutbar{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;margin:0 0 12px}.tutbar b{font:400 32px/1.1 var(--display);color:var(--ink)}.playall{font-size:16px;padding:10px 18px;background:var(--ember);color:#1b0e08;border-color:var(--ember)}.playhint{display:inline-block;margin:8px 0 4px;font:600 15px var(--body);color:var(--gold)}.tutcard h3{font-size:21px}.tutcard{text-align:left;cursor:pointer;color:var(--ink);font:inherit;width:100%}.tutcard:hover{border-color:var(--ember)}
+.tutbar{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;margin:0 0 12px}.tutbar b{font:400 32px/1.1 var(--display);color:var(--ink)}.playall{font-size:16px;padding:10px 18px;background:var(--ember);color:#1b0e08;border-color:var(--ember)}.playhint{background:none;border:0;padding:0;cursor:pointer;text-align:left;display:block;margin:8px 0 4px;font:600 15px var(--body);color:var(--gold)}.tutcard h3{font-size:21px}.tutcard{display:block}.topicsbtn{margin:6px 0}.tutlist{margin:2px 0 6px;padding-left:22px;font-size:13.5px;color:var(--dim)}.tutlist li{margin:2px 0}.tutcard{text-align:left;cursor:pointer;color:var(--ink);font:inherit;width:100%}.tutcard:hover{border-color:var(--ember)}
 .tstage{position:relative;height:min(72vh,470px);overflow:hidden;border:1px solid var(--line);border-radius:8px;background:var(--bg);box-shadow:0 6px 22px #0006}
 .tpage{position:absolute;left:0;top:0;width:100%;padding:12px 14px;pointer-events:none;user-select:none;transition:transform .7s cubic-bezier(.4,0,.2,1)}.tpage .stick{position:static}
 .tring{position:absolute;left:0;top:0;width:0;height:0;border:2px solid var(--gold);border-radius:8px;box-shadow:0 0 0 9999px #000a,0 0 14px 2px #dcae52aa;pointer-events:none;opacity:0;transition:all .7s cubic-bezier(.4,0,.2,1)}
 .tcur{position:absolute;left:80%;top:90%;width:26px;height:30px;pointer-events:none;transition:left .8s cubic-bezier(.4,0,.2,1),top .8s cubic-bezier(.4,0,.2,1);filter:drop-shadow(0 2px 3px #000a);z-index:3}
 .tcur i{position:absolute;left:-8px;top:-8px;width:20px;height:20px;border-radius:50%;border:2px solid var(--gold);opacity:0}.tcur.tap i{animation:tuttap .5s ease-out}
 @keyframes tuttap{0%{opacity:1;transform:scale(.4)}100%{opacity:0;transform:scale(2)}}
-.nt{transition:none!important}
+.nt{transition:none!important}.tring.r2{box-shadow:0 0 14px 2px #dcae52aa}.nodim .tring{box-shadow:0 0 14px 2px #dcae52aa}.tpage.compact>*:not(.tmeters):not(h2):not(.sub):not(.stick){display:none}.tmeters{margin:0 0 8px;justify-content:flex-end}
 .tcap{min-height:3.2em;margin:14px 0 10px;font-size:24px;line-height:1.35;color:#fff}.tcapin{display:flex;gap:10px;align-items:baseline;animation:tutcap .35s ease-out}.tcapin .tn{flex:none;font:500 14px var(--mono);color:var(--dim);letter-spacing:.06em}
 @keyframes tutcap{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
 .tctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.tctl .btn:disabled{opacity:.4;cursor:default}
@@ -376,7 +376,7 @@ function spreadHomes(n){const ids=Object.keys(G.planes),hs=[pid(1,NY>1?1:0)];whi
 function newGame(opts){opts=opts||{};const seats=opts.seats; /* multiplayer games (MPG) pass seats: [{human,name,email}] for 2-8 princes, plus nx,ny map size (ny even) */
  setDims(opts.nx,opts.ny);const NPL=seats?seats.length:4;
  G={seed:opts.seed!=null?opts.seed:(Date.now()^0x5bd1e995)|0,no:null,turn:1,planes:null,hordes:[],nextH:1,usedGen:[],players:[],reports:[],everDom:[],end:null,over:false,usedNpcN:[],bonds:[],hit:{}};
- G.seed0=G.seed;G.ver=GAME_VERSION;G.cfg={nx:NX,ny:NY};G.no=gameNo();if(seats)G.league={gm:true,created:Date.now()};
+ G.seed0=G.seed;G.ver=GAME_VERSION;G.cfg={nx:NX,ny:NY};G.no=gameNo();if(seats)G.mpg={gm:true,created:Date.now()};
  G.planes=genMap();G.pal=mkPal(NPL,G.seed);
  const homeIds=(NX===10&&NY===6&&NPL===4)?[pid(1,1),pid(6,1),pid(3,4),pid(8,4)]:spreadHomes(NPL);
  const pick=aiNames(G.seed,NPL),names=pick.map((n,i)=>i?pick[i-1]:"Thraxxamazog");
@@ -610,7 +610,7 @@ function runFight(pl,A,B,mode){
   if(out==="atkwin"){const was=pl.dom;pl.dom=Math.max(0,pl.dom-(forceAb(A,"SIEG")?3:2));notes.push(`The planar defenses were beaten. Domination of [[P:${pl.id}]] fell from ${was} to ${pl.dom}.`);
    if(A.owner>=0){const V=Math.max(1,pl.q);G.players[A.owner].carnage+=V*Math.max(1,pl.dom+2)*250*(pl.npc?2:1);
     if(pl.dom<=0){takePlane(pl,A.owner,"conquest");notes.push(`[[P:${pl.id}]] changed hands.`)}
-    else if(HUM(pl.owner))ev(pl.owner,{sev:"warn",pri:2,text:`[[P:${pl.id}]] is under attack: domination cut to ${pl.dom}.`,plane:pl.id,hl:`saw [[P:${pl.id}]] battered down to domination ${pl.dom}`})}
+    else if(HUM(pl.owner))ev(pl.owner,{sev:"warn",pri:2,ico:"blast",text:`[[P:${pl.id}]] is under attack: domination cut to ${pl.dom}.`,plane:pl.id,hl:`saw [[P:${pl.id}]] battered down to domination ${pl.dom}`})}
    else if(A.owner===-1&&pl.dom<=0&&!pl.npc){const rb=A.hordes.find(h=>h.rebel)||A.hordes[0],old=pl.owner;pl.owner=null;pl.npc=true;pl.npcName=rb.npcName||rb.gen;pl.dom=1;pl.reb=true;pl.hit=true;
     notes.push(`${pl.npcName} seized [[P:${pl.id}]]. It is now a Rebel Power plane.`);
     for(const s of humanSeats())if(old===s)ev(s,{sev:"bad",pri:1,text:`[[P:${pl.id}]] (${pl.name}) was seized by the rebels of ${pl.npcName}.`,plane:pl.id,lost:pl.id,hl:`lost [[P:${pl.id}]] to rebels`});
@@ -815,8 +815,8 @@ function resolveTurn(){
    if(c.type==="FOMENT"&&P.rank>=10){e.fail="you are already a Prince of Demons, the highest chaos power rank"}
    else if(c.type==="FOMENT"){P.well-=s;P.consumed+=s;P.foment+=s;e.souls=s;
     let up=false;while(P.rank<10&&P.foment>=RK[P.rank+1].c){P.rank++;up=true;P.rise=T+1;
-     for(const s of humanSeats())if(s!==P.id)ev(s,{sev:"info",pri:-1,text:riseText(P.id,P.rank)});
-     if(P.human)ev(P.id,{sev:"good",pri:0,text:`Chaos stirs: you rise to ${RK[P.rank].n} (rank ${P.rank}). More general slots and tier ${RK[P.rank].t} demons are yours.`,hl:`rose to ${RK[P.rank].n}`})}
+     for(const s of humanSeats())if(s!==P.id)ev(s,{sev:"info",pri:-1,ico:"skull",text:riseText(P.id,P.rank)});
+     if(P.human)ev(P.id,{sev:"good",pri:0,ico:"skull",text:`Chaos stirs: you rise to ${RK[P.rank].n} (rank ${P.rank}). More general slots and tier ${RK[P.rank].t} demons are yours.`,hl:`rose to ${RK[P.rank].n}`})}
     e.up=up;e.prog=P.foment;e.need=P.rank<10?RK[P.rank+1].c:0}
    else if(c.type==="UNLEASH"){const cap=Math.max(0,RK[P.rank0||P.rank].g-(P.genLost||0));/* the general limit is the rank held when the turn began */if(!ownsHome(P.id)){e.fail="no home plane"}else if(hordesOf(P.id).length<cap&&P.well>=UNLEASH){const rl=rally(P.id);if(!rl)e.fail="no home plane";else{P.well-=UNLEASH;P.consumed+=UNLEASH;const cl=c.cls==="F"?"F":"H",nh=newHorde(P.id,rl,{},cl,cleanName(c.name));nh.born=G.turn+1;e.cls=cl;e.name=cleanName(c.name);e.ok=true}}else e.fail=hordesOf(P.id).length>=cap?"no free general slot":"not enough souls"}/* the new general appears at once */
    else if(c.type==="SCRY"){const q=scrySnap(s);if(q<SCRYU)e.fail=P.well<SCRYU?"not enough souls":`it costs at least ${fmt0(SCRYU)} souls, in multiples of ${fmt0(SCRYU)}`;else{P.well-=q;P.consumed+=q;P.scryR=Math.max(P.scryR,1+q/SCRYU);e.souls=q;e.r=P.scryR}}
@@ -1104,8 +1104,12 @@ function ref(t){return t.replace(/\[\[([PHX]):([^\]]+)\]\]/g,(m,k,v)=>{
  if(k==="H")return`<a class="ref" role="button" tabindex="0" data-act="horde" data-id="${v}">${hLabel(v)}</a>`;
  return`<span class="who" style="color:var(--c${v})">${short(+v)}</span>`})}
 const dl=(n,f=fmt0)=>n===0?'<span class="d eq">no change</span>':`<span class="d ${n>0?"up":"dn"}">${n>0?"▲":"▼"} ${f(Math.abs(n))}</span>`;
+/* row icons in Battles and events: crossed swords = horde combat, mountain = planar combat, skull = chaos rank ascension, orange blasts = your domination is being cut. Rows with none keep an empty slot so the pills line up. */
+const evIco=e=>{if(e.battle)return(e.battle.aft&&(e.battle.aft.mine.planar||e.battle.aft.foe.planar))?"mtn":"swords";if(e.ico!==undefined&&e.ico!=="")return e.ico;
+ /* reports saved before the icons existed carry no tag, so recognize the two kinds by their wording */
+ const t=e.text||"";if(/is under attack: domination cut to/.test(t))return"blast";if(!e.big&&(e.sev==="info"||e.sev==="good")&&RK.slice(1).some(k=>t.includes(k.n))&&/\b(ris|ascen|now|claims|raised|becomes|become|stands|favors|recogni|earned|is)\w*/i.test(t)&&/Abyss|Chaos|chaos|souls|foe|void|dread|powers|hordes|Blood|planes|weak|laughter|choir|vast|Rejoice|Unholy|Old/.test(t))return"skull";return""};
 const PILL={good:"Success",warn:"Partial",bad:"Setback",info:"Info"};
-const line=(sev,txt,lab)=>`<div class="line"><span class="pill s-${sev}">${lab||PILL[sev]}</span><div>${ref(txt)}</div></div>`;
+const line=(sev,txt,lab,ico)=>`<div class="line">${ico===undefined?"":`<span class="rico${ico==="blast"?" big":""}">${ico?icn(ico,ico==="blast"?38:24):""}</span>`}<span class="pill s-${sev}">${lab||PILL[sev]}</span><div>${ref(txt)}</div></div>`;
 let MODE="solo";const SK=()=>({solo:"kod1",player:"kodP",gm:"kodGM"})[MODE]||"kod1";
 const savedTxt=t=>{const d=new Date(t),n=new Date(),tm=d.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});return d.toDateString()===n.toDateString()?tm:d.toLocaleDateString([],{month:"short",day:"numeric"})+" "+tm};let SAVE_ERR=null;function save(){try{if(G&&!DEMO_ON){G.savedAt=Date.now();localStorage.setItem(SK(),JSON.stringify(G));SAVE_ERR=null}}catch(e){SAVE_ERR=String((e&&e.name)||e)}}
 function ageLabel(t){return t<0?"unexplored":t===G.turn?"live":`${G.turn-t} turn${G.turn-t>1?"s":""} old`}
@@ -1151,7 +1155,7 @@ function renderReport(){
   h+=`</div></div>`}
  if(f==="all"||f==="events"){
   h+=`<div class="sec"><h3>Battles and events</h3><div class="card">${r.events.some(e=>e.battle)?`<div class="note" style="margin-bottom:6px">Select an outcome to see the fight round by round.</div>`:""}`;
-  h+=r.events.length?r.events.map((e,i)=>e.big?`<div class="card" style="font-size:20px;line-height:1.4;padding:14px;margin:8px 0;border-left:4px solid var(--bad)">${ref(e.text)}</div>`:e.battle?lineB(e,i,r.turn):line(e.sev,e.text,e.combat?"Battle":e.sev==="good"?"Gain":e.sev==="bad"?"Loss":"Note")).join(""):`<div class="note">No battles or changes of ownership.</div>`;
+  h+=r.events.length?r.events.map((e,i)=>e.big?`<div class="card" style="font-size:20px;line-height:1.4;padding:14px;margin:8px 0;border-left:4px solid var(--bad)">${ref(e.text)}</div>`:e.battle?lineB(e,i,r.turn,evIco(e)):line(e.sev,e.text,e.combat?"Battle":e.sev==="good"?"Gain":e.sev==="bad"?"Loss":"Note",evIco(e))).join(""):`<div class="note">No battles or changes of ownership.</div>`;
   if(r.rumors.length)h+=`<div class="note" style="margin-top:8px">Rumors from your Shadow Horde (not confirmed):</div>`+r.rumors.map(e=>line("info",e.text,"Rumor")).join("");
   h+=`</div></div>`}
  if(f==="all"||f==="orders"){
@@ -1174,9 +1178,9 @@ function renderBattle(b){
  <div class="bt-cols">${b.sides.map(sideH).join("")}</div>
  <div class="rtw"><table class="rt"><thead><tr><th>Round</th><th>What happened</th><th>Result</th><th>Your losses</th><th>Enemy losses</th></tr></thead><tbody>${b.rounds.map(r=>`<tr><td>${r.r}</td><td>${r.tact?`<span class="fl">${ref(r.tact)}</span>`:""}${ref(r.happened)}${r.mm?`<span class="mm">${ref(r.mm)}</span>`:""}${(r.pur||[]).map(x=>`<span class="mm">${ref(x)}</span>`).join("")}</td><td class="r-${r.cls}">${r.label}</td><td>${r.mine}</td><td>${r.foe}</td></tr>`).join("")}</tbody></table></div>
  <div class="aft"><b>Afterward.</b><div>${ref(b.aft.ended)}</div><div>${cas(b.aft.mine,"Your casualties")}</div><div>${cas(b.aft.foe,"Enemy casualties")}</div>${b.aft.purge.map(p=>`<div>${ref(p)}</div>`).join("")}${b.aft.rets.map(r=>`<div>${ref(r)}</div>`).join("")}<div>${ref(b.aft.plane)}</div>${b.aft.notes.map(n=>`<div>${ref(n)}</div>`).join("")}<div class="note">Added to demons killed and lost.</div></div></div>`}
-function lineB(e,i,turn){
+function lineB(e,i,turn,ico){
  const key=turn+":"+i,open=!!UI.open[key],lab=(e.battle&&e.battle.pill&&e.battle.pill.label)||"Battle";
- return`<div class="line"><button class="pill s-${e.sev}" data-act="battle" data-k="${key}" aria-expanded="${open}" title="Show the blow by blow">${lab} ${open?"▴":"▾"}</button><div>${ref(e.text)}${open?renderBattle(e.battle):""}</div></div>`}
+ return`<div class="line">${ico?`<span class="rico">${icn(ico,24)}</span>`:""}<button class="pill s-${e.sev}" data-act="battle" data-k="${key}" aria-expanded="${open}" title="Show the blow by blow">${lab} ${open?"▴":"▾"}</button><div>${ref(e.text)}${open?renderBattle(e.battle):""}</div></div>`}
 
 /* ===== PDF EXPORT (Report, Realm, Standing) ===== */
 let DL=null;
@@ -1284,9 +1288,16 @@ function demoPage(tab){/* draw a real tab into the stage: the stage borrows the 
  real.id="main_real";pg.id="main";
  try{withDemo(()=>{UI.tab=tab;UI.sel=T.sel||null;({orders:renderOrders,realm:renderRealm,standing:renderStanding,report:renderReport})[tab]()})}
  finally{pg.id="tpage";real.id="main"}
- pg.inert=true}
+ pg.inert=true;
+ const sh=T.show;pg.classList.toggle("compact",!!(sh&&sh.compact));
+ if(sh&&sh.meters){/* a copy of the status bar (Turn, Well, Total Yield, Planes) for the practice game, since the real one above shows the player's own game */
+  const mh=withDemo(()=>{renderHeader();return $("#meters").innerHTML});renderHeader();
+  pg.insertAdjacentHTML("afterbegin",`<div class="meters tmeters">${mh}</div>`)}}
 
 /* ---------- the slide shows ---------- */
+const tutPcRow=i=>pg=>{const r=pg.querySelector(`select[data-k=pc][data-i="${i}"]`).closest(".cmdrow");return[r,r.nextElementSibling]};/* a princely command row plus its explanation */
+const tutPcSel=i=>pg=>pg.querySelector(`select[data-k=pc][data-i="${i}"]`).closest(".cmdrow");
+const tutPcCard=pg=>[...pg.querySelectorAll(".card")].find(c=>/Princely commands/.test((c.querySelector("h3")||{}).textContent||""));
 const tutPortal=(a,b)=>pg=>{/* the portal marker drawn between two neighbouring planes */
  const A=pg.querySelector(`g[data-act=plane][data-id=${a}]`).getBoundingClientRect(),B=pg.querySelector(`g[data-act=plane][data-id=${b}]`).getBoundingClientRect(),cy=(A.top+A.bottom)/2;
  return[...pg.querySelectorAll('g[data-tip="Portal"]')].find(g=>{const r=g.getBoundingClientRect(),x=(r.left+r.right)/2,y=(r.top+r.bottom)/2;return x>A.right-4&&x<B.left+4&&Math.abs(y-cy)<A.height/2})};
@@ -1294,7 +1305,7 @@ const tutChasm=near=>pg=>{/* the dark gap where two planes have no portal, neare
  const c=pg.querySelector(`g[data-act=plane][data-id=${near}]`).getBoundingClientRect(),cx=(c.left+c.right)/2,cy=(c.top+c.bottom)/2;
  return[...pg.querySelectorAll('rect[fill="#080408"]')].sort((p,q)=>{const d=r=>{const b=r.getBoundingClientRect();return Math.hypot((b.left+b.right)/2-cx,(b.top+b.bottom)/2-cy)};return d(p)-d(q)})[0]};
 const TUTS=[
- {id:"souls",title:"Souls and your Well",blurb:"Where souls come from, where they are kept, and what happens to the ones you do not spend.",tab:"realm",
+ {id:"souls",covers:["where souls come from","your total yield","the Well of Souls","what happens to unspent souls"],title:"What Are Souls?",blurb:"Where souls come from, where they are kept, and what happens to the ones you do not spend.",tab:"realm",
   steps:[
    {sel:"table.kp tr:nth-child(3)",cap:"Every plane you hold pays you <b>souls</b> each turn. This row is your home plane."},
    {sel:"table.kp tr:nth-child(4)",cap:"Add them up and that is your <b>total yield</b>: the souls you earn a turn."},
@@ -1302,20 +1313,20 @@ const TUTS=[
    {tab:"orders",sel:".sums",cap:"Commands spend souls from the Well. This bar adds up what your orders cost.",dur:4400},
    {tab:"orders",sel:".card > h3 + .note",dur:5200,cap:"Souls you do not spend are not wasted. Every three you keep return four next round."}
   ]},
- {id:"map",title:"The Realm map",blurb:"How to read the Abyss: your planes, Minor Powers, unexplored planes and the portals between them.",tab:"realm",
+ {id:"map",covers:["the Abyss grid","your home plane","Minor Powers","unexplored planes","portals","the legend","plane details","how old plane information is"],title:"Understanding Your Realm",blurb:"How to read the Abyss: your planes, Minor Powers, unexplored planes and the portals between them.",tab:"realm",
   steps:[
    {sel:".mapbox",dur:5400,cap:"This is the Abyss: 60 planes in a grid. The map wraps at every edge."},
    {sel:tutPortal("B01","C01"),dur:8000,cap:"A red <b>portal marker</b> joins two planes. Hordes can travel only along portals.",
     then:{at:4000,sel:tutChasm("B01"),cap:"No portal between two planes? Then hordes <b>cannot move</b> between them."}},
    {sel:"g[data-act=plane][data-id=B01]",dur:5400,cap:"Your home plane glows green. The <b>sword</b> is its Domination Level and the <b>gem</b> is its Value."},
-   {sel:"g[data-act=plane][data-id=C01]",dur:5400,cap:"Grey planes belong to Minor Powers. The <b>!</b> marks a Minor Horde defending it."},
+   {sel:"g[data-act=plane][data-id=C01]",dur:5400,cap:"Grey planes belong to Minor Powers. The grey circle icon (<svg width=\"26\" height=\"26\" viewBox=\"0 0 14 14\" style=\"vertical-align:-7px\" aria-hidden=\"true\"><circle cx=\"7\" cy=\"7\" r=\"6\" fill=\"#c9bfb8\" stroke=\"#1b0e08\"/><text x=\"7\" y=\"10.4\" text-anchor=\"middle\" font-size=\"9.5\" font-weight=\"700\" fill=\"#111\" stroke=\"#c9bfb8\" stroke-width=\".6\" paint-order=\"stroke\">!</text></svg>) indicates that a minor horde is defending it."},
    {sel:"g[data-act=plane][data-id=D01]",dur:5400,cap:"A dashed outline is a plane you have not explored yet."},
    {sel:".legend",cap:"The legend decodes the colors and icons. Red lines are the portals hordes travel through.",dur:6200},
    {sel:"g[data-act=plane][data-id=C01]",act:()=>{T.sel="C01"},look:"#pdetail",dur:10000,cap:"Click any plane to read about it below and send a horde there.",
     then:{at:4600,sel:pg=>[...pg.querySelectorAll("#pdetail button")],cap:"Use these two buttons to send a horde: <b>Move and Dominate</b> or <b>Forced March</b>."}},
    {sel:"#pdetail .kv > span:last-child",dur:11000,cap:"Plane information can be out of date and potentially wrong. <b>Live</b> means the information is current. A number represents how old the data is in number of turns."}
   ]},
- {id:"horde",title:"Hordes: reading the card",blurb:"What every line on a horde card means, from the general's name to rage and the demon tables.",tab:"orders",
+ {id:"horde",covers:["the general's name","general details","horde type","strength and purge","Mindless Rage","movement","the demon tables","general abilities"],title:"Understanding Your Hordes",blurb:"What every line on a horde card means, from the general's name to rage and the demon tables.",tab:"orders",
   init:(g,h)=>{h.loc=g.planes[g.players[0].home].links[0];h.demons={[DK[1]]:30,[DK[5]]:12,[DK[7]]:6};h.rage=7;h.tr=0;h.tp=0;h.lv=[2,0,0,0];h.rc="a crowd of demons far from home"},
   steps:[
    {sel:"#hc-$H",dur:2500,cap:"This is a <b>horde card</b>: one general and the demons who follow him."},
@@ -1330,17 +1341,38 @@ const TUTS=[
    {sel:"[data-act=abil]",act:()=>{T.open.abil=true},look:"table.dtt",dur:8000,cap:"<b>Show general abilities</b> lists what a general can earn at Age 10 and at Experience 10.",
     then:{at:4200,sel:"[data-act=abil]",click:1,act:()=>{T.open.abil=false},cap:"Click again to hide the list."}}
   ]},
- {id:"cmds",title:"Orders: horde commands",blurb:"Give a horde its command and read what the card tells you about it.",tab:"orders",
+ {id:"cmds",covers:["one command per horde","choosing a command","command descriptions","target planes and estimated turns"],title:"Understanding Orders, 1/3",blurb:"Give a horde its command and read what the card tells you about it.",tab:"orders",
   steps:[
    {sel:"#hc-$H",dur:2500,cap:"Each horde gets <b>one command</b> a turn."},
    {sel:"#hc-$H .cmdrow",act:(g,h)=>{h.cmd={type:"MARCH"}},keep:1,dur:8200,cap:"Pick a command from this list: Hold, Dominate, Forced March, Raid, Summon or Disband.",
     then:{at:3200,sel:["#hc-$H .cmdrow","#hc-$H > :last-child"],cap:"Details about the command you pick appear <b>just below the list</b>."}},
    {sel:"#hc-$H .cmdrow",act:(g,h)=>{const K=g.players[0].known,d=distMap(h.loc),far=Object.keys(K).filter(id=>id!==h.loc).sort((a,b)=>d[b]-d[a])[0];h.cmd={type:"DOMINATE",target:far}},look:["select[data-k=tgt]","#hc-$H > :last-child"],dur:7500,cap:"Move and Dominate need a <b>target plane</b>. The card then estimates how long the trip takes."}
+  ]},
+ {id:"princely",covers:["the four princely command slots","the command list","Foment Chaos and Chaos Power rank","how many souls to spend","Unleash General","Scry"],title:"Understanding Orders, 2/3",blurb:"Your own commands as a prince, on top of the commands you give your hordes.",tab:"orders",
+  steps:[
+   {sel:tutPcCard,dur:5000,cap:"<b>Princely commands</b> are yours, not a horde's. You get up to four a turn."},
+   {sel:tutPcSel(0),act:(g)=>{g.players[0].princely[0]={type:"FOMENT",souls:1000}},dur:9000,cap:"Pick a command: Foment Chaos, Unleash General, Scry, Blood Pact or Break Pact.",keep:1,
+    then:{at:3200,sel:tutPcRow(0),cap:"<b>Foment Chaos</b>: invest souls to rise in Chaos Power rank. A higher rank means stronger demons, more generals and more yield."}},
+   {sel:pg=>[...tutPcSel(0)(pg).querySelectorAll("input,button")],dur:6000,cap:"Commands that cost souls have a box. Type how many to spend, or use the <b>25%</b>, <b>50%</b> and <b>All</b> buttons."},
+   {sel:tutPcSel(1),act:g=>{g.players[0].princely[1]={type:"UNLEASH",cls:"H",name:""}},look:tutPcRow(1),dur:8000,cap:"<b>Unleash General</b> creates a new general and a new horde, if your rank allows another general. It costs 5,000 souls."},
+   {sel:tutPcSel(2),act:g=>{g.players[0].princely[2]={type:"SCRY",souls:2500}},look:tutPcRow(2),dur:8500,cap:"<b>Scry</b> looks beyond your free one-hop view: 2,500 souls per extra hop. It also reveals the demons in the hordes it reaches."}
+  ]},
+ {id:"bar",covers:["your Well and the status bar","what horde commands cost","what princely commands cost","what is left to harvest","resolving the turn","overspending"],title:"Understanding Orders, 3/3",blurb:"The bar at the bottom of Orders adds up your turn before you commit to it.",tab:"orders",compact:true,meters:true,
+  steps:[
+   {sel:".sums",dur:4400,cap:"The <b>soul bar</b> at the bottom of Orders adds up your turn before you commit to it."},
+   {sel:".sums > div:nth-child(1)",dur:4400,cap:"<b>Well</b>: the souls you have right now."},
+   {sel:{rings:[".tmeters > div:nth-child(2)",".sums > div:nth-child(1)"]},dur:9000,cap:"The Well in the status bar and the Well in the soul bar are the same number: what you have <b>right now</b>. It is <b>not</b> what will be left next turn."},
+   {pre:(g,h)=>{h.cmd={type:"SUMMON",n:{[topKind(effTier(0),h.cls)]:20}}},sel:".sums > div:nth-child(2)",dur:6500,cap:"<b>Horde commands</b>: what your horde orders cost. Here, a Summon of 20 demons costs 1,200 souls."},
+   {pre:g=>{g.players[0].princely[0]={type:"FOMENT",souls:1000}},sel:".sums > div:nth-child(3)",dur:6500,cap:"<b>Princely</b>: what your princely commands cost. Here, Foment Chaos takes 1,000 souls."},
+   {sel:".sums > div:nth-child(4)",dur:7000,cap:"<b>Left after commands</b>: the Well minus both costs. Souls you did not spend are harvested: every three you keep return four."},
+   {sel:"#go",dur:4400,cap:"When the bar looks right, <b>Resolve</b> the turn. Nothing happens until you do."},
+   {pre:(g,h)=>{h.cmd={type:"SUMMON",n:{[topKind(effTier(0),h.cls)]:300}}},sel:".sums > div:nth-child(4)",dur:8000,cap:"Spend more souls than you have and the number turns <b>red</b>. Resolve stays locked until you fix it."}
   ]}
 ];
 
 /* ---------- player ---------- */
 /* Rule: a highlight never moves or resizes until it has been showing for at least 2 seconds (the first move after a click is at 2.0 s; later moves are 'then' steps, each at least 2 s after the one before). */
+const tutList=a=>a.length<3?a.join(" and "):a.slice(0,-1).join(", ")+", and "+a[a.length-1];
 const tutMs=sh=>sh.steps.reduce((a,x)=>a+(x.dur||(x.act?5400:4400)),0),tutClock=ms=>{const t=Math.round(ms/1000);return Math.floor(t/60)+":"+String(t%60).padStart(2,"0")};
 function tutClear(){T.timers.forEach(clearTimeout);T.timers=[];if(T.adv&&T.adv.t)clearTimeout(T.adv.t);T.adv=null}
 function tutLater(fn,ms,tok){T.timers.push(setTimeout(()=>{if(tok===T.tok&&$("#tstage"))fn()},ms))}
@@ -1350,12 +1382,15 @@ function tutGeom(sel){/* box of the target (or the union of several targets) in 
  let t=1e9,l=1e9,r=-1e9,b=-1e9;for(const el of list){const e=el.getBoundingClientRect();t=Math.min(t,e.top);l=Math.min(l,e.left);r=Math.max(r,e.right);b=Math.max(b,e.bottom)}
  return{top:t-p.top,left:l-p.left,w:r-l,h:b-t}}
 function tutPlace(sel,click,first,keep,moveCur){
- const st=$("#tstage"),pg=$("#tpage"),ring=$("#tring"),cur=$("#tcur"),g=tutGeom(sel);if(!g)return;
+ const st=$("#tstage"),pg=$("#tpage"),ring=$("#tring"),ring2=$("#tring2"),cur=$("#tcur"),multi=sel&&sel.rings,gs=(multi?sel.rings:[sel]).map(tutGeom);if(!gs[0]||(multi&&!gs[1]))return;
+ const g=gs[gs.length-1],u=multi?{top:Math.min(gs[0].top,gs[1].top),left:Math.min(gs[0].left,gs[1].left),w:Math.max(gs[0].left+gs[0].w,gs[1].left+gs[1].w)-Math.min(gs[0].left,gs[1].left),h:Math.max(gs[0].top+gs[0].h,gs[1].top+gs[1].h)-Math.min(gs[0].top,gs[1].top)}:g;
+ st.classList.toggle("nodim",!!multi);
  const sh=st.clientHeight,sw=st.clientWidth,ph=pg.offsetHeight;
- let y=g.h+30>=sh?g.top-16:g.top-(sh-g.h)/2;y=Math.max(0,Math.min(Math.max(0,ph-sh),y));if(keep&&T.y!=null)y=T.y;T.y=y;
- if(first){[pg,ring,cur].forEach(e=>e.classList.add("nt"))}
+ let y=u.h+30>=sh?u.top-16:u.top-(sh-u.h)/2;y=Math.max(0,Math.min(Math.max(0,ph-sh),y));if(keep&&T.y!=null)y=T.y;T.y=y;
+ if(first){[pg,ring,ring2,cur].forEach(e=>e.classList.add("nt"))}
  pg.style.transform=`translateY(${-y}px)`;
- ring.style.cssText+=`;left:${g.left-6}px;top:${g.top-y-6}px;width:${g.w+12}px;height:${g.h+12}px;opacity:1`;
+ const g0=gs[0];ring.style.cssText+=`;left:${g0.left-6}px;top:${g0.top-y-6}px;width:${g0.w+12}px;height:${g0.h+12}px;opacity:1`;
+ if(multi)ring2.style.cssText+=`;left:${g.left-6}px;top:${g.top-y-6}px;width:${g.w+12}px;height:${g.h+12}px;opacity:1`;else ring2.style.opacity=0;
  /* the arrow's tip goes at the lower right corner of the highlight; if that would cover text, slide it a little outward until it covers none */
  const rx=g.left+g.w+6,ry=g.top-y+g.h+6,pr=pg.getBoundingClientRect(),boxes=[],tw=document.createTreeWalker(pg,NodeFilter.SHOW_TEXT);
  for(let n;n=tw.nextNode();){if(!n.textContent.trim())continue;const rg=document.createRange();rg.selectNodeContents(n);for(const q of rg.getClientRects())boxes.push([q.left-pr.left+2,q.top-pr.top-y+2,q.right-pr.left-2,q.bottom-pr.top-y-2])}
@@ -1363,7 +1398,7 @@ function tutPlace(sel,click,first,keep,moveCur){
  let cx=rx-8,cy=ry-8;
  for(const [dx,dy] of[[0,0],[6,6],[14,4],[4,14],[22,8],[8,22],[30,0],[0,30],[40,12],[12,40],[50,0],[0,50]]){const x=rx+dx,yy=ry+dy;if(x+24>sw||yy+28>sh)continue;if(free(x,yy)){cx=x;cy=yy;break}}
  if(!keep||moveCur){cur.style.left=Math.max(4,Math.min(sw-26,cx))+"px";cur.style.top=Math.max(4,Math.min(sh-30,cy))+"px"}
- if(first){void st.offsetWidth;[pg,ring,cur].forEach(e=>e.classList.remove("nt"))}}
+ if(first){void st.offsetWidth;[pg,ring,ring2,cur].forEach(e=>e.classList.remove("nt"))}}
 function tutBar(ms){const b=$("#tbar");if(!b)return;b.style.transition="none";b.style.width="0";void b.offsetWidth;b.style.transition=`width ${ms}ms linear`;b.style.width="100%"}
 function tutAdvance(ms,tok){
  T.adv={start:Date.now(),left:ms};
@@ -1380,7 +1415,7 @@ function tutGo(i){
  const sh=T.show;if(!sh||!$("#tstage"))return;
  tutClear();const tok=++T.tok;T.i=i;T.done=false;
  demoReset(sh);
- for(let j=0;j<i;j++){const q=sh.steps[j];if(q.act)demoRun(q.act);if(q.then&&q.then.act)demoRun(q.then.act)}/* replay earlier clicks silently so Back and the dots show the right state */
+ for(let j=0;j<=i;j++){const q=sh.steps[j];if(q.pre)demoRun(q.pre);if(j<i){if(q.act)demoRun(q.act);if(q.then&&q.then.act)demoRun(q.then.act)}}/* replay earlier clicks silently so Back and the dots show the right state */
  const s=sh.steps[i],tab=s.tab||sh.tab,first=!T.shown;T.shown=true;
  demoPage(tab);
  $("#tcap").innerHTML=`<div class="tcapin"><span class="tn">${i+1} / ${sh.steps.length}</span><span>${s.cap}</span></div>`;
@@ -1409,7 +1444,7 @@ function tutOpen(id,all){
  const sh=TUTS.find(x=>x.id===id);if(!sh)return;
  T.all=!!all;T.show=sh;T.shown=false;T.playing=true;T.done=false;T.i=0;tutClear();T.tok++;
  $("#main").innerHTML=`<div class="tutbar"><button class="btn sm" data-tut="menu">‹ All tutorials</button><b>${sh.title}</b>${T.all?`<span class="note">Play all: ${TUTS.indexOf(sh)+1} of ${TUTS.length}</span>`:""}</div>
- <div class="tstage" id="tstage" role="img" aria-label="Animated walkthrough: ${sh.title}"><div class="tpage" id="tpage"></div><div class="tring" id="tring"></div><div class="tcur" id="tcur"><svg viewBox="0 0 24 28" width="26" height="30" aria-hidden="true"><path d="M3 2l17 11-7.5 1.6L9 22z" fill="#fff" stroke="#111" stroke-width="1.6" stroke-linejoin="round"/></svg><i></i></div></div>
+ <div class="tstage" id="tstage" role="img" aria-label="Animated walkthrough: ${sh.title}"><div class="tpage" id="tpage"></div><div class="tring" id="tring"></div><div class="tring r2" id="tring2"></div><div class="tcur" id="tcur"><svg viewBox="0 0 24 28" width="26" height="30" aria-hidden="true"><path d="M3 2l17 11-7.5 1.6L9 22z" fill="#fff" stroke="#111" stroke-width="1.6" stroke-linejoin="round"/></svg><i></i></div></div>
  <div class="tcap" id="tcap" aria-live="polite"></div>
  <div class="tctl" id="tctl"><button class="btn" id="tprev" data-tut="prev">‹ Back</button><button class="btn" id="tplay" data-tut="play"></button><button class="btn" id="tnext" data-tut="next">Next ›</button><span class="tdots" id="tdots">${sh.steps.map((_,k)=>`<button data-tut="dot" data-i="${k}" aria-label="Slide ${k+1}"></button>`).join("")}</span><span class="note truntime" id="trun"></span></div>
  <div class="tprog"><i id="tbar"></i></div>`;
@@ -1418,12 +1453,13 @@ function renderTutorials(){
  tutClear();T.tok++;T.show=null;T.shown=false;
  $("#main").innerHTML=`<h2>Tutorials</h2><p class="sub">Short animated walkthroughs of the real game screens. No sound, and almost no reading. Pick one to watch, and pause or step through it whenever you like.</p>
  <p><button class="btn playall" data-tut="all">▶ Play all tutorials</button></p>
- <div class="grid cols2">${TUTS.map(s=>`<button class="card tutcard" data-tut="open" data-id="${s.id}"><h3>${s.title}</h3><div class="note">${s.blurb}</div><div class="playhint">▶ Click to play</div><div class="note"><b>${s.steps.length} slides</b> · topic runtime ${tutClock(tutMs(s))}</div></button>`).join("")}</div>
+ <div class="grid cols2">${TUTS.map(s=>`<div class="card tutcard" data-tut="open" data-id="${s.id}"><h3>${s.title}</h3><div class="note">${s.blurb}</div><div><button class="btn sm topicsbtn" data-tut="topics" aria-expanded="false">Topics Covered ▸</button><ul class="tutlist" hidden>${s.covers.map(c=>`<li>${c[0].toUpperCase()+c.slice(1)}</li>`).join("")}</ul></div><button class="playhint" data-tut="open" data-id="${s.id}">▶ Click to play</button><div class="note"><b>${s.steps.length} slides</b> · topic runtime ${tutClock(tutMs(s))}</div></div>`).join("")}</div>
  <p class="note" style="margin-top:14px">Nothing here touches your game: the screens come from a practice game that is thrown away afterwards.</p>`}
 document.addEventListener("click",e=>{
  const b=e.target.closest&&e.target.closest("[data-tut]");if(!b||!$("#main"))return;
  const a=b.dataset.tut;
  if(a==="open")tutOpen(b.dataset.id);
+ else if(a==="topics"){const l=b.nextElementSibling,o=l.hidden;l.hidden=!o;b.setAttribute("aria-expanded",String(o));b.textContent="Topics Covered "+(o?"▾":"▸")}
  else if(a==="all")tutOpen(TUTS[0].id,true);
  else if(a==="menu")renderTutorials();
  else if(a==="play"){T.playing?tutPause():tutResume()}
@@ -1585,7 +1621,7 @@ function sendBtns(id){
  const b=(h,c)=>{const on=h.cmd&&h.cmd.type===c&&h.cmd.target===id;return `<button class="btn sm${on?" on":""}" data-act="send" data-h="${h.id}" data-id="${id}" data-cmd="${c}">Horde ${hno(h)} ${cmdName(c)}</button>`};
  return hs.length?`<div class="tools" style="margin:10px 0 0">${hs.map(h=>b(h,"DOMINATE")+b(h,"MARCH")+(raidBarred(id)?"":b(h,"RAID"))).join("")}</div>`:""}
 function defOf(id,k){const n=defNum(id,k);return n==null?"?":n?`~${fmt0(n)}`:"–"}
-const ICO={dom:'<g transform="translate(12 12) rotate(45) scale(1.3) translate(-12 -12)"><path d="M12 2l2.5 3.5V15h-5V5.5z"/><path d="M7 15h10M12 15v4"/><circle cx="12" cy="20.8" r="1.4"/></g>',val:'<path d="M6 4h12l4 6-10 11L2 10z"/><path d="M2 10h20M9 4l-2 6 5 11 5-11-2-6"/>',soul:'<path d="M12 2c1 5 6 7 6 13a6 6 0 0 1-12 0c0-3 1.5-4.5 3-6 .5 2 1 3 2 3 1-2 1-6 1-10z"/>',hor:'<path d="M7 10C4 9 3.5 5 5 2.5M17 10c3-1 3.5-5 2-7.5"/><path d="M7 10h10v5a5 5 0 0 1-10 0z"/><circle class="f" cx="9.6" cy="13.5" r="1"/><circle class="f" cx="14.4" cy="13.5" r="1"/>',sh:'<g stroke-dasharray="2.2 2.4"><path d="M7 10C4 9 3.5 5 5 2.5M17 10c3-1 3.5-5 2-7.5"/><path d="M7 10h10v5a5 5 0 0 1-10 0z"/></g><circle class="f" cx="9.6" cy="13.5" r="1"/><circle class="f" cx="14.4" cy="13.5" r="1"/>',pl:'<path d="M12 2l8 3v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5z"/><circle cx="12" cy="11" r="3"/>'};
+const ICO={swords:'<g transform="translate(12 12) scale(1.12) translate(-12 -12) translate(0 2.6)"><g transform="rotate(43 12 8)"><path class="f" d="M10.300 5.500L12.800 -1.200L13.700 5.500V18.500Q13.700 20.500 12 20.500Q10.300 20.500 10.300 18.500Z"/><rect class="f" x="7.600" y="14.200" width="8.800" height="1.800" rx=".9"/></g><g transform="rotate(-43 12 8)"><path class="f" d="M10.300 5.500L12.800 -1.200L13.700 5.500V18.500Q13.700 20.500 12 20.500Q10.300 20.500 10.300 18.500Z"/><rect class="f" x="7.600" y="14.200" width="8.800" height="1.800" rx=".9"/></g></g>',mtn:'<path d="M2 20l7-13 4 7 3-4 6 10z"/><path d="M7 11l2 2 2-2"/><path d="M16 10l1.5 2"/>',skull:'<path class="f" fill-rule="evenodd" d="M8.2 5.8C10 5 14 5 15.8 5.8L17 8.5 19.3 9.5V14.2L17.5 16.5 16.8 17.2 16.5 20.5 14.8 19.8 13.5 21 12 20 10.5 21 9.2 19.8 7.5 20.5 7.2 17.2 6.5 16.5 4.7 14.2V9.5L7 8.5zM6.6 10.6L11 12.2 10.2 13.9 7.3 12.7zM17.4 10.6L13 12.2 13.8 13.9 16.7 12.7zM12 14.2l1.1 2H10.9z"/><path class="f" d="M4.8 1.5L8.4 7.2 5.4 9z"/><path class="f" d="M19.2 1.5L15.6 7.2 18.6 9z"/><path d="M9.6 18v2.6M11.2 18.2v2.6M12.8 18.2v2.6M14.4 18v2.6" stroke="#150b0e" stroke-width=".9"/>',blast:'<g transform="translate(-.5 3.5) scale(.66)" stroke-width="2.4"><path d="M12 1l2.2 5.3L19 3.5l-1.3 5.6L23 9l-4 3.8L22 18l-5.7-1L14 22l-2-4.5L10 22l-2.3-5L2 18l3-5.2L1 9l5.3.1L5 3.5l4.8 2.8z"/></g><g transform="translate(11.5 -.5) scale(.46)" stroke-width="3.4"><path d="M12 1l2.2 5.3L19 3.5l-1.3 5.6L23 9l-4 3.8L22 18l-5.7-1L14 22l-2-4.5L10 22l-2.3-5L2 18l3-5.2L1 9l5.3.1L5 3.5l4.8 2.8z"/></g><g transform="translate(13.5 13) scale(.38)" stroke-width="4"><path d="M12 1l2.2 5.3L19 3.5l-1.3 5.6L23 9l-4 3.8L22 18l-5.7-1L14 22l-2-4.5L10 22l-2.3-5L2 18l3-5.2L1 9l5.3.1L5 3.5l4.8 2.8z"/></g>',dom:'<g transform="translate(12 12) rotate(45) scale(1.3) translate(-12 -12)"><path d="M12 2l2.5 3.5V15h-5V5.5z"/><path d="M7 15h10M12 15v4"/><circle cx="12" cy="20.8" r="1.4"/></g>',val:'<path d="M6 4h12l4 6-10 11L2 10z"/><path d="M2 10h20M9 4l-2 6 5 11 5-11-2-6"/>',soul:'<path d="M12 2c1 5 6 7 6 13a6 6 0 0 1-12 0c0-3 1.5-4.5 3-6 .5 2 1 3 2 3 1-2 1-6 1-10z"/>',hor:'<path d="M7 10C4 9 3.5 5 5 2.5M17 10c3-1 3.5-5 2-7.5"/><path d="M7 10h10v5a5 5 0 0 1-10 0z"/><circle class="f" cx="9.6" cy="13.5" r="1"/><circle class="f" cx="14.4" cy="13.5" r="1"/>',sh:'<g stroke-dasharray="2.2 2.4"><path d="M7 10C4 9 3.5 5 5 2.5M17 10c3-1 3.5-5 2-7.5"/><path d="M7 10h10v5a5 5 0 0 1-10 0z"/></g><circle class="f" cx="9.6" cy="13.5" r="1"/><circle class="f" cx="14.4" cy="13.5" r="1"/>',pl:'<path d="M12 2l8 3v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5z"/><circle cx="12" cy="11" r="3"/>'};
 const icn=(k,sz)=>`<svg class="ic ic-${k}" width="${sz||16}" height="${sz||16}" viewBox="0 0 24 24" aria-hidden="true">${ICO[k]}</svg>`;
 const mapIc=(k,x,y,c)=>`<g ${tipA(k)} style="cursor:help"><rect x="${x-2}" y="${y-2}" width="26" height="15" fill="transparent"/><svg x="${x}" y="${y}" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${ICO[k].replace(/class="f"/g,`fill="${c}" stroke="none"`)}</svg></g>`;
 const icL={dom:"Domination Level",val:"Value",soul:"Souls per turn",hor:"Horde Strength",sh:"Shadow Horde Strength",pl:"Planar Defense Strength"};
@@ -1810,7 +1846,7 @@ function viewFor(s){
  const reps=repsOf(s),last=reps[reps.length-1];
  return{seed:0,ver:G.ver,pal:G.players.map((_,i)=>i===0?0:(G.pal?G.pal[sw(i)===0?s:sw(i)]:i)),fv:G.over?G.players.map((_,i)=>vp(sw(i))):null,no:G.no,turn:G.turn,planes,hordes:hordesOf(s).map(h=>{const o=clone2(h);o.owner=0;return o}),nextH:G.nextH,usedGen:G.usedGen,players,
   bonds:(G.bonds||[]).filter(k=>k.a===s||k.b===s).map(k=>({a:sw(k.a),b:sw(k.b),from:k.from,until:k.until,inc:k.inc})),reports:[walk(clone2(last))],prev:walk(clone2(s===0?G.prev:real.prev||null)),log:[],everDom:G.everDom,end:G.end?walk(clone2(G.end)):null,over:G.over,usedNpcN:[],ev:[],
-  league:{seat:s,gm:G.no},cfg:G.cfg||{nx:10,ny:6},vpr:vpRank(s)}}
+  mpg:{seat:s,gm:G.no},cfg:G.cfg||{nx:10,ny:6},vpr:vpRank(s)}}
 
 /* ---- GM side: orders in ---- */
 const PCH_OK=t=>t===""||(typeof PCH==="object"&&PCH[t]!==undefined)||t==="UNLEASH";
@@ -1853,9 +1889,9 @@ async function loadTurn(text){
  const V=d.v;if(!verOK(V.ver))throw new Error("This game was started in version 1.81 or earlier of King of Demons, which this version can no longer play. Ask your Game Master to start a new game.");let old=null;try{old=JSON.parse(localStorage.getItem("kodP")||"null")}catch(e){}
  if(old&&old.no===V.no&&old.reports){ if(old.turn>=V.turn)throw new Error(`You already loaded turn ${old.turn}. This code is for turn ${V.turn}.`);
   V.reports=old.reports.concat(V.reports)}
- closeModal();setDims(V.cfg&&V.cfg.nx,V.cfg&&V.cfg.ny);G=V;UI.rep=null;UI.tab="report";UI.filter="all";save();renderAll();window.scrollTo(0,0)}
+ closeModal();setDims(V.cfg&&V.cfg.nx,V.cfg&&V.cfg.ny);oldKey(V);G=V;UI.rep=null;UI.tab="report";UI.filter="all";save();renderAll();window.scrollTo(0,0)}
 async function makeOrders(){const P=G.players[0];
- return pack({k:"ord",g:G.no,t:G.turn,s:G.league.seat,h:Object.fromEntries(hordesOf(0).map(h=>[h.id,h.cmd])),p:P.princely,sc:P.shadowCmd||null})}
+ return pack({k:"ord",g:G.no,t:G.turn,s:G.mpg.seat,h:Object.fromEntries(hordesOf(0).map(h=>[h.id,h.cmd])),p:P.princely,sc:P.shadowCmd||null})}
 
 /* ---- UI plumbing ---- */
 /* ---- result codes: a record of a game that a player can send back ---- */
@@ -1880,7 +1916,8 @@ document.head.appendChild(st);
 
 function setMode(m){MODE=m;try{localStorage.setItem("kodMode",m)}catch(e){}document.body.classList.toggle("pl",m==="player");loadG();renderAll();window.scrollTo(0,0)}
 /* games saved before v56 used the old demon table (Pazu, no classes): carry them over so they still open */
-function loadG(){G=null;try{const s=localStorage.getItem(SK());if(s){G=JSON.parse(s);if(!G||!G.planes||!G.reports)throw 0}}catch(e){G=null}
+const oldKey=o=>{const k="le"+"ague";if(o&&o[k]&&!o.mpg){o.mpg=o[k];delete o[k]}};/* turn codes and saves made before the multiplayer flag was renamed */
+function loadG(){G=null;try{const s=localStorage.getItem(SK());if(s){G=JSON.parse(s);if(!G||!G.planes||!G.reports)throw 0;oldKey(G)}}catch(e){G=null}
  window.DIAG={store:"ok",had:!!G,boots:0,last:null};try{const k="kodBoot",l=JSON.parse(localStorage.getItem(k)||"[]");DIAG.boots=l.length;DIAG.last=l.length?l[l.length-1].t:null;l.push({t:Date.now(),had:!!G,v:GAME_VERSION});localStorage.setItem(k,JSON.stringify(l.slice(-8)));if(localStorage.getItem(k)==null)throw 0}catch(e){DIAG.store="blocked"}
  window.OLDGAME=false;if(G&&!verOK(G.ver)){G=null;window.OLDGAME=true;try{localStorage.removeItem(SK())}catch(e){}}
  if(G)for(const h of G.hordes||[]){if(h.abA&&!ABIL[h.abA])h.abA=null;if(h.abE&&!ABIL[h.abE])h.abE=null}/* removed abilities (Pathfinder) vanish from old saves *//* 1.82–1.87 saves */
@@ -1891,23 +1928,23 @@ renderAll=function(){
  try{applyPal(G&&G.pal)}catch(e){}
  if(MODE==="gm"){renderGMHeader();return renderGM()}
  if(MODE==="player"&&!G){renderJoinHeader();return renderJoin()}
- _ra();if(MODE==='solo'&&G&&G.askName&&!G.league&&!$('#mpmodal'))modal(`<h2>Name your demon prince</h2><p class="sub">${window.OLDGAME?"Your saved game came from version 1.81 or earlier, which can no longer be played, so a new game has begun. ":""}Choose the name you will rule under, or keep the one the Abyss gave you, then choose your rivals.</p>${window.DIAG&&window.DIAG.store==="blocked"?`<p class="note" style="color:#e8604c">This browser is not letting the page save your game, so reloading or closing the tab will start a new one.</p>`:(window.DIAG&&window.DIAG.boots>0&&!window.OLDGAME?`<p class="note">No saved game was found, although this browser last opened King of Demons on ${new Date(window.DIAG.last).toLocaleString()}.</p>`:"")}<input type="text" id="pname" maxlength="40" value="${esc(G.players[0].name)}" aria-label="Prince name"><h2 style="margin-top:18px">Your rivals</h2><p class="note" style="margin:0 0 8px">Choose how dangerous each rival prince will be. The details of its strategy remain a secret.</p><p class="note" style="margin:0 0 8px">NOTE: A small minority of princes may also have Craven and Spiteful or Vengeful personalities, which are separate from their danger level. A personality is revealed when you can see one of their planes, either by being adjacent or by using the SCRY command.</p>${G.players.slice(1).map((p,i)=>`<div style="margin:8px 0"><div style="color:var(--c${i+1});margin-bottom:3px">${esc(p.name)}</div><select id="dg${i}" style="width:100%;max-width:100%" aria-label="Danger level of ${esc(p.name)}">${DANGER.map((d,k)=>`<option value="${k}"${k===DANGER_DEF?" selected":""}>Danger Level: ${d.n}</option>`).join("")}</select></div>`).join("")}<div class="row"><button class="btn pri" data-mp="pname">Begin</button></div>`)};
+ _ra();if(MODE==='solo'&&G&&G.askName&&!G.mpg&&!$('#mpmodal'))modal(`<h2>Name your demon prince</h2><p class="sub">${window.OLDGAME?"Your saved game came from version 1.81 or earlier, which can no longer be played, so a new game has begun. ":""}Choose the name you will rule under, or keep the one the Abyss gave you, then choose your rivals.</p>${window.DIAG&&window.DIAG.store==="blocked"?`<p class="note" style="color:#e8604c">This browser is not letting the page save your game, so reloading or closing the tab will start a new one.</p>`:(window.DIAG&&window.DIAG.boots>0&&!window.OLDGAME?`<p class="note">No saved game was found, although this browser last opened King of Demons on ${new Date(window.DIAG.last).toLocaleString()}.</p>`:"")}<input type="text" id="pname" maxlength="40" value="${esc(G.players[0].name)}" aria-label="Prince name"><h2 style="margin-top:18px">Your rivals</h2><p class="note" style="margin:0 0 8px">Choose how dangerous each rival prince will be. The details of its strategy remain a secret.</p><p class="note" style="margin:0 0 8px">NOTE: A small minority of princes may also have Craven and Spiteful or Vengeful personalities, which are separate from their danger level. A personality is revealed when you can see one of their planes, either by being adjacent or by using the SCRY command.</p>${G.players.slice(1).map((p,i)=>`<div style="margin:8px 0"><div style="color:var(--c${i+1});margin-bottom:3px">${esc(p.name)}</div><select id="dg${i}" style="width:100%;max-width:100%" aria-label="Danger level of ${esc(p.name)}">${DANGER.map((d,k)=>`<option value="${k}"${k===DANGER_DEF?" selected":""}>Danger Level: ${d.n}</option>`).join("")}</select></div>`).join("")}<div class="row"><button class="btn pri" data-mp="pname">Begin</button></div>`)};
 const _rh=renderHeader;
 /* The Multiplayer button shows only in the Test build, or where it was switched on by opening the game with #mp (remembered in this browser), or when this browser is already in Game Master or player mode. */
 const MPOK=(typeof TEST_BUILD!=="undefined"&&TEST_BUILD)||(()=>{try{if(location.hash==="#mp")localStorage.setItem("kodMP","1");return localStorage.getItem("kodMP")==="1"}catch(e){return location.hash==="#mp"}})();
 const mpBtn=st=>MPOK||MODE!=="solo"?`<button class="btn sm" data-mp="menu"${st||""}>Multiplayer</button>`:"";
 renderHeader=function(){_rh();const t=$("#tabs");if(t)t.insertAdjacentHTML("beforeend",MODE==="player"?`<button class="btn sm" data-mp="turnbox" style="margin-left:auto">Load turn code</button>`:mpBtn(` style="margin-left:auto"`))};
 function bareHeader(sub){$("#gameno").textContent=G&&G.no?`Game No. ${G.no}v${GAME_VERSION}`:`King of Demons v${GAME_VERSION}`;$("#prince").innerHTML=sub;$("#meters").innerHTML="";$("#tabs").innerHTML=MODE==="player"?"":mpBtn();$("#over").hidden=true}
-function renderGMHeader(){bareHeader(`<b>Game Master</b>${G&&G.league?` · turn ${G.turn}`:""}`)}
+function renderGMHeader(){bareHeader(`<b>Game Master</b>${G&&G.mpg?` · turn ${G.turn}`:""}`)}
 function renderJoinHeader(){bareHeader("<b>Play in a friend's game</b>")}
 function renderJoin(){$("#main").innerHTML=`<div class="mp"><h2>Join a game</h2><p class="sub">Paste the KOD Turn Code from your Game Master's email, then press Load.</p><textarea id="tcode" placeholder="-----BEGIN KOD TURN CODE-----"></textarea><div class="row"><button class="btn pri" data-mp="load">Load turn code</button></div><div id="mpmsg"></div></div>`}
 const mpMsg=(t,bad)=>{const e=$("#mpmsg");if(e)e.innerHTML=t?`<div class="msg ${bad?"bad":""}">${t}</div>`:""};
 const _dr=doResolve;
-doResolve=function(){if(MODE==="player"&&G&&G.league)return showOrders();_dr()};
+doResolve=function(){if(MODE==="player"&&G&&G.mpg)return showOrders();_dr()};
 const _rs=renderSums;
-renderSums=function(){_rs();if(MODE==="player"&&G.league){const b=$("#go");if(b){b.textContent=`Finalize Orders and Make KOD Orders Code`}}};
+renderSums=function(){_rs();if(MODE==="player"&&G.mpg){const b=$("#go");if(b){b.textContent=`Finalize Orders and Make KOD Orders Code`}}};
 const _vr=vpRank;
-vpRank=function(p){return MODE==="player"&&G&&G.league&&p===0&&G.vpr!=null?G.vpr:_vr(p)};
+vpRank=function(p){return MODE==="player"&&G&&G.mpg&&p===0&&G.vpr!=null?G.vpr:_vr(p)};
 function modal(html){let m=$("#mpmodal");if(m)m.remove();m=document.createElement("div");m.id="mpmodal";m.className="mpmodal";m.innerHTML=`<div class="mp">${html}</div>`;document.body.appendChild(m);m.addEventListener("click",e=>{if(e.target===m)m.remove()})}
 const closeModal=()=>{const m=$("#mpmodal");if(m)m.remove()};
 async function showOrders(){const c=wrapCode(await makeOrders(),"ORDERS");
@@ -1921,7 +1958,7 @@ function showMenu(){
 const GMX={msgs:[],mail:null,link:""};
 try{GMX.link=localStorage.getItem("kodLink")||"https://claude.ai/artifact/5rD6MYEJpYzjyntTiJfWzD"}catch(e){}
 function renderGM(){renderGMHeader();
- if(!G||!G.league)return renderGMSetup();
+ if(!G||!G.mpg)return renderGMSetup();
  const T=G.turn,hs=humanSeats(),got=G.got||{};
  let h=`<div class="mp"><h2>Game Master · Game ${G.no} · Turn ${T}</h2>`;
  h+=`<div class="card"><h3>Princes</h3>${G.players.map(p=>`<div class="row"><b style="color:var(--c${p.id})">${esc(p.name)}</b><span class="note">${p.human?esc(p.email||"no email"):"NPC prince"}</span>${p.human?(got[p.id]?`<span class="ok">orders received</span>`:`<span class="wait">waiting for orders</span>`):""}</div>`).join("")}</div>`;

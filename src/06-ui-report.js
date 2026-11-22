@@ -9,8 +9,12 @@ function ref(t){return t.replace(/\[\[([PHX]):([^\]]+)\]\]/g,(m,k,v)=>{
  if(k==="H")return`<a class="ref" role="button" tabindex="0" data-act="horde" data-id="${v}">${hLabel(v)}</a>`;
  return`<span class="who" style="color:var(--c${v})">${short(+v)}</span>`})}
 const dl=(n,f=fmt0)=>n===0?'<span class="d eq">no change</span>':`<span class="d ${n>0?"up":"dn"}">${n>0?"▲":"▼"} ${f(Math.abs(n))}</span>`;
+/* row icons in Battles and events: crossed swords = horde combat, mountain = planar combat, skull = chaos rank ascension, orange blasts = your domination is being cut. Rows with none keep an empty slot so the pills line up. */
+const evIco=e=>{if(e.battle)return(e.battle.aft&&(e.battle.aft.mine.planar||e.battle.aft.foe.planar))?"mtn":"swords";if(e.ico!==undefined&&e.ico!=="")return e.ico;
+ /* reports saved before the icons existed carry no tag, so recognize the two kinds by their wording */
+ const t=e.text||"";if(/is under attack: domination cut to/.test(t))return"blast";if(!e.big&&(e.sev==="info"||e.sev==="good")&&RK.slice(1).some(k=>t.includes(k.n))&&/\b(ris|ascen|now|claims|raised|becomes|become|stands|favors|recogni|earned|is)\w*/i.test(t)&&/Abyss|Chaos|chaos|souls|foe|void|dread|powers|hordes|Blood|planes|weak|laughter|choir|vast|Rejoice|Unholy|Old/.test(t))return"skull";return""};
 const PILL={good:"Success",warn:"Partial",bad:"Setback",info:"Info"};
-const line=(sev,txt,lab)=>`<div class="line"><span class="pill s-${sev}">${lab||PILL[sev]}</span><div>${ref(txt)}</div></div>`;
+const line=(sev,txt,lab,ico)=>`<div class="line">${ico===undefined?"":`<span class="rico${ico==="blast"?" big":""}">${ico?icn(ico,ico==="blast"?38:24):""}</span>`}<span class="pill s-${sev}">${lab||PILL[sev]}</span><div>${ref(txt)}</div></div>`;
 let MODE="solo";const SK=()=>({solo:"kod1",player:"kodP",gm:"kodGM"})[MODE]||"kod1";
 const savedTxt=t=>{const d=new Date(t),n=new Date(),tm=d.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});return d.toDateString()===n.toDateString()?tm:d.toLocaleDateString([],{month:"short",day:"numeric"})+" "+tm};let SAVE_ERR=null;function save(){try{if(G&&!DEMO_ON){G.savedAt=Date.now();localStorage.setItem(SK(),JSON.stringify(G));SAVE_ERR=null}}catch(e){SAVE_ERR=String((e&&e.name)||e)}}
 function ageLabel(t){return t<0?"unexplored":t===G.turn?"live":`${G.turn-t} turn${G.turn-t>1?"s":""} old`}
@@ -56,7 +60,7 @@ function renderReport(){
   h+=`</div></div>`}
  if(f==="all"||f==="events"){
   h+=`<div class="sec"><h3>Battles and events</h3><div class="card">${r.events.some(e=>e.battle)?`<div class="note" style="margin-bottom:6px">Select an outcome to see the fight round by round.</div>`:""}`;
-  h+=r.events.length?r.events.map((e,i)=>e.big?`<div class="card" style="font-size:20px;line-height:1.4;padding:14px;margin:8px 0;border-left:4px solid var(--bad)">${ref(e.text)}</div>`:e.battle?lineB(e,i,r.turn):line(e.sev,e.text,e.combat?"Battle":e.sev==="good"?"Gain":e.sev==="bad"?"Loss":"Note")).join(""):`<div class="note">No battles or changes of ownership.</div>`;
+  h+=r.events.length?r.events.map((e,i)=>e.big?`<div class="card" style="font-size:20px;line-height:1.4;padding:14px;margin:8px 0;border-left:4px solid var(--bad)">${ref(e.text)}</div>`:e.battle?lineB(e,i,r.turn,evIco(e)):line(e.sev,e.text,e.combat?"Battle":e.sev==="good"?"Gain":e.sev==="bad"?"Loss":"Note",evIco(e))).join(""):`<div class="note">No battles or changes of ownership.</div>`;
   if(r.rumors.length)h+=`<div class="note" style="margin-top:8px">Rumors from your Shadow Horde (not confirmed):</div>`+r.rumors.map(e=>line("info",e.text,"Rumor")).join("");
   h+=`</div></div>`}
  if(f==="all"||f==="orders"){
@@ -79,6 +83,6 @@ function renderBattle(b){
  <div class="bt-cols">${b.sides.map(sideH).join("")}</div>
  <div class="rtw"><table class="rt"><thead><tr><th>Round</th><th>What happened</th><th>Result</th><th>Your losses</th><th>Enemy losses</th></tr></thead><tbody>${b.rounds.map(r=>`<tr><td>${r.r}</td><td>${r.tact?`<span class="fl">${ref(r.tact)}</span>`:""}${ref(r.happened)}${r.mm?`<span class="mm">${ref(r.mm)}</span>`:""}${(r.pur||[]).map(x=>`<span class="mm">${ref(x)}</span>`).join("")}</td><td class="r-${r.cls}">${r.label}</td><td>${r.mine}</td><td>${r.foe}</td></tr>`).join("")}</tbody></table></div>
  <div class="aft"><b>Afterward.</b><div>${ref(b.aft.ended)}</div><div>${cas(b.aft.mine,"Your casualties")}</div><div>${cas(b.aft.foe,"Enemy casualties")}</div>${b.aft.purge.map(p=>`<div>${ref(p)}</div>`).join("")}${b.aft.rets.map(r=>`<div>${ref(r)}</div>`).join("")}<div>${ref(b.aft.plane)}</div>${b.aft.notes.map(n=>`<div>${ref(n)}</div>`).join("")}<div class="note">Added to demons killed and lost.</div></div></div>`}
-function lineB(e,i,turn){
+function lineB(e,i,turn,ico){
  const key=turn+":"+i,open=!!UI.open[key],lab=(e.battle&&e.battle.pill&&e.battle.pill.label)||"Battle";
- return`<div class="line"><button class="pill s-${e.sev}" data-act="battle" data-k="${key}" aria-expanded="${open}" title="Show the blow by blow">${lab} ${open?"▴":"▾"}</button><div>${ref(e.text)}${open?renderBattle(e.battle):""}</div></div>`}
+ return`<div class="line">${ico?`<span class="rico">${icn(ico,24)}</span>`:""}<button class="pill s-${e.sev}" data-act="battle" data-k="${key}" aria-expanded="${open}" title="Show the blow by blow">${lab} ${open?"▴":"▾"}</button><div>${ref(e.text)}${open?renderBattle(e.battle):""}</div></div>`}

@@ -32,7 +32,7 @@ function viewFor(s){
  const reps=repsOf(s),last=reps[reps.length-1];
  return{seed:0,ver:G.ver,pal:G.players.map((_,i)=>i===0?0:(G.pal?G.pal[sw(i)===0?s:sw(i)]:i)),fv:G.over?G.players.map((_,i)=>vp(sw(i))):null,no:G.no,turn:G.turn,planes,hordes:hordesOf(s).map(h=>{const o=clone2(h);o.owner=0;return o}),nextH:G.nextH,usedGen:G.usedGen,players,
   bonds:(G.bonds||[]).filter(k=>k.a===s||k.b===s).map(k=>({a:sw(k.a),b:sw(k.b),from:k.from,until:k.until,inc:k.inc})),reports:[walk(clone2(last))],prev:walk(clone2(s===0?G.prev:real.prev||null)),log:[],everDom:G.everDom,end:G.end?walk(clone2(G.end)):null,over:G.over,usedNpcN:[],ev:[],
-  league:{seat:s,gm:G.no},cfg:G.cfg||{nx:10,ny:6},vpr:vpRank(s)}}
+  mpg:{seat:s,gm:G.no},cfg:G.cfg||{nx:10,ny:6},vpr:vpRank(s)}}
 
 /* ---- GM side: orders in ---- */
 const PCH_OK=t=>t===""||(typeof PCH==="object"&&PCH[t]!==undefined)||t==="UNLEASH";
@@ -75,9 +75,9 @@ async function loadTurn(text){
  const V=d.v;if(!verOK(V.ver))throw new Error("This game was started in version 1.81 or earlier of King of Demons, which this version can no longer play. Ask your Game Master to start a new game.");let old=null;try{old=JSON.parse(localStorage.getItem("kodP")||"null")}catch(e){}
  if(old&&old.no===V.no&&old.reports){ if(old.turn>=V.turn)throw new Error(`You already loaded turn ${old.turn}. This code is for turn ${V.turn}.`);
   V.reports=old.reports.concat(V.reports)}
- closeModal();setDims(V.cfg&&V.cfg.nx,V.cfg&&V.cfg.ny);G=V;UI.rep=null;UI.tab="report";UI.filter="all";save();renderAll();window.scrollTo(0,0)}
+ closeModal();setDims(V.cfg&&V.cfg.nx,V.cfg&&V.cfg.ny);oldKey(V);G=V;UI.rep=null;UI.tab="report";UI.filter="all";save();renderAll();window.scrollTo(0,0)}
 async function makeOrders(){const P=G.players[0];
- return pack({k:"ord",g:G.no,t:G.turn,s:G.league.seat,h:Object.fromEntries(hordesOf(0).map(h=>[h.id,h.cmd])),p:P.princely,sc:P.shadowCmd||null})}
+ return pack({k:"ord",g:G.no,t:G.turn,s:G.mpg.seat,h:Object.fromEntries(hordesOf(0).map(h=>[h.id,h.cmd])),p:P.princely,sc:P.shadowCmd||null})}
 
 /* ---- UI plumbing ---- */
 /* ---- result codes: a record of a game that a player can send back ---- */
@@ -102,7 +102,8 @@ document.head.appendChild(st);
 
 function setMode(m){MODE=m;try{localStorage.setItem("kodMode",m)}catch(e){}document.body.classList.toggle("pl",m==="player");loadG();renderAll();window.scrollTo(0,0)}
 /* games saved before v56 used the old demon table (Pazu, no classes): carry them over so they still open */
-function loadG(){G=null;try{const s=localStorage.getItem(SK());if(s){G=JSON.parse(s);if(!G||!G.planes||!G.reports)throw 0}}catch(e){G=null}
+const oldKey=o=>{const k="le"+"ague";if(o&&o[k]&&!o.mpg){o.mpg=o[k];delete o[k]}};/* turn codes and saves made before the multiplayer flag was renamed */
+function loadG(){G=null;try{const s=localStorage.getItem(SK());if(s){G=JSON.parse(s);if(!G||!G.planes||!G.reports)throw 0;oldKey(G)}}catch(e){G=null}
  window.DIAG={store:"ok",had:!!G,boots:0,last:null};try{const k="kodBoot",l=JSON.parse(localStorage.getItem(k)||"[]");DIAG.boots=l.length;DIAG.last=l.length?l[l.length-1].t:null;l.push({t:Date.now(),had:!!G,v:GAME_VERSION});localStorage.setItem(k,JSON.stringify(l.slice(-8)));if(localStorage.getItem(k)==null)throw 0}catch(e){DIAG.store="blocked"}
  window.OLDGAME=false;if(G&&!verOK(G.ver)){G=null;window.OLDGAME=true;try{localStorage.removeItem(SK())}catch(e){}}
  if(G)for(const h of G.hordes||[]){if(h.abA&&!ABIL[h.abA])h.abA=null;if(h.abE&&!ABIL[h.abE])h.abE=null}/* removed abilities (Pathfinder) vanish from old saves *//* 1.82–1.87 saves */
@@ -113,23 +114,23 @@ renderAll=function(){
  try{applyPal(G&&G.pal)}catch(e){}
  if(MODE==="gm"){renderGMHeader();return renderGM()}
  if(MODE==="player"&&!G){renderJoinHeader();return renderJoin()}
- _ra();if(MODE==='solo'&&G&&G.askName&&!G.league&&!$('#mpmodal'))modal(`<h2>Name your demon prince</h2><p class="sub">${window.OLDGAME?"Your saved game came from version 1.81 or earlier, which can no longer be played, so a new game has begun. ":""}Choose the name you will rule under, or keep the one the Abyss gave you, then choose your rivals.</p>${window.DIAG&&window.DIAG.store==="blocked"?`<p class="note" style="color:#e8604c">This browser is not letting the page save your game, so reloading or closing the tab will start a new one.</p>`:(window.DIAG&&window.DIAG.boots>0&&!window.OLDGAME?`<p class="note">No saved game was found, although this browser last opened King of Demons on ${new Date(window.DIAG.last).toLocaleString()}.</p>`:"")}<input type="text" id="pname" maxlength="40" value="${esc(G.players[0].name)}" aria-label="Prince name"><h2 style="margin-top:18px">Your rivals</h2><p class="note" style="margin:0 0 8px">Choose how dangerous each rival prince will be. The details of its strategy remain a secret.</p><p class="note" style="margin:0 0 8px">NOTE: A small minority of princes may also have Craven and Spiteful or Vengeful personalities, which are separate from their danger level. A personality is revealed when you can see one of their planes, either by being adjacent or by using the SCRY command.</p>${G.players.slice(1).map((p,i)=>`<div style="margin:8px 0"><div style="color:var(--c${i+1});margin-bottom:3px">${esc(p.name)}</div><select id="dg${i}" style="width:100%;max-width:100%" aria-label="Danger level of ${esc(p.name)}">${DANGER.map((d,k)=>`<option value="${k}"${k===DANGER_DEF?" selected":""}>Danger Level: ${d.n}</option>`).join("")}</select></div>`).join("")}<div class="row"><button class="btn pri" data-mp="pname">Begin</button></div>`)};
+ _ra();if(MODE==='solo'&&G&&G.askName&&!G.mpg&&!$('#mpmodal'))modal(`<h2>Name your demon prince</h2><p class="sub">${window.OLDGAME?"Your saved game came from version 1.81 or earlier, which can no longer be played, so a new game has begun. ":""}Choose the name you will rule under, or keep the one the Abyss gave you, then choose your rivals.</p>${window.DIAG&&window.DIAG.store==="blocked"?`<p class="note" style="color:#e8604c">This browser is not letting the page save your game, so reloading or closing the tab will start a new one.</p>`:(window.DIAG&&window.DIAG.boots>0&&!window.OLDGAME?`<p class="note">No saved game was found, although this browser last opened King of Demons on ${new Date(window.DIAG.last).toLocaleString()}.</p>`:"")}<input type="text" id="pname" maxlength="40" value="${esc(G.players[0].name)}" aria-label="Prince name"><h2 style="margin-top:18px">Your rivals</h2><p class="note" style="margin:0 0 8px">Choose how dangerous each rival prince will be. The details of its strategy remain a secret.</p><p class="note" style="margin:0 0 8px">NOTE: A small minority of princes may also have Craven and Spiteful or Vengeful personalities, which are separate from their danger level. A personality is revealed when you can see one of their planes, either by being adjacent or by using the SCRY command.</p>${G.players.slice(1).map((p,i)=>`<div style="margin:8px 0"><div style="color:var(--c${i+1});margin-bottom:3px">${esc(p.name)}</div><select id="dg${i}" style="width:100%;max-width:100%" aria-label="Danger level of ${esc(p.name)}">${DANGER.map((d,k)=>`<option value="${k}"${k===DANGER_DEF?" selected":""}>Danger Level: ${d.n}</option>`).join("")}</select></div>`).join("")}<div class="row"><button class="btn pri" data-mp="pname">Begin</button></div>`)};
 const _rh=renderHeader;
 /* The Multiplayer button shows only in the Test build, or where it was switched on by opening the game with #mp (remembered in this browser), or when this browser is already in Game Master or player mode. */
 const MPOK=(typeof TEST_BUILD!=="undefined"&&TEST_BUILD)||(()=>{try{if(location.hash==="#mp")localStorage.setItem("kodMP","1");return localStorage.getItem("kodMP")==="1"}catch(e){return location.hash==="#mp"}})();
 const mpBtn=st=>MPOK||MODE!=="solo"?`<button class="btn sm" data-mp="menu"${st||""}>Multiplayer</button>`:"";
 renderHeader=function(){_rh();const t=$("#tabs");if(t)t.insertAdjacentHTML("beforeend",MODE==="player"?`<button class="btn sm" data-mp="turnbox" style="margin-left:auto">Load turn code</button>`:mpBtn(` style="margin-left:auto"`))};
 function bareHeader(sub){$("#gameno").textContent=G&&G.no?`Game No. ${G.no}v${GAME_VERSION}`:`King of Demons v${GAME_VERSION}`;$("#prince").innerHTML=sub;$("#meters").innerHTML="";$("#tabs").innerHTML=MODE==="player"?"":mpBtn();$("#over").hidden=true}
-function renderGMHeader(){bareHeader(`<b>Game Master</b>${G&&G.league?` · turn ${G.turn}`:""}`)}
+function renderGMHeader(){bareHeader(`<b>Game Master</b>${G&&G.mpg?` · turn ${G.turn}`:""}`)}
 function renderJoinHeader(){bareHeader("<b>Play in a friend's game</b>")}
 function renderJoin(){$("#main").innerHTML=`<div class="mp"><h2>Join a game</h2><p class="sub">Paste the KOD Turn Code from your Game Master's email, then press Load.</p><textarea id="tcode" placeholder="-----BEGIN KOD TURN CODE-----"></textarea><div class="row"><button class="btn pri" data-mp="load">Load turn code</button></div><div id="mpmsg"></div></div>`}
 const mpMsg=(t,bad)=>{const e=$("#mpmsg");if(e)e.innerHTML=t?`<div class="msg ${bad?"bad":""}">${t}</div>`:""};
 const _dr=doResolve;
-doResolve=function(){if(MODE==="player"&&G&&G.league)return showOrders();_dr()};
+doResolve=function(){if(MODE==="player"&&G&&G.mpg)return showOrders();_dr()};
 const _rs=renderSums;
-renderSums=function(){_rs();if(MODE==="player"&&G.league){const b=$("#go");if(b){b.textContent=`Finalize Orders and Make KOD Orders Code`}}};
+renderSums=function(){_rs();if(MODE==="player"&&G.mpg){const b=$("#go");if(b){b.textContent=`Finalize Orders and Make KOD Orders Code`}}};
 const _vr=vpRank;
-vpRank=function(p){return MODE==="player"&&G&&G.league&&p===0&&G.vpr!=null?G.vpr:_vr(p)};
+vpRank=function(p){return MODE==="player"&&G&&G.mpg&&p===0&&G.vpr!=null?G.vpr:_vr(p)};
 function modal(html){let m=$("#mpmodal");if(m)m.remove();m=document.createElement("div");m.id="mpmodal";m.className="mpmodal";m.innerHTML=`<div class="mp">${html}</div>`;document.body.appendChild(m);m.addEventListener("click",e=>{if(e.target===m)m.remove()})}
 const closeModal=()=>{const m=$("#mpmodal");if(m)m.remove()};
 async function showOrders(){const c=wrapCode(await makeOrders(),"ORDERS");
@@ -143,7 +144,7 @@ function showMenu(){
 const GMX={msgs:[],mail:null,link:""};
 try{GMX.link=localStorage.getItem("kodLink")||"https://claude.ai/artifact/5rD6MYEJpYzjyntTiJfWzD"}catch(e){}
 function renderGM(){renderGMHeader();
- if(!G||!G.league)return renderGMSetup();
+ if(!G||!G.mpg)return renderGMSetup();
  const T=G.turn,hs=humanSeats(),got=G.got||{};
  let h=`<div class="mp"><h2>Game Master · Game ${G.no} · Turn ${T}</h2>`;
  h+=`<div class="card"><h3>Princes</h3>${G.players.map(p=>`<div class="row"><b style="color:var(--c${p.id})">${esc(p.name)}</b><span class="note">${p.human?esc(p.email||"no email"):"NPC prince"}</span>${p.human?(got[p.id]?`<span class="ok">orders received</span>`:`<span class="wait">waiting for orders</span>`):""}</div>`).join("")}</div>`;

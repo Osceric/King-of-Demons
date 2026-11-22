@@ -136,8 +136,8 @@ function resolveTurn(){
    if(c.type==="FOMENT"&&P.rank>=10){e.fail="you are already a Prince of Demons, the highest chaos power rank"}
    else if(c.type==="FOMENT"){P.well-=s;P.consumed+=s;P.foment+=s;e.souls=s;
     let up=false;while(P.rank<10&&P.foment>=RK[P.rank+1].c){P.rank++;up=true;P.rise=T+1;
-     for(const s of humanSeats())if(s!==P.id)ev(s,{sev:"info",pri:-1,text:riseText(P.id,P.rank)});
-     if(P.human)ev(P.id,{sev:"good",pri:0,text:`Chaos stirs: you rise to ${RK[P.rank].n} (rank ${P.rank}). More general slots and tier ${RK[P.rank].t} demons are yours.`,hl:`rose to ${RK[P.rank].n}`})}
+     for(const s of humanSeats())if(s!==P.id)ev(s,{sev:"info",pri:-1,ico:"skull",text:riseText(P.id,P.rank)});
+     if(P.human)ev(P.id,{sev:"good",pri:0,ico:"skull",text:`Chaos stirs: you rise to ${RK[P.rank].n} (rank ${P.rank}). More general slots and tier ${RK[P.rank].t} demons are yours.`,hl:`rose to ${RK[P.rank].n}`})}
     e.up=up;e.prog=P.foment;e.need=P.rank<10?RK[P.rank+1].c:0}
    else if(c.type==="UNLEASH"){const cap=Math.max(0,RK[P.rank0||P.rank].g-(P.genLost||0));/* the general limit is the rank held when the turn began */if(!ownsHome(P.id)){e.fail="no home plane"}else if(hordesOf(P.id).length<cap&&P.well>=UNLEASH){const rl=rally(P.id);if(!rl)e.fail="no home plane";else{P.well-=UNLEASH;P.consumed+=UNLEASH;const cl=c.cls==="F"?"F":"H",nh=newHorde(P.id,rl,{},cl,cleanName(c.name));nh.born=G.turn+1;e.cls=cl;e.name=cleanName(c.name);e.ok=true}}else e.fail=hordesOf(P.id).length>=cap?"no free general slot":"not enough souls"}/* the new general appears at once */
    else if(c.type==="SCRY"){const q=scrySnap(s);if(q<SCRYU)e.fail=P.well<SCRYU?"not enough souls":`it costs at least ${fmt0(SCRYU)} souls, in multiples of ${fmt0(SCRYU)}`;else{P.well-=q;P.consumed+=q;P.scryR=Math.max(P.scryR,1+q/SCRYU);e.souls=q;e.r=P.scryR}}

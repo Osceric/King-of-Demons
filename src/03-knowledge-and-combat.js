@@ -207,7 +207,7 @@ function runFight(pl,A,B,mode){
   if(out==="atkwin"){const was=pl.dom;pl.dom=Math.max(0,pl.dom-(forceAb(A,"SIEG")?3:2));notes.push(`The planar defenses were beaten. Domination of [[P:${pl.id}]] fell from ${was} to ${pl.dom}.`);
    if(A.owner>=0){const V=Math.max(1,pl.q);G.players[A.owner].carnage+=V*Math.max(1,pl.dom+2)*250*(pl.npc?2:1);
     if(pl.dom<=0){takePlane(pl,A.owner,"conquest");notes.push(`[[P:${pl.id}]] changed hands.`)}
-    else if(HUM(pl.owner))ev(pl.owner,{sev:"warn",pri:2,text:`[[P:${pl.id}]] is under attack: domination cut to ${pl.dom}.`,plane:pl.id,hl:`saw [[P:${pl.id}]] battered down to domination ${pl.dom}`})}
+    else if(HUM(pl.owner))ev(pl.owner,{sev:"warn",pri:2,ico:"blast",text:`[[P:${pl.id}]] is under attack: domination cut to ${pl.dom}.`,plane:pl.id,hl:`saw [[P:${pl.id}]] battered down to domination ${pl.dom}`})}
    else if(A.owner===-1&&pl.dom<=0&&!pl.npc){const rb=A.hordes.find(h=>h.rebel)||A.hordes[0],old=pl.owner;pl.owner=null;pl.npc=true;pl.npcName=rb.npcName||rb.gen;pl.dom=1;pl.reb=true;pl.hit=true;
     notes.push(`${pl.npcName} seized [[P:${pl.id}]]. It is now a Rebel Power plane.`);
     for(const s of humanSeats())if(old===s)ev(s,{sev:"bad",pri:1,text:`[[P:${pl.id}]] (${pl.name}) was seized by the rebels of ${pl.npcName}.`,plane:pl.id,lost:pl.id,hl:`lost [[P:${pl.id}]] to rebels`});

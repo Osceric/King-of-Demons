@@ -23,7 +23,7 @@ Project: King of Demons (KoD), a single-page HTML play-by-mail demon-prince stra
 
 ## Style and conduct
 - Be honest about unknown causes. Correct earlier misstatements promptly.
-- Avoid the word "league" in UI text. Use "multiplayer game" (MPG).
+- RULE: do not use the term "league" anywhere (game text, code, comments, notes or documentation) until a league feature is added. Say "multiplayer game" (MPG).
 - Call the computer-run princes "NPC princes" (in UI text and in conversation), not "AI players" or "AI princes": they run on an algorithm, not AI. Code comments and old NOTES entries may still say AI.
 - Player color is green. "Green is you" in the note text.
 - Flags: `SHOW_PDF=false` hides Export PDF; the Multiplayer button shows only in the test build, with `#mp` in the address, or when the mode is not solo.
@@ -542,7 +542,7 @@ v1.127: New horde order RAID (cmd RAID, one turn only). Target must be a plane h
 - Check (120 all-AI games, each level on every seat equally): wins Low 2-8%, Moderate 3-5%, High 36-40%, Extreme 53%. High and Extreme separate clearly; Low and Moderate do not separate within a mixed field.
 
 ## v2.24
-- Danger levels reduced to three and renamed: "Strong Verbal Harassment and a Slap" (old Low + Moderate, under 50% win, six strategies), "A Kick in the Teeth and a Knee to the Groin" (old High, 51-74%, default), "Literal Armageddon" (old Extreme, 75%+). The Random option is gone; every rival starts on the default level, so new games and league AI seats are all "Kick in the Teeth" unless changed on the name screen.
+- Danger levels reduced to three and renamed: "Strong Verbal Harassment and a Slap" (old Low + Moderate, under 50% win, six strategies), "A Kick in the Teeth and a Knee to the Groin" (old High, 51-74%, default), "Literal Armageddon" (old Extreme, 75%+). The Random option is gone; every rival starts on the default level, so new games and multiplayer AI seats are all "Kick in the Teeth" unless changed on the name screen.
 - P.danger is now a key (L/H/X). v2.23 saves that stored 0-3 are mapped by dangerOf().
 - Check (120 all-AI games with one Slap, two Kicks and one Armageddon per game): win rate per seat Slap 4%, Kick 25%, Armageddon 45%.
 
@@ -550,7 +550,7 @@ v1.127: New horde order RAID (cmd RAID, one turn only). Target must be a plane h
 - The princes list shows a short Danger label (Slap, Kick, Armageddon). The full names stay on the name screen picker and in the rules text.
 
 ## v2.26
-- The word "league" no longer appears in the game's text: "End multiplayer game and return to setup", "Click again to delete this multiplayer game". Code identifiers (G.league and similar) are unchanged. Notes and code comments say multiplayer game (MPG).
+- Game text says "End multiplayer game and return to setup", "Click again to delete this multiplayer game". The multiplayer flag in saves and turn codes is now G.mpg (old saves and codes are converted on load by oldKey in 08-multiplayer.js). Notes and code comments say multiplayer game (MPG).
 
 ## v2.27
 - Purge destroys 20% (was 10%) of each affected kind per round of combat, still at least 1 per kind. This includes a prince's Shadow Horde in planar-defense fights (full 20% at the home plane, a third of that elsewhere). Rules text and demon tooltips updated.
@@ -888,6 +888,10 @@ Domination sword tilted 45 degrees clockwise (tip toward the upper right) and dr
 - New tab "Tutorials" (before How to Play). Animated slide shows on the REAL screens: a throwaway demo game (fixed seed) is rendered with the real renderers; spotlight ring, moving cursor, one-line caption, Back/Pause/Next, dots, progress bar. No sound.
 - Sandbox: `withDemo()` swaps G, map size, seat and UI.open and restores them; `save()` refuses to write while DEMO_ON. Source: src/066-tutorials.js (slide shows are the `TUTS` array; each step = selector, caption, optional act that "clicks").
 - Rule: a highlight never moves or resizes until it has shown for 2 s (clicks fire at 2.0 s). Cursor sits at the highlight's lower right and steps outward to avoid text.
-- Done: "Souls and your Well" (5 slides), "The Realm map" (8), "Hordes: reading the card" (9 slides: card, general, details, type, strength and purge, rage, move, demon tables, general abilities) and "Orders: horde commands" (3). To build: princely commands, soul bar, Standing, Mindless Rage, Combat, Planes. Excluded by Dennis: Minor Powers, Blood Pacts, Turn Sequence.
+- Done: "Souls and your Well" (5 slides), "The Realm map" (8), "Hordes: reading the card" (9 slides: card, general, details, type, strength and purge, rage, move, demon tables, general abilities) and "Orders: horde commands" (3), "Orders: princely commands" (5), "Orders: the soul bar" (8). To build: princely commands, soul bar, Standing, Mindless Rage, Combat, Planes. Excluded by Dennis: Minor Powers, Blood Pacts, Turn Sequence.
 
 - Term "standing order" removed from the game (it implies a permanent order, which the game does not have). Multi-turn orders now say "Estimated turns to complete: N" under the target picker (not shown for Raid).
+
+- Tutorial card titles: What Are Souls? / Understanding Your Realm / Understanding Your Hordes / Understanding Orders, 1/3 (horde commands) / 2/3 (princely commands) / 3/3 (the soul bar).
+
+- Battles and events row icons (left of the pill): crossed swords = horde combat, mountain = planar combat, skull demon = chaos rank ascension (yours and other princes'), larger orange blast cluster = "under attack: domination cut to N". Events carry an `ico` field; battles pick swords or mountain from `battle.aft.*.planar` (`evIco` in 06-ui-report.js). Rows without an icon keep an empty slot so the pills align.
