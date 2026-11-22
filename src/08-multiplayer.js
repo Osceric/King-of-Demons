@@ -189,7 +189,8 @@ async function olSync(manual){const c=olPl();if(!c||!OL.on||OL.busy)return;OL.bu
 const _dr2=doResolve;
 doResolve=async function(){const c=olPl();
  if(MODE==="player"&&G&&G.mpg&&OL.on&&c){try{await olApi(c.room,"orders",{k:c.key,method:"POST",body:{turn:G.turn,code:await makeOrders()}});
-   modal(`<h2>Orders sent</h2><p class="sub">Your orders for turn ${G.turn} are with the Game Master. You can change them and press "Submit Orders to Server" again any time before the turn resolves. Come back to this link later (or press "Check for new turn") to see the result.</p><div class="row"><button class="btn pri" data-mp="close">Close</button></div>`)}
+   let wait=[],all=false;try{const st=await olApi(c.room,"status",{k:c.key});wait=st.seats.filter(x=>!x.submitted).map(x=>x.name);all=!wait.length}catch(e2){}
+   modal(`<h2>Orders sent</h2><p class="sub">Your orders for turn ${G.turn} are with the server.</p><p><b>You can still change them.</b> Submit new orders as many times as you like: each submission replaces the one before it, as long as you do it before the turn is processed.</p><p class="note">${all?"Every prince has now sent orders, so the turn will be processed within about a minute. Last chance to change yours.":`The turn is processed once every prince has sent orders${G.due?`, or at the deadline (${esc(fdue(G.due))})`:""}. Still to send: ${wait.map(esc).join(", ")}.`} Come back to this link later, or press "Check for new turn", to see the result.</p><div class="row"><button class="btn pri" data-mp="close">Close</button></div>`)}
   catch(e){modal(`<h2>Orders not sent</h2><p class="sub">${esc(e.message)} You can still send your orders by email: use the code below.</p><div id="mpmsg"></div><div class="row"><button class="btn pri" data-mp="close">Close</button></div>`);setTimeout(()=>showOrders(),0)}return}
  return _dr2()};
 

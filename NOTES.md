@@ -940,3 +940,6 @@ Domination sword tilted 45 degrees clockwise (tip toward the upper right) and dr
 
 ## v2.99 (2026-11-22)
 - Online games resolve themselves (all orders in, or the deadline; NPC plays for absent princes). The player's order button reads "Submit Orders to Server" when playing online. Standing rule from Dennis: bump the version with every change.
+
+## v2.100 (2026-11-22)
+- After "Submit Orders to Server" the popup says orders can be replaced any number of times until the turn is processed, who has still to send, and the deadline; if everyone is in it says the turn will process within about a minute.
