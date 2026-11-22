@@ -133,7 +133,7 @@ const mpMsg=(t,bad)=>{const e=$("#mpmodal #mpmsg")||$("#mpmsg");if(e)e.innerHTML
 const _dr=doResolve;
 doResolve=function(){if(MODE==="player"&&G&&G.mpg)return showOrders();_dr()};
 const _rs=renderSums;
-renderSums=function(){_rs();if(MODE==="player"&&G.mpg){const b=$("#go");if(b){b.textContent=`Finalize Orders and Make KOD Orders Code`}}};
+renderSums=function(){_rs();if(MODE==="player"&&G.mpg){const b=$("#go");if(b){b.textContent=OL.on&&olPl()?`Submit Orders to Server`:`Finalize Orders and Make KOD Orders Code`}}};
 const _vr=vpRank;
 vpRank=function(p){return MODE==="player"&&G&&G.mpg&&p===0&&G.vpr!=null?G.vpr:_vr(p)};
 function modal(html){let m=$("#mpmodal");if(m)m.remove();m=document.createElement("div");m.id="mpmodal";m.className="mpmodal";m.innerHTML=`<div class="mp">${html}</div>`;document.body.appendChild(m);m.addEventListener("click",e=>{if(e.target===m)m.remove()})}
@@ -189,7 +189,7 @@ async function olSync(manual){const c=olPl();if(!c||!OL.on||OL.busy)return;OL.bu
 const _dr2=doResolve;
 doResolve=async function(){const c=olPl();
  if(MODE==="player"&&G&&G.mpg&&OL.on&&c){try{await olApi(c.room,"orders",{k:c.key,method:"POST",body:{turn:G.turn,code:await makeOrders()}});
-   modal(`<h2>Orders sent</h2><p class="sub">Your orders for turn ${G.turn} are with the Game Master. You can change them and press the button again any time before the turn resolves. Come back to this link later (or press "Check for new turn") to see the result.</p><div class="row"><button class="btn pri" data-mp="close">Close</button></div>`)}
+   modal(`<h2>Orders sent</h2><p class="sub">Your orders for turn ${G.turn} are with the Game Master. You can change them and press "Submit Orders to Server" again any time before the turn resolves. Come back to this link later (or press "Check for new turn") to see the result.</p><div class="row"><button class="btn pri" data-mp="close">Close</button></div>`)}
   catch(e){modal(`<h2>Orders not sent</h2><p class="sub">${esc(e.message)} You can still send your orders by email: use the code below.</p><div id="mpmsg"></div><div class="row"><button class="btn pri" data-mp="close">Close</button></div>`);setTimeout(()=>showOrders(),0)}return}
  return _dr2()};
 

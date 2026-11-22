@@ -937,3 +937,6 @@ Domination sword tilted 45 degrees clockwise (tip toward the upper right) and dr
 - Deadline: one clock time every n days (setup card and GM card). Next deadline = that time of day at least n days (minus 12 h slack) after the resolve. Stored in G.ol.dl / G.ol.due; players see it via the view's `due`.
 - The GM page must stay open; the GM card says so. Reopening resolves any overdue turn at once. Server-side resolving is deferred (option 3).
 - Tested end to end locally (/tmp/w/oltest/t9.js): all-in resolve, deadline resolve with NPC notice, next-deadline samples.
+
+## v2.99 (2026-11-22)
+- Online games resolve themselves (all orders in, or the deadline; NPC plays for absent princes). The player's order button reads "Submit Orders to Server" when playing online. Standing rule from Dennis: bump the version with every change.

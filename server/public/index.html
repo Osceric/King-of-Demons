@@ -188,7 +188,7 @@ const CLS={F:"Fast",H:"Heavy"};
 const SHOW_PDF=false;
 /* The Test copy of the game is published with this set to true, which shows the Multiplayer button. */
 const TEST_BUILD=false;
-const GAME_VERSION="2.98";const MIN_VER="2.0";/* saved games and turn codes from older versions (1.81 and earlier carry no stamp) are no longer supported */
+const GAME_VERSION="2.99";const MIN_VER="2.0";/* saved games and turn codes from older versions (1.81 and earlier carry no stamp) are no longer supported */
 /* prince colors: you are always color 1 (green); the other 11 palette colors are dealt to the rival princes at random, fixed for the life of a game by its seed */
 const PAL=["#8cc276","#4db6c9","#a98be0","#e8782e","#d4688f","#e0c34a","#f7f2e4","#a8342e","#2d55b0","#2e8b4f","#b9d84a","#9a6a4a"];
 function mkPal(n,seed){let x=((+seed||1)*2654435761+12345)>>>0;const r=()=>(x=(Math.imul(x,1664525)+1013904223)>>>0)/4294967296,a=[1,2,3,4,5,6,7,8,9,10,11];for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return[0].concat(Array.from({length:Math.max(0,n-1)},(_,i)=>a[i%11]))}
@@ -2049,7 +2049,7 @@ const mpMsg=(t,bad)=>{const e=$("#mpmodal #mpmsg")||$("#mpmsg");if(e)e.innerHTML
 const _dr=doResolve;
 doResolve=function(){if(MODE==="player"&&G&&G.mpg)return showOrders();_dr()};
 const _rs=renderSums;
-renderSums=function(){_rs();if(MODE==="player"&&G.mpg){const b=$("#go");if(b){b.textContent=`Finalize Orders and Make KOD Orders Code`}}};
+renderSums=function(){_rs();if(MODE==="player"&&G.mpg){const b=$("#go");if(b){b.textContent=OL.on&&olPl()?`Submit Orders to Server`:`Finalize Orders and Make KOD Orders Code`}}};
 const _vr=vpRank;
 vpRank=function(p){return MODE==="player"&&G&&G.mpg&&p===0&&G.vpr!=null?G.vpr:_vr(p)};
 function modal(html){let m=$("#mpmodal");if(m)m.remove();m=document.createElement("div");m.id="mpmodal";m.className="mpmodal";m.innerHTML=`<div class="mp">${html}</div>`;document.body.appendChild(m);m.addEventListener("click",e=>{if(e.target===m)m.remove()})}
@@ -2105,7 +2105,7 @@ async function olSync(manual){const c=olPl();if(!c||!OL.on||OL.busy)return;OL.bu
 const _dr2=doResolve;
 doResolve=async function(){const c=olPl();
  if(MODE==="player"&&G&&G.mpg&&OL.on&&c){try{await olApi(c.room,"orders",{k:c.key,method:"POST",body:{turn:G.turn,code:await makeOrders()}});
-   modal(`<h2>Orders sent</h2><p class="sub">Your orders for turn ${G.turn} are with the Game Master. You can change them and press the button again any time before the turn resolves. Come back to this link later (or press "Check for new turn") to see the result.</p><div class="row"><button class="btn pri" data-mp="close">Close</button></div>`)}
+   modal(`<h2>Orders sent</h2><p class="sub">Your orders for turn ${G.turn} are with the Game Master. You can change them and press "Submit Orders to Server" again any time before the turn resolves. Come back to this link later (or press "Check for new turn") to see the result.</p><div class="row"><button class="btn pri" data-mp="close">Close</button></div>`)}
   catch(e){modal(`<h2>Orders not sent</h2><p class="sub">${esc(e.message)} You can still send your orders by email: use the code below.</p><div id="mpmsg"></div><div class="row"><button class="btn pri" data-mp="close">Close</button></div>`);setTimeout(()=>showOrders(),0)}return}
  return _dr2()};
 
