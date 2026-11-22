@@ -2034,8 +2034,10 @@ renderAll=function(){
 const _rh=renderHeader;
 /* The Multiplayer button shows only in the Test build, or where it was switched on by opening the game with #mp (remembered in this browser), or when this browser is already in Game Master or player mode. */
 const MPOK=(typeof TEST_BUILD!=="undefined"&&TEST_BUILD)||(()=>{try{if(location.hash==="#mp")localStorage.setItem("kodMP","1");return localStorage.getItem("kodMP")==="1"}catch(e){return location.hash==="#mp"}})();
-const mpBtn=st=>MPOK||OL.on||MODE!=="solo"?`<button class="btn sm" data-mp="menu"${st||""}>Multiplayer</button>`:"";
-renderHeader=function(){_rh();const t=$("#tabs");if(t)t.insertAdjacentHTML("beforeend",MODE==="player"?`<button class="btn sm" data-mp="turnbox" style="margin-left:auto">Load turn code</button>${olHdr()}`:mpBtn(` style="margin-left:auto"`))};
+const mtBtn=()=>typeof TEST_BUILD!=="undefined"&&TEST_BUILD?`<button class="btn sm" data-mp="maint">Maintenance</button>`:"";
+const mpBtn0=st=>MPOK||OL.on||MODE!=="solo"?`<button class="btn sm" data-mp="menu"${st||""}>Multiplayer</button>`:"";
+const mpBtn=st=>mpBtn0(st)+mtBtn();
+renderHeader=function(){_rh();const t=$("#tabs");if(t)t.insertAdjacentHTML("beforeend",MODE==="player"?`<button class="btn sm" data-mp="turnbox" style="margin-left:auto">Load turn code</button>${olHdr()}${mtBtn()}`:mpBtn(` style="margin-left:auto"`))};
 function bareHeader(sub){$("#gameno").textContent=G&&G.no?`Game No. ${G.no}v${GAME_VERSION}`:`King of Demons v${GAME_VERSION}`;$("#prince").innerHTML=sub;$("#meters").innerHTML="";$("#tabs").innerHTML=MODE==="player"?"":mpBtn();$("#over").hidden=true}
 function renderGMHeader(){bareHeader(`<b>Game Master</b>${G&&G.mpg?` · turn ${G.turn}`:""}`)}
 function renderJoinHeader(){bareHeader("<b>Play in a friend's game</b>")}
@@ -2054,7 +2056,7 @@ async function showOrders(){const c=wrapCode(await makeOrders(),"ORDERS");
 function showMenu(){
  modal(`<h2>Multiplayer</h2><p class="sub">Choose how you want to play. Each choice keeps its own saved game, so switching never loses anything.</p>
  <div class="row"><button class="btn${MODE==="solo"?" pri":""}" data-mp="mode" data-m="solo">Solo game</button><button class="btn${MODE==="player"?" pri":""}" data-mp="mode" data-m="player">Join a multiplayer game</button><button class="btn${MODE==="gm"?" pri":""}" data-mp="mode" data-m="gm">Run a multiplayer game (Game Master)</button></div>
- ${MODE==="player"?`<div class="row"><button class="btn" data-mp="newturn">Load a new turn code</button></div>`:""}<div class="row"><button class="btn" data-mp="names">Edit NPC prince names</button>${olBtns()}</div><div class="row"><button class="btn" data-mp="close">Close</button></div>`)}
+ ${MODE==="player"?`<div class="row"><button class="btn" data-mp="newturn">Load a new turn code</button></div>`:""}<div class="row">${olBtns()}</div><div class="row"><button class="btn" data-mp="close">Close</button></div>`)}
 
 /* ===== ONLINE (Cloudflare): games without emailed codes, and cloud saves. Works only when this page is served by the King of Demons server; anywhere else (a Claude artifact, a file) it stays hidden and the code-passing game is unchanged. ===== */
 const OL={on:false,chk:false,busy:0};
@@ -2211,7 +2213,7 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-mp]"
   else if(a==="close")closeModal();
   else if(a==="mode"){closeModal();setMode(d.m)}
   else if(a==="pname"){const v=cleanName($("#pname").value,40);const sd=G.seed0!=null?G.seed0:G.seed;const dg=G.players.slice(1).map((_,i)=>{const e=$("#dg"+i);return e?+e.value:DANGER_DEF});if((v&&v!==G.players[0].name)||dg.some(x=>x!==DANGER_DEF)){newGame({name:v||G.players[0].name,seed:sd,danger:dg})}else delete G.askName;UI.tab="report";UI.rep=null;save();closeModal();renderAll()}
-  else if(a==="names"){modal(`<h2>NPC prince names</h2><p class="sub">One name per line. Each new game gives its NPC seats names drawn from this list, without repeats. Needs at least 3 names; add more for variety. Games already under way keep their names.</p><textarea id="nlist" style="min-height:260px">${esc(nameList().join("\n"))}</textarea><div class="row"><button class="btn pri" data-mp="nsave">Save names</button><button class="btn" data-mp="nreset">Restore the standard list</button><button class="btn" data-mp="close">Close</button></div><div id="mpmsg"></div>`)}
+  else if(a==="maint"||a==="names"){modal(`<h2>Maintenance</h2><h3>NPC prince names</h3><p class="sub">One name per line. Each new game gives its NPC seats names drawn from this list, without repeats. Needs at least 3 names; add more for variety. Games already under way keep their names.</p><textarea id="nlist" style="min-height:260px">${esc(nameList().join("\n"))}</textarea><div class="row"><button class="btn pri" data-mp="nsave">Save names</button><button class="btn" data-mp="nreset">Restore the standard list</button><button class="btn" data-mp="close">Close</button></div><div id="mpmsg"></div>`)}
   else if(a==="nsave"){const l=[...new Set($("#nlist").value.split("\n").map(s=>s.trim()).filter(Boolean))];
    if(l.length<3)mpMsg("Enter at least 3 different names.",1);else{try{localStorage.setItem("kodAIN",JSON.stringify(l))}catch(e){}mpMsg(`Saved ${l.length} names. They apply to the next game you start.`)}}
   else if(a==="nreset"){try{localStorage.removeItem("kodAIN")}catch(e){}$("#nlist").value=DPN.join("\n");mpMsg("Standard list restored.")}
