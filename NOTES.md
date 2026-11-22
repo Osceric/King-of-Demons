@@ -978,3 +978,6 @@ Risk: Cloudflare CPU limits
 - The 20-second polling by the GM page and players counts toward the 100,000 requests/day; a server that resolves turns itself would cut the GM page's polling.
 
 Open questions when this is picked up: is paying $5/month acceptable if the free plan is too small; what happens to games hosted from a browser so far (they cannot be moved to the server).
+
+## v2.104 (2026-11-22)
+- The Multiplayer button now opens the same colored start cards as the Cloudflare start screen on every build (Test page, #mp, Cloudflare). Parts that need the server (online save, results notice, link joining) show only where the server exists; elsewhere the Join card takes an email turn code and the Game Master card mentions turn codes.

@@ -140,10 +140,7 @@ function modal(html){let m=$("#mpmodal");if(m)m.remove();m=document.createElemen
 const closeModal=()=>{const m=$("#mpmodal");if(m)m.remove()};
 async function showOrders(){const c=wrapCode(await makeOrders(),"ORDERS");
  modal(`<h2>Your KOD Orders Code for turn ${G.turn}</h2><p class="sub">Copy this code and reply to your Game Master's email with it pasted into the body. You can change your orders and make a new code any time before the turn resolves.</p><textarea id="ocode" readonly>${esc(c)}</textarea><div class="row"><button class="btn pri" data-mp="copyo">Copy KOD Orders Code</button><button class="btn" data-mp="close">Close</button></div>`)}
-function showMenu(){
- modal(`<h2>Multiplayer</h2><p class="sub">Choose how you want to play. Each choice keeps its own saved game, so switching never loses anything.</p>
- <div class="row"><button class="btn${MODE==="solo"?" pri":""}" data-mp="mode" data-m="solo">Solo game</button><button class="btn${MODE==="player"?" pri":""}" data-mp="mode" data-m="player">Join a multiplayer game</button><button class="btn${MODE==="gm"?" pri":""}" data-mp="mode" data-m="gm">Run a multiplayer game (Game Master)</button></div>
- ${MODE==="player"?`<div class="row"><button class="btn" data-mp="newturn">Load a new turn code</button></div>`:""}<div class="row">${olBtns()}</div><div class="row"><button class="btn" data-mp="close">Close</button></div>`)}
+function showMenu(){olLanding()}
 
 /* ===== ONLINE (Cloudflare): games without emailed codes, and cloud saves. Works only when this page is served by the King of Demons server; anywhere else (a Claude artifact, a file) it stays hidden and the code-passing game is unchanged. ===== */
 const OL={on:false,chk:false,busy:0};
@@ -215,16 +212,17 @@ function olLanding(msg,confirmSolo){
  if(gm)cont.push(opt("o-go",`<button class="btn" data-ol="go" data-m="gm">Continue running your game as Game Master${gm.mpg?` (turn ${gm.turn})`:""}</button>`,"Go back to the game you are running."));
  modal(`<h2>King of Demons</h2>${cont.join("")}
  ${opt("o-solo",`<button class="btn" data-ol="solo">${confirmSolo?"Click again to replace your solo game":"New solo game"}</button>`,confirmSolo?"This deletes your current solo game from this browser.":"Play alone against computer princes.")}
- <div class="opt o-join"><button class="btn" data-ol="join">Join a multiplayer game</button><div class="od">Paste the game link your Game Master sent you (or an email turn code), then press the button above.</div><input type="text" id="lcode" placeholder="Paste the link or code here" aria-label="Game link or code"></div>
- ${opt("o-gm",`<button class="btn" data-ol="gm">Create a new multiplayer game as the Game Master</button>`,"You set up the game and send each player a private link.")}
- ${opt("o-cloud",`<button class="btn" data-ol="cloud">Save or load your game online</button>`,"Keep a copy of your game on the server so you can continue it on another device.")}
- <div id="mpmsg">${msg?`<div class="msg bad">${esc(msg)}</div>`:""}</div><p class="note">You can come back to these choices any time with the Multiplayer button.</p><p class="note">Game results, including your prince name, are collected in order to improve the quality of the game.</p>`)}
+ <div class="opt o-join"><button class="btn" data-ol="join">Join a multiplayer game</button><div class="od">${OL.on?"Paste the game link your Game Master sent you (or an email turn code)":"Paste the turn code from your Game Master's email"}, then press the button above.</div><input type="text" id="lcode" placeholder="Paste the link or code here" aria-label="Game link or code"></div>
+ ${opt("o-gm",`<button class="btn" data-ol="gm">Create a new multiplayer game as the Game Master</button>`,(OL.on?"You set up the game and send each player a private link.":"You set up the game and email each player a turn code."))}
+ ${OL.on?opt("o-cloud",`<button class="btn" data-ol="cloud">Save or load your game online</button>`,"Keep a copy of your game on the server so you can continue it on another device."):""}
+ <div id="mpmsg">${msg?`<div class="msg bad">${esc(msg)}</div>`:""}</div><p class="note">You can come back to these choices any time with the Multiplayer button.</p>${OL.on?`<p class="note">Game results, including your prince name, are collected in order to improve the quality of the game.</p>`:""}`)}
 async function olLandAct(a,d){
  if(a==="go"){closeModal();if(MODE!==d.m)setMode(d.m)}
  else if(a==="solo"){const had=lsGame("kod1");if(had&&!OL.csolo){OL.csolo=1;return olLanding("",true)}OL.csolo=0;closeModal();try{localStorage.removeItem("kod1")}catch(e){}if(MODE!=="solo")setMode("solo");else{loadG();renderAll()}}
  else if(a==="gm"){closeModal();if(MODE!=="gm")setMode("gm")}
  else if(a==="join"){const v=($("#lcode").value||"").trim();if(!v)return mpMsg("Paste the link or code first.",1);
   const m=v.match(/#o=([A-Za-z0-9_-]{4,64})\.([A-Za-z0-9]{6,32})/)||v.match(/^([A-Za-z0-9_-]{4,64})\.([A-Za-z0-9]{6,32})$/);
+  if(m&&!OL.on)return olLanding("Online game links only work on the King of Demons site where the game is hosted. Open the link there.");
   if(m){try{localStorage.setItem("kodOL",JSON.stringify({room:m[1],key:m[2]}))}catch(e){}closeModal();if(MODE!=="player")setMode("player");else renderAll();return olSync(true)}
   closeModal();if(MODE!=="player")setMode("player");try{await loadTurn(v)}catch(err){olLanding(err.message)}}}
 document.addEventListener("click",async e=>{const t=e.target.closest("[data-ol]");if(!t)return;const d=t.dataset,a=d.ol;
