@@ -827,3 +827,59 @@ Domination sword tilted 45 degrees clockwise (tip toward the upper right) and dr
 
 ## v2.95 (pushed everywhere)
 - Wording: the Game Master and multiplayer setup screens say "NPC princes" instead of "AI princes" (setup text, the princes list, the name-table dialog and the results table's "(NPC)" tag). Dennis: the computer-run princes are driven by an algorithm, so they are not called AI. Added to the working agreements. Code comments and earlier NOTES entries still say AI.
+
+## v2.96 (test only): Mindless Rage stats, no consequences yet
+- New per-horde stats: rage (slow buildup), temp rage (swings that fade after two turns; tr this turn plus tp last turn), iron fist (age + experience + purge bonus). Cause text in h.rc.
+- Placeholder rules in RAGE (02-data-and-setup.js): off the home plane only; plane with 100+ demons and no fight adds rage, slowed by iron fist; a fight drops it; rival horde +2 temp, own other horde +1 temp, the prince's own plane -1.5 temp.
+- Shown on the horde detail in the Test build only. Planned stages: Discontent, Rioting, Mutinous, Frothing Mad (names are working names). Purge not built yet.
+- First sim (30 NPC games): final rage p50 0, p90 0.7, max 5.9, so the buildup rate needs raising once thresholds are set.
+
+## v2.96 revised (test only): rage growth rules
+- Growth per turn = size x distance x iron fist. Size = n*(1+max(0,n-10)*str/1000) over every demon on the plane, scaled so 100 demons of strength 250 = 1, capped at 6. Distance = portals from home / 3 (0 at home, triple at 8). Iron fist factor = max(0.4, 1/(1+fist/20)), so it slows rage but never stops it.
+- No growth on a turn with combat, unless the horde was forced to leave the plane in defeat or a draw. Rage never falls by itself (no drop for fights, frozen at home). Only Discipline (the new name for Purge, not built yet) will lower it.
+- Stages by total of rage plus temp rage: Discontent 3, Rioting 6, Mutinous 10, Frothing Mad 15. Shown in the Test build horde detail. No consequences yet.
+- Sim (40 NPC games, 1,076 hordes): 61% of horde-turns calm, 12% Discontent, 13% Rioting, 8% Mutinous, 6% Frothing Mad; 23% of hordes reach Frothing Mad at some point.
+
+## v2.96 (test only): Mindless Rage consequences, DISCIPLINE and rebellion
+- Each horde keeps levels h.lv[0..3] for Discontent, Rioting, Mutinous and Frothing Mad: turns spent as the top stage. A level resets when the long-term rage falls below that stage (temp rage can raise the stage but never clears a level). All lower-stage penalties keep applying. Nothing acts while the horde is on its home plane.
+- Discontent: tactics roll -1.5 per level, rounded toward zero, capped at -6 (worst horde in a force). Rioting: 1% of the horde per Rioting level dies each turn, at least one demon; the losses count as demons lost for VP (deliberately, to see if anyone exploits it). Mutinous: DOMINATE, RAID and DISBAND refused at 20% per level; FORCED MARCH is never refused but moves one plane at most; from level 6 rage growth doubles. Frothing Mad: (level - 1) x 33% a turn to rebel.
+- Rebellion: the general dies and returns at home next turn with no army; the horde becomes a Rebel Power horde (owner -1, a rebel name, no rage effects). It attacks the plane it stands on if a prince owns it; if it wins, the plane becomes a Rebel Power plane whose domination grows. It can be attacked like any Minor Power.
+- DISCIPLINE (replaces the working name Purge, which clashes with the demon trait): a horde command, always obeyed, only works from Discontent up. Sacrifices 10% of the horde (min 1 demon, counts as demons lost), lowers rage by 6, adds 3 to iron fist. Shown on the horde card only when the horde is at least Discontent.
+- NPC princes: at Mutinous or worse always DISCIPLINE; at Rioting 50% of turns (RAGE.npcDisc, RAGE.npcP).
+- Rebel names: REB_A list in 02-data-and-setup.js.
+- Sim (40 NPC games): 71% of horde-turns calm, 18% Discontent, 9% Rioting, 2% Mutinous, no Frothing; no rebellions because NPCs discipline in time. With NPC discipline turned off (25 games): 7.4 rebellions and 3.2 rebel-seized planes per game, so the mechanic bites when ignored.
+- Open: what "rival horde" means for temp rage, and how several of your own hordes on one plane should affect it.
+
+## v2.96 (test only): temp rage and stacked hordes
+- Temp rage sources now: a Blood Pact partner's horde on the plane +2 (they are the only different-prince hordes that do not fight), a defeat, retreat or drawn fight +2, the prince's own plane -1.5. Fades after two turns.
+- Several hordes of one prince on a plane count as one for rage growth: demons and strength add up, only the best Iron Fist counts, and the same increase goes to each horde (no extra temp rage for stacking). A fight by any of them stops growth for the group unless one was forced out.
+- Sim (40 NPC games) after this change: 72% calm, 18% Discontent, 8.5% Rioting, 1% Mutinous, no rebellions.
+
+## v2.96 (test only): four ways to make DISCIPLINE a decision
+- Rage drop per DISCIPLINE is now 3 (was 6). Demon cost scales with the stage: 10% Discontent, 12.5% Rioting, 15% Mutinous, 20% Frothing Mad.
+- NPC princes see only the stage and react by chance each turn: 0% calm or Discontent, 35% Rioting, 60% Mutinous, 85% Frothing Mad (RAGE.npcP).
+- A Mutinous or worse horde may defy DISCIPLINE: 10% per Mutinous level, capped at 75%. The demons are still sacrificed but the rage does not ease.
+- Sim (40 NPC games): 67% calm, 16% Discontent, 12% Rioting, 4% Mutinous, 1% Frothing; 2.0 rebellions and 0.45 rebel-seized planes per game; 12% of hordes reach Frothing Mad.
+
+## v2.96 (test only): inner tile light on the Abyss map
+- Each fully explored plane now has a soft radial "ball" of the holder's color inside the square: brightest at the center, fading to nothing before the edges, stronger for higher plane value (opacity .35 + .09 x value). Drawn under the text. The outer blurred halo stays.
+- The inner tile light is drawn only for planes held by a prince, not for Minor Power planes or empty planes (the outer halo is unchanged).
+- Inner tile light reduced by 20% (opacity now (.35 + .09 x value) x .8).
+- Inner tile light reduced by a further 20% (factor .64 in all, the original strength times .64).
+- Inner tile light moved to the right side of the square (center at 72% of the width, narrower) so it no longer sits behind the sword and gem numbers.
+- Princes of the Abyss card: the three rivals' personality lines moved out of the rows into a block at the bottom of the card (name in the prince's color, then the personality). Rows keep rank, Blood Pact, open or closed, and danger level.
+- Princes of the Abyss card: the personality pill (name only, e.g. Personality: Peaceful) is back beside each prince; a block at the bottom now defines the three personalities: Peaceful, Grudge, Flexible.
+- Rage display fix: Rage and Temp rage numbers are gone from General Details (they are horde values). The horde card now shows a line "Mindless Rage: stirred by ..., eased by ..." when the horde is away and at least Discontent, next to the stage pill. The causes are split: h.rc holds what stirs rage (a crowd of demons far from home, a Blood Pact partner's horde, a defeat or drawn fight) and h.rk holds what eases it (the prince's hold on this plane), so the calming plane is no longer reported as a cause. The report line also says "eased by". The numbers appear only in Test builds, as a labeled test note on the horde card; Iron fist stays in General Details in Test builds only.
+- Renamed the Peaceful personality to "Craven and Spiteful" (name only; the key PEACE and the mechanic are unchanged, so saved games still work). Updated the princes card, Gameplay Info and the multiplayer note.
+- Renamed the Grudge personality to "Vengeful" (name only; the key GRUDGE and the mechanic are unchanged).
+- Renamed the "Gameplay Info" tab to "How to Play" (including the opening briefing text). In it, "Basic Gameplay" is now "The Standard Loop"; the duplicate header, the subtitle and the closing "Expanding and fighting..." paragraph were removed.
+- The "The Standard Loop" heading on the How to Play tab is now "How to Play the Game".
+
+## v2.96 (test only): the How to Play tab is expanded
+- "How to Play the Game" now walks the player through the turn in order: 1 Read the report (info cards with change since last turn, Needs your attention, drilling into battles, the header and its tooltips), 2 Review your Realm map (portals and chasms, the Abyss map, plane detail cards and how they are revealed, the Known Planes table), 3 Give your orders (3a horde cards, the Details toggle, the demon tables and general abilities buttons; 3b each princely command; 3c the soul bar at the bottom), 4 Review your Standing (score, end game, the princes card, the Chaos Power table), then Resolve the turn.
+- The Turn and Planes figures in the header now have hover tips like Well and Total Yield.
+- How to Play also gained, in this order after the loop: Tips for Your First Game, Souls and Your Well of Souls (yield formula in words, harvest, what souls buy), Hordes, Generals and Demons (Heavy and Fast, rank limits, summoning, the Shadow Horde), Mindless Rage (causes and stages without showing the hidden numbers, DISCIPLINE), Minor Powers and Rebels, and Blood Pacts, ahead of the existing Planar Domination and Value, Combat and Turn Sequence sections.
+
+## v2.96: pushed everywhere
+- Mindless Rage, DISCIPLINE and rebels, the inner tile light, the personality renames (Craven and Spiteful, Vengeful), the Princes card rearrangement and the expanded How to Play tab are all in v2.96 and pushed to the public link, GitHub, the Test copy and the PC.
+- Decision: the long How to Play tab stays as the full rules and strategy guide for now. It is a wall of text; a short quick-start version, or collapsible sections, may come later.

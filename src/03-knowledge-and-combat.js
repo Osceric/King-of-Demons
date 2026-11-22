@@ -94,7 +94,7 @@ function fightRounds(A,B,mode){
  for(let r=1;r<=MAXR;r++){
   const cs=[fStr(A),fStr(B)];if(cs[0]<=0||cs[1]<=0)break;
   const ce=[0,1].map(i=>cs[i]*(r>=4&&forceAb(F[i],"BERK")?1.1:1)*(r===1&&forceAb(F[1-i],"MIND")?.85:1)*(r<=3?marchF(F[i]):1));/* Berserk and Mindbreaker change the strength the round is judged on, not the casualty percentages */
-  const tr=[roll3()+(forceAb(A,"TACT")?1:0)+(r<=3&&fastVsHeavy(A,B)?FASTT:0),roll3()+(forceAb(B,"TACT")?1:0)+(r<=3&&fastVsHeavy(B,A)?FASTT:0)],td=Math.abs(tr[0]-tr[1]),tb=bandOf(TBANDS,td),tw=tb>0?(tr[0]>tr[1]?0:1):-1;
+  const rgP=F=>F.planar?0:Math.min(0,...F.hordes.map(tacPen)),tr=[roll3()+rgP(A)+(forceAb(A,"TACT")?1:0)+(r<=3&&fastVsHeavy(A,B)?FASTT:0),roll3()+rgP(B)+(forceAb(B,"TACT")?1:0)+(r<=3&&fastVsHeavy(B,A)?FASTT:0)],td=Math.abs(tr[0]-tr[1]),tb=bandOf(TBANDS,td),tw=tb>0?(tr[0]>tr[1]?0:1):-1;
   const adj=[ce[0],ce[1]];if(tb>0){adj[tw]*=1+TBANDS[tb].w;adj[1-tw]*=1+TBANDS[tb].l}
   if(mode==="att")adj[1]*=DB;
   const big=adj[0]>=adj[1]?0:1,sb=bandOf(SBANDS,adj[big]/Math.max(adj[1-big],1e-9)),bonus=[0,0];bonus[big]=SBANDS[sb].bonus;
@@ -207,7 +207,11 @@ function runFight(pl,A,B,mode){
   if(out==="atkwin"){const was=pl.dom;pl.dom=Math.max(0,pl.dom-(forceAb(A,"SIEG")?3:2));notes.push(`The planar defenses were beaten. Domination of [[P:${pl.id}]] fell from ${was} to ${pl.dom}.`);
    if(A.owner>=0){const V=Math.max(1,pl.q);G.players[A.owner].carnage+=V*Math.max(1,pl.dom+2)*250*(pl.npc?2:1);
     if(pl.dom<=0){takePlane(pl,A.owner,"conquest");notes.push(`[[P:${pl.id}]] changed hands.`)}
-    else if(HUM(pl.owner))ev(pl.owner,{sev:"warn",pri:2,text:`[[P:${pl.id}]] is under attack: domination cut to ${pl.dom}.`,plane:pl.id,hl:`saw [[P:${pl.id}]] battered down to domination ${pl.dom}`})}}
+    else if(HUM(pl.owner))ev(pl.owner,{sev:"warn",pri:2,text:`[[P:${pl.id}]] is under attack: domination cut to ${pl.dom}.`,plane:pl.id,hl:`saw [[P:${pl.id}]] battered down to domination ${pl.dom}`})}
+   else if(A.owner===-1&&pl.dom<=0&&!pl.npc){const rb=A.hordes.find(h=>h.rebel)||A.hordes[0],old=pl.owner;pl.owner=null;pl.npc=true;pl.npcName=rb.npcName||rb.gen;pl.dom=1;pl.reb=true;pl.hit=true;
+    notes.push(`${pl.npcName} seized [[P:${pl.id}]]. It is now a Rebel Power plane.`);
+    for(const s of humanSeats())if(old===s)ev(s,{sev:"bad",pri:1,text:`[[P:${pl.id}]] (${pl.name}) was seized by the rebels of ${pl.npcName}.`,plane:pl.id,lost:pl.id,hl:`lost [[P:${pl.id}]] to rebels`});
+    if(HUM(old))as(old,()=>snap(pl.id))}}
   else{notes.push("The planar defenses held. Domination is unchanged.");if(HUM(pl.owner))ev(pl.owner,{sev:"good",pri:4,text:`The planar defenses of [[P:${pl.id}]] threw out the invader.`,plane:pl.id})}}
  const ctx={pl,mode,A,B,res,preS,came,tot,pg,pr,pn,out,rets,notes,domBefore,ownerBefore};
  battleEvents(ctx);

@@ -35,7 +35,7 @@ const CLS={F:"Fast",H:"Heavy"};
 const SHOW_PDF=false;
 /* The Test copy of the game is published with this set to true, which shows the Multiplayer button. */
 const TEST_BUILD=false;
-const GAME_VERSION="2.95";const MIN_VER="2.0";/* saved games and turn codes from older versions (1.81 and earlier carry no stamp) are no longer supported */
+const GAME_VERSION="2.96";const MIN_VER="2.0";/* saved games and turn codes from older versions (1.81 and earlier carry no stamp) are no longer supported */
 /* prince colors: you are always color 1 (green); the other 11 palette colors are dealt to the rival princes at random, fixed for the life of a game by its seed */
 const PAL=["#8cc276","#4db6c9","#a98be0","#e8782e","#d4688f","#e0c34a","#f7f2e4","#a8342e","#2d55b0","#2e8b4f","#b9d84a","#9a6a4a"];
 function mkPal(n,seed){let x=((+seed||1)*2654435761+12345)>>>0;const r=()=>(x=(Math.imul(x,1664525)+1013904223)>>>0)/4294967296,a=[1,2,3,4,5,6,7,8,9,10,11];for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return[0].concat(Array.from({length:Math.max(0,n-1)},(_,i)=>a[i%11]))}
@@ -88,7 +88,7 @@ const STRAT={AW:{agg:1.3,fom:true},BW:{agg:1,fom:true},AM:{agg:1.3,fom:false},PW
 const DANGER=[{k:"L",s:"Slap",n:"Strong Verbal Harassment and a Slap",d:"under 50% win",pool:["AW","BW","AM","PW","PM","BM"]},{k:"H",s:"Kick",n:"A Kick in the Teeth and a Knee to the Groin",d:"51-74% win",pool:["PS","HEDGE"]},{k:"X",s:"Armageddon",n:"Armageddon Made Manifest",d:"75%+ win",pool:["BS","AS"]}],DANGER_DEF=1;
 const dangerOf=p=>{const k=typeof p.danger==="string"?p.danger:["L","L","H","X"][p.danger];return DANGER.find(d=>d.k===k)};/* v2.23 saves stored 0-3 */
 const PEACE_T=20;/* NPC personalities last through this turn */
-const PERS={PEACE:{n:"Peaceful",d:"attacks no prince who has not attacked it, and rival NPC princes leave it alone, through turn 20."},GRUDGE:{n:"Grudge",d:"keeps the same peace through turn 20, but a prince who attacks it is hunted hard until then."}};
+const PERS={PEACE:{n:"Craven and Spiteful",d:"attacks no prince who has not attacked it, and rival NPC princes leave it alone, through turn 20."},GRUDGE:{n:"Vengeful",d:"keeps the same peace through turn 20, but a prince who attacks it is hunted hard until then."}};
 /* END GAME CHANCE. After a trigger, the game cannot end for the first turns; from turn "first" after the trigger each turn has a chance of ending it (10%, 15%, 20%, then rising 10 points a turn from turn "pu+1" until it is certain). std: 97% of the planes dominated, or every prince met (average 15 turns). short: a prince reaches Chaos Lord, rank 6 (average 10 turns). */
 const domNeed=()=>Math.round(NP*.97);/* planes that must have been dominated once to start the plane countdown: 97% of the map (58 of 60) */
 const END_SCHED={std:{first:12,pu:14},short:{first:7,pu:9}};
@@ -142,7 +142,7 @@ function hstats(h){
  return{str:st,n,mv,val,tier};
 }
 const lashB=h=>hasAb(h,"LASH")?1:0;/* Lashmaster: +1 movement */
-const cmdName=t=>t==="MARCH"?"FORCED MARCH":t==="DOMINATE"?"MOVE and DOMINATE":t;
+const cmdName=t=>t==="DISCIPLINE"?"DISCIPLINE":t==="MARCH"?"FORCED MARCH":t==="DOMINATE"?"MOVE and DOMINATE":t;
 const mvBudget=h=>Math.max(1,Math.round(hstats(h).mv)+lashB(h)+(h.cmd&&h.cmd.type==="MARCH"?2:0));/* movement points a turn; a FORCED MARCH adds 2 */
 const stepCost=(o,id)=>{const pl=G.planes[id];return pl&&pl.owner!=null&&(pl.owner===o||bonded(o,pl.owner))?.5:1};/* entering a friendly plane costs half a move */
 function route(from,to,o){/* cheapest path by move cost (friendly planes 0.5, others 1) */
@@ -162,8 +162,61 @@ const sumH=(n,h)=>{let s=0;for(const k in n)s+=(n[k]||0)*DT[k].cost;return Math.
 const abOf=h=>[h.abA,h.abE].filter(k=>k&&ABIL[k]);
 const forceAb=(F,k)=>!!(F&&F.hordes&&F.hordes.some(h=>hasAb(h,k)));
 const genAge=h=>Math.max(0,G.turn-(h.born==null?G.turn:h.born));/* turns since the general was unleashed (or last resurrected) */
+/* MINDLESS RAGE (test stats only for now, no consequences). rage = slow build, temp rage = swings that fade in two turns, iron fist = the general's hold. All numbers are placeholders in RAGE. */
+const RAGE={npcDisc:true,npcP:[0,0,.35,.6,.85],strK:1000,ref:2350,cap:6,fistDiv:20,fistFloor:.4,rival:2,draw:2,calm:-1.5,tacCap:6,riot:.01,refuse:.2,rebel:.33,disc:{cost:[.1,.125,.15,.2],drop:3,fist:3,resist:.1,resistCap:.75},stages:[3,6,10,15],names:["","Discontent","Rioting","Mutinous","Frothing Mad"]};
+/* Stages by rage plus temp rage. Each stage keeps a level h.lv[0..3] = turns spent as the top stage; a level resets when the long-term rage drops below that stage. Nothing here acts while the horde is on its home plane. Growth per turn = size x distance x iron fist (and doubled from Mutinous level 6). */
+const ironFist=h=>genAge(h)+(h.exp||0)+(h.purgeF||0);
+const tempRage=h=>(h.tr||0)+(h.tp||0);
+const rageNow=h=>Math.max(0,(h.rage||0)+tempRage(h));
+const stageIdx=r=>{let k=0;for(let i=0;i<RAGE.stages.length;i++)if(r>=RAGE.stages[i])k=i+1;return k};
+const rageStage=h=>RAGE.names[stageIdx(rageNow(h))];
+const rageAway=h=>{const P=G.players[h.owner];return !!P&&h.owner>=0&&h.loc!==P.home};
+const rageOn=(h,k)=>rageAway(h)&&stageIdx(rageNow(h))>=k&&((h.lv||[])[k-1]||0)>0;/* does stage k bite this horde right now */
+const tacPen=h=>rageOn(h,1)?-Math.min(RAGE.tacCap,Math.trunc(1.5*h.lv[0])):0;
+const REB_A="Oathless,Unchained,Renegade,Defiant,Mutinous,Burnt-Bridge,Turncoat,Ungoverned,Sundered,Apostate,Unleashed,Feral".split(",");
+function genRebelName(){for(let i=0;i<200;i++){const r=rnd(),a=pick(REB_A),n=pick(NPC_N),o=pick(NPC_O);
+ const nm=r<.7?`The ${a} ${n}`:`The Rebel ${n} of ${o}`;
+ if(!G.usedNpcN.includes(nm)){G.usedNpcN.push(nm);return nm}}return"The Rebel Host"}
+function rageRebel(h){/* the general is killed, the horde becomes a Rebel Power horde (a Minor Power in all but name), the general returns next turn */
+ const o=h.owner,P=G.players[o],nm=genRebelName(),loc=h.loc,gen=h.gen,cls=h.cls,res=h.res||0;
+ h.owner=-1;h.gen=nm;h.npcName=nm;h.cls="";h.rebel=true;h.cmd={type:"HOLD"};h.rage=h.tr=h.tp=0;h.lv=[0,0,0,0];h.rc="";h.t.rebelled=true;
+ const rl=ownsHome(o)?rally(o):null;
+ if(rl){const nh=newHorde(o,rl,{},cls,gen);nh.gen=gen;nh.res=res+1;nh.born=G.turn+1;nh.t.back=true}else{P.genLost=(P.genLost||0)+1}
+ const pl=G.planes[loc];
+ for(const s of humanSeats())if(s===o)ev(s,{sev:"bad",pri:0,big:true,text:`MUTINY! The horde of ${gen} went mad at [[P:${loc}]] and rose against you. The general was killed, ${rl?"will return from the dead next turn without an army":"and no free plane remains for a new one"}, and the horde is now ${nm}, a Rebel Power${pl&&pl.owner===o?" that will try to seize the plane":""}.`,plane:loc,hl:`lost a horde to rebellion at [[P:${loc}]]`})
+ else if(pl&&pl.owner===s)ev(s,{sev:"warn",pri:2,text:`${nm}, a horde in rebellion against its prince, stands on your plane [[P:${loc}]].`,plane:loc})}
+function rageCalc(h){/* growth for this turn, worked out for every horde before any is changed. Hordes of one prince on a plane count as one: their demons and strength add up, only the best Iron Fist counts, and the same increase goes to each. */
+ h.t.ri=0;const P=G.players[h.owner];if(!P||h.loc===P.home)return;
+ const here=G.hordes.filter(o=>!o.gone&&o.loc===h.loc&&o.owner>=0),mine=here.filter(o=>o.owner===h.owner);
+ const fought=mine.some(o=>(o.exp||0)>(o.rx==null?o.exp||0:o.rx)),evicted=mine.some(o=>o.t&&o.t.evicted);
+ if(fought&&!evicted)return;
+ const n=here.reduce((a,o)=>a+total(o),0),str=here.reduce((a,o)=>a+hstats(o).str,0),d=distMap(P.home)[h.loc]||0;
+ const size=Math.min(RAGE.cap,n*(1+Math.max(0,n-10)*str/RAGE.strK)/RAGE.ref),fist=Math.max(RAGE.fistFloor,1/(1+Math.max(...mine.map(ironFist))/RAGE.fistDiv));
+ h.t.ri=size*(d/3)*fist*(mine.some(o=>(o.lv||[])[2]>=6)?2:1)}
+function rageTick(h){/* once per turn, after combat */
+ h.rx=h.exp||0;h.tp=h.tr||0;h.tr=0;h.rc="";
+ if(!h.lv)h.lv=[0,0,0,0];
+ if(!rageAway(h)){h.t.rg=null;return}
+ const here=G.hordes.filter(o=>!o.gone&&o.loc===h.loc&&o.owner>=0),others=here.filter(o=>o!==h);
+ h.rage=(h.rage||0)+(h.t.ri||0);
+ const causes=[];h.rk="";
+ if((h.t.ri||0)>0)causes.push("a crowd of demons far from home");
+ if(others.some(o=>o.owner!==h.owner)){h.tr+=RAGE.rival;causes.push("a Blood Pact partner's horde nearby")}
+ if(h.t.evicted||h.t.fights.some(f=>f.res==="tie")){h.tr+=RAGE.draw;causes.push("a defeat or drawn fight")}
+ if(G.planes[h.loc]&&G.planes[h.loc].owner===h.owner){h.tr+=RAGE.calm;h.rk="the prince's hold on this plane"}
+ h.rc=causes.join(", ");
+ const sB=stageIdx(h.rage||0),sN=stageIdx(rageNow(h));
+ for(let k=1;k<=4;k++)if(sB<k)h.lv[k-1]=0;
+ if(sN>=1)h.lv[sN-1]=(h.lv[sN-1]||0)+1;
+ h.t.rg={stage:sN,lv:h.lv.slice(),died:0};
+ /* RIOTING: 1% of the horde per riot level dies, at least one demon. The losses count as demons lost. */
+ if(sN>=2&&h.lv[1]>0&&total(h)){const r=applyFrac({hordes:[h]},RAGE.riot*h.lv[1]);let kn=r.kn,kv=r.kv;
+  if(!kn){const ks=Object.keys(h.demons).sort((a,b)=>DT[a].t-DT[b].t);if(ks.length){const k=ks[0];h.demons[k]--;if(!h.demons[k])delete h.demons[k];kn=1;kv=DT[k].cost}}
+  lostSouls(h.owner,kv);h.t.rg.died=kn}
+ /* FROTHING MAD: (level - 1) x 33% a turn to rebel */
+ if(sN>=4&&h.lv[3]>=2&&total(h)&&rnd()<(h.lv[3]-1)*RAGE.rebel)rageRebel(h)}
 const hno=h=>G.hordes.filter(x=>x.owner===h.owner&&x.id<=h.id).length;
-function newHorde(owner,loc,demons,cls,name){const h={id:G.nextH++,owner,gen:owner<0?"":(name&&!G.usedGen.some(u=>u.toLowerCase()===name.toLowerCase())&&G.usedGen.push(name)?name:genGeneral()),cls:owner<0?"":(cls==="H"?"H":"F"),loc,from:null,demons:demons||{},cmd:{type:"HOLD"},born:G.turn,exp:0,res:0,t:{fights:[]}};G.hordes.push(h);return h}
+function newHorde(owner,loc,demons,cls,name){const h={id:G.nextH++,owner,gen:owner<0?"":(name&&!G.usedGen.some(u=>u.toLowerCase()===name.toLowerCase())&&G.usedGen.push(name)?name:genGeneral()),cls:owner<0?"":(cls==="H"?"H":"F"),loc,from:null,demons:demons||{},cmd:{type:"HOLD"},born:G.turn,exp:0,res:0,rage:0,tr:0,tp:0,rc:"",lv:[0,0,0,0],t:{fights:[]}};G.hordes.push(h);return h}
 const shadowVal=p=>{let v=0;for(const k in G.players[p].shadow)v+=G.players[p].shadow[k]*DT[k].cost;return v};
 const capOf=p=>Math.max(0,RK[G.players[p].rank].g-(G.players[p].genLost||0));/* the rank limit, less every general lost while the prince had no home plane */
 const ownsHome=p=>{const P=G.players[p],hp=G.planes[P.home];return !!hp&&hp.owner===p};
@@ -183,7 +236,7 @@ function newGame(opts){opts=opts||{};const seats=opts.seats; /* multiplayer game
   const P={id:i,name:nm,human,email:(sd&&sd.email)||"",agg:i?AGG[i-1]:1,color:`var(--c${i})`,rank:1,rise:1,well:10000,foment:0,hret:0,consumed:0,carnage:0,domVal:0,home:hp.id,shadow:{},met:[],princely:[],lastP:null,known:{}};
   if(!human){const r=rnd(),rl=rnd(),rs=rnd(),ai=G.players.filter(q=>!q.human).length,od=opts.danger&&opts.danger[ai];
    P.pers=r<.165?"PEACE":r<.33?"GRUDGE":null;const lv=od!=null&&od>=0&&od<DANGER.length?od:DANGER_DEF,pool=DANGER[lv].pool;
-   P.danger=DANGER[lv].k;P.strat=pool[Math.floor(rs*pool.length)];P.agg=STRAT[P.strat].agg}/* each game-run prince gets a Danger level (chosen, default A Kick in the Teeth) and a hidden strategy from that level's pool *//* 67% of NPC princes are unpredictable (none); the rest are Peaceful or Grudge */
+   P.danger=DANGER[lv].k;P.strat=pool[Math.floor(rs*pool.length)];P.agg=STRAT[P.strat].agg}/* each game-run prince gets a Danger level (chosen, default A Kick in the Teeth) and a hidden strategy from that level's pool *//* 67% of NPC princes are unpredictable (none); the rest are Craven and Spiteful or Vengeful */
   G.players.push(P);
   newHorde(i,hp.id,{Maw:25},"H");
  });

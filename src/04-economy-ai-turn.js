@@ -35,7 +35,7 @@ function aiTarget(h,P){
  const s=hstats(h),d=costMap(h.loc,h.owner),dh=distMap(h.loc);let best=null,bs=0;
  for(const id in G.planes){const pl=G.planes[id];if(pl.owner===h.owner||dh[id]>9)continue;
   let hunt=false;if(pl.owner!=null&&pl.owner>=0&&G.turn<=PEACE_T){const me=G.players[h.owner],tg=G.players[pl.owner];
-   if(tg.pers)continue;/* NPC princes leave Peaceful and Grudge princes alone */
+   if(tg.pers)continue;/* NPC princes leave Craven and Spiteful and Vengeful princes alone */
    if(me.pers){if(!(G.hit&&G.hit[h.owner]&&G.hit[h.owner][pl.owner]))continue;hunt=me.pers==="GRUDGE"}}/* they attack only a prince who has attacked them */
   let tS=0;
   const g=G.hordes.find(x=>x.owner===-1&&x.loc===id&&total(x));
@@ -57,6 +57,7 @@ function aiPlan(p){
  const want=4000+1300*G.turn*P.agg;
  const sb=Math.floor(budget*.1);if(sb>=100){const k=allowed.includes("Dre")?"Dre":allowed[0];P.shadowCmd={type:"SSUMMON",n:{[k]:Math.floor(sb/DT[k].cost)}};budget-=sb}
  for(const h of hs){
+  {const sg=stageIdx(rageNow(h));if(RAGE.npcDisc&&rnd()<RAGE.npcP[sg]){h.cmd={type:"DISCIPLINE"};continue}}/* NPC princes know the exact rage and discipline a horde at Rioting or worse */
   const s=hstats(h);let done=false;
   const hunting=P.pers==="GRUDGE"&&G.turn<=PEACE_T&&G.hit&&G.hit[p]&&Object.keys(G.hit[p]).length>0,ready=s.val>=(2200+350*G.turn)*(hunting?.5:1);
   if(ready){const t=aiTarget(h,P);if(t){h.cmd={type:"DOMINATE",target:t};continue}}
@@ -85,7 +86,7 @@ const nText=n=>Object.keys(n).map(k=>fmt0(n[k])+" "+DT[k].n).join(", ");
 function moveHorde(h){
  const c=h.cmd;if(!total(h)||!G.planes[c.target])return;
  const path=route(h.loc,c.target,h.owner),B=mvBudget(h);let steps=0,stop=null,left=B;
- for(const nx of path){const cost=stepCost(h.owner,nx);if(cost>left+1e-9)break;left-=cost;const pl=G.planes[nx],hos=hostile(pl,h.owner);
+ for(const nx of path){if(h.t&&h.t.mut1&&steps>=1)break;const cost=stepCost(h.owner,nx);if(cost>left+1e-9)break;left-=cost;const pl=G.planes[nx],hos=hostile(pl,h.owner);
   h.from=h.loc;h.loc=nx;steps++;if(hos){stop={kind:"hostile",pl:nx};break}}
  h.t.mv={steps,stop,arrived:h.loc===c.target,hops:B}}
 function resolveTurn(){
@@ -105,7 +106,15 @@ function resolveTurn(){
   const items=hordesOf(P.id).map(h=>({h,c:h.cmd,shadow:false}));
   if(P.shadowCmd&&P.shadowCmd.type)items.push({h:null,c:P.shadowCmd,shadow:true});
   for(const it of items){const c=it.c,h=it.h;
-   if(c.type==="DISBAND"&&!it.shadow){let val=0,nn=0;for(const k in h.demons){val+=h.demons[k]*DT[k].cost;nn+=h.demons[k]}
+   if(!it.shadow&&c.type==="DISBAND"&&rageOn(h,3)&&rnd()<Math.min(1,RAGE.refuse*h.lv[2])){h.t.refused="DISBAND";it.res={fail:"the horde refused"};h.cmd={type:"HOLD"}}
+   else if(!it.shadow&&c.type==="DISCIPLINE"){const ok=rageNow(h)>=RAGE.stages[0]&&total(h)>0;
+    if(ok){const sg=stageIdx(rageNow(h)),r=applyFrac({hordes:[h]},RAGE.disc.cost[sg-1]);let kn=r.kn,kv=r.kv;
+     if(!kn){const ks=Object.keys(h.demons).sort((x,y)=>DT[x].t-DT[y].t);if(ks.length){const k=ks[0];h.demons[k]--;if(!h.demons[k])delete h.demons[k];kn=1;kv=DT[k].cost}}
+     lostSouls(h.owner,kv);
+     if(sg>=3&&rnd()<Math.min(RAGE.disc.resistCap,RAGE.disc.resist*(h.lv[2]||1)))h.t.disc={ok:true,n:kn,defied:true};/* a Mutinous horde may defy even this */
+     else{h.rage=Math.max(0,(h.rage||0)-RAGE.disc.drop);h.tr=h.tp=0;h.purgeF=(h.purgeF||0)+RAGE.disc.fist;for(let k=1;k<=4;k++)if(stageIdx(h.rage)<k)h.lv[k-1]=0;h.t.disc={ok:true,n:kn}}}
+    else h.t.disc={ok:false};h.cmd={type:"HOLD"}}
+   else if(c.type==="DISBAND"&&!it.shadow){let val=0,nn=0;for(const k in h.demons){val+=h.demons[k]*DT[k].cost;nn+=h.demons[k]}
     const back=Math.floor(val*.1);P.well+=back;it.res={disband:true,back,n:nn};h.demons={};h.pend=null;h.gone=true;h.t.disbanded=true;h.cmd={type:"HOLD"}}
    else if(!it.shadow&&c.type==="SUMMON"&&enemyHere(h.loc,P.id)){it.res={fail:"summoning is not allowed while an enemy horde is on the plane at the start of the turn"}}/* no reinforcing in the middle of a fight; the souls are not spent */
    else if(c.type==="SUMMON"||c.type==="SSUMMON"){const n=cleanN(c.n,tier,it.shadow?"F":h.cls),cost=sumH(n,it.shadow?null:h);
@@ -157,6 +166,9 @@ function resolveTurn(){
     for(const s of [x.a,x.b])if(HUM(s))ev(s,{sev:"good",pri:3,text:`You and [[X:${s===x.a?x.b:x.a}]] are bound by a Blood Pact until turn ${k.until}. Your hordes will not fight each other or take each other's planes, and each of you earns ${fmt0(k.inc)} souls a turn (a third of the ${fmt0(FC)} paid).`,hl:`sealed a Blood Pact with [[X:${s===x.a?x.b:x.a}]]`})}}
   else{x.e.betrayed=true;if(HUM(x.a))ev(x.a,{sev:"bad",pri:0,text:`BETRAYED! You paid ${fmt0(FC)} souls for a Blood Pact with [[X:${x.b}]], but they did not answer. The souls are lost.`,hl:`was betrayed by [[X:${x.b}]]`})}}
  /* 3. movement */
+ for(const h of G.hordes)if(h.owner>=0&&rageOn(h,3)){const c=h.cmd.type;
+  if((c==="DOMINATE"||c==="RAID")&&rnd()<Math.min(1,RAGE.refuse*h.lv[2])){h.t.refused=c;h.cmd={type:"HOLD"}}
+  else if(c==="MARCH")h.t.mut1=true}/* a Mutinous horde on a FORCED MARCH moves one plane at most */
  for(const h of G.hordes)if(h.owner>=0&&(h.cmd.type==="DOMINATE"||h.cmd.type==="MARCH"||h.cmd.type==="RAID")){const tp=G.planes[h.cmd.target];if(tp&&tp.owner!=null&&bonded(h.owner,tp.owner)){h.cmd={type:"HOLD"};h.t.pact=tp.id}}/* a Blood Pact forbids dominating a partner's plane */
  for(const h of G.hordes)if(h.owner>=0&&h.cmd.type==="RAID"){const tp=G.planes[h.cmd.target];if(!tp||tp.npc||tp.owner==null||tp.owner<0||tp.owner===h.owner){h.t.badraid=h.cmd.target||true;h.cmd={type:"HOLD"}}}/* only planes held by another prince can be raided */
  G.hit=G.hit||{};for(const h of G.hordes)if(h.owner>=0&&(h.cmd.type==="DOMINATE"||h.cmd.type==="MARCH"||h.cmd.type==="RAID")){const tp=G.planes[h.cmd.target];if(tp&&tp.owner!=null&&tp.owner>=0&&tp.owner!==h.owner)(G.hit[tp.owner]=G.hit[tp.owner]||{})[h.owner]=G.turn}/* an attack is an order that ends on a plane another prince owns (not a Blood Pact partner's, not a minor or unowned plane) */
@@ -174,7 +186,7 @@ function resolveTurn(){
   if(!any)break}
  resolveRaids();
  /* 5. growth */
- for(const id of ids){const pl=G.planes[id];if(pl.owner!=null&&pl.owner>=0&&!pl.hit&&pl.dom>0&&pl.dom<6)pl.dom++;pl.hit=false}
+ for(const id of ids){const pl=G.planes[id];if(((pl.owner!=null&&pl.owner>=0)||pl.reb)&&!pl.hit&&pl.dom>0&&pl.dom<6)pl.dom++;pl.hit=false}
  /* 6. harvest */
  for(const P of G.players){const inc=income(P.id);P.well=P.well+Math.max(0,inc-(P.raidLost||0))+P.hret;P.hret=0;P.raidLost=0}
  /* 6b. elimination: no planes and less than a tenth of the weakest other prince's horde strength */
@@ -192,6 +204,7 @@ function resolveTurn(){
  for(const h of G.hordes){if(h.owner<0||h.gone||!total(h))continue;/* abilities: one at Age 10, another at Experience 10 */
   for(const [slot,ok] of [["abA",genAge(h)+1>=10],["abE",(h.exp||0)>=10]]){if(h[slot]||!ok)continue;const pool=Object.keys(ABIL).filter(k=>!hasAb(h,k));if(!pool.length)continue;h[slot]=pool[Math.floor(rnd()*pool.length)];
    if(HUM(h.owner))ev(h.owner,{sev:"good",pri:3,text:`[[H:${h.id}]] gained the ability ${ABIL[h[slot]].n}: ${ABIL[h[slot]].t}`})}}
+ {const rg=G.hordes.filter(h=>h.owner>=0&&!h.gone&&total(h));for(const h of rg)rageCalc(h);for(const h of rg)rageTick(h)}
  G.turn++;setOpen();
  for(const s of HS)as(s,()=>updateKnow(G.players[s].scryR));
  for(const h of G.hordes){if(h.owner<0)continue;const c=h.cmd;
