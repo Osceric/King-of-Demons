@@ -952,3 +952,29 @@ Domination sword tilted 45 degrees clockwise (tip toward the upper right) and dr
 
 ## v2.103 (2026-11-22)
 - GM card: with no deadline the line now says the turn resolves as soon as every prince has sent orders (or waits for Resolve if that checkbox is off), instead of always saying turns wait for the Game Master.
+
+## PARKED: server-hosted games (written 2026-11-22; nothing built)
+Goal (Dennis): move the Game Master's game out of the browser onto the server, so he can host several multiplayer games AND play in them. Today the GM's browser holds the game, runs every turn and must stay open, and one browser holds only one player seat (single saved game slot kodP).
+
+Design
+- Run the game engine on Cloudflare (a Durable Object per game holds the state; it resolves a turn when every living human prince has sent orders, or when the deadline alarm fires; an NPC plays for absent princes via aiPlan, as in v2.99). No browser has to stay open.
+- Engine bundling: Workers cannot use eval/new Function at runtime, so wrap src/02,03,04,05,055,056 (plus the view/order code now in 08: viewFor, applyOrders, makeOrders helpers, plain) into an ES module at build time. They already run in plain Node (the test harness uses vm), and only 2 lines in those files touch document/window/localStorage (guarded).
+- Game creation: the setup screen posts its config; the server runs newGame and returns one link per human seat. The GM's own seat is an ordinary seat with its own link.
+- "My games" screen: list of hosted games (turn, who has sent orders, deadline) with Resolve now, Extend deadline, Copy links, Delete. List kept in the browser plus a private host code stored on the server so another device can list the same games.
+- Player side must become stateless per game: key saved data per room (kodP:<room>) or fetch the view each time, and have the server keep each seat's report history, so one browser can hold many games.
+- The email-code game and the existing browser-hosted online games (v2.98+) would stay as they are.
+- Milestones: 1) engine + resolving on the server, 2) My games screen, 3) multi-game player side.
+
+Measurements (node, this machine, AI played every seat; resolveTurn only)
+- 2 humans + 2 NPC, 10x6: avg 3.8 ms, max 7.8 ms, state 0.70 MB after 40 turns, stringify+parse 4.5 ms.
+- 4 humans + 4 NPC, 16x10: avg 23.8 ms, max 37.3 ms, state 1.23 MB after 34 turns, stringify+parse 8.9 ms.
+- 8 humans, 16x10: avg 13.9 ms, max 26.4 ms, state 2.68 MB after 34 turns, stringify+parse 18.4 ms.
+- Add building each seat's view (viewFor + gzip pack) on top. Roughly 30-70 ms of CPU per turn for a large game.
+
+Risk: Cloudflare CPU limits
+- Workers Free allows 10 ms CPU per request (developers.cloudflare.com/workers/about/limits). The Durable Objects limits page says DOs use "the same per invocation CPU limits" as Workers but does not list the numbers, and says the default is 30 s per invocation (raisable to 5 min for SQLite-backed objects via limits.cpu_ms). Unclear whether the free plan would let a 30-70 ms turn finish. Could not be verified without trying on the real account.
+- If it does not fit, Workers Paid (about $5/month) would be needed. Dennis had not yet agreed to a paid plan when this was parked.
+- Other free-plan limits seen: 100,000 requests/day per account; Free plan DOs must use the SQLite backend (ours already does); storage 5 GB per account; alarms are available (15 min wall time). The per-object storage limit is stated inconsistently (1 GB vs 10 GB) in Cloudflare's docs; a game is under 3 MB.
+- The 20-second polling by the GM page and players counts toward the 100,000 requests/day; a server that resolves turns itself would cut the GM page's polling.
+
+Open questions when this is picked up: is paying $5/month acceptable if the free plan is too small; what happens to games hosted from a browser so far (they cannot be moved to the server).
