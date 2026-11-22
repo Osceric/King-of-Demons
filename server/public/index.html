@@ -2050,7 +2050,7 @@ async function showOrders(){const c=wrapCode(await makeOrders(),"ORDERS");
  modal(`<h2>Your KOD Orders Code for turn ${G.turn}</h2><p class="sub">Copy this code and reply to your Game Master's email with it pasted into the body. You can change your orders and make a new code any time before the turn resolves.</p><textarea id="ocode" readonly>${esc(c)}</textarea><div class="row"><button class="btn pri" data-mp="copyo">Copy KOD Orders Code</button><button class="btn" data-mp="close">Close</button></div>`)}
 function showMenu(){
  modal(`<h2>Multiplayer</h2><p class="sub">Choose how you want to play. Each choice keeps its own saved game, so switching never loses anything.</p>
- <div class="row"><button class="btn${MODE==="solo"?" pri":""}" data-mp="mode" data-m="solo">Solo game</button><button class="btn${MODE==="player"?" pri":""}" data-mp="mode" data-m="player">Play in a friend's game</button><button class="btn${MODE==="gm"?" pri":""}" data-mp="mode" data-m="gm">Run a game (Game Master)</button></div>
+ <div class="row"><button class="btn${MODE==="solo"?" pri":""}" data-mp="mode" data-m="solo">Solo game</button><button class="btn${MODE==="player"?" pri":""}" data-mp="mode" data-m="player">Join a multiplayer game</button><button class="btn${MODE==="gm"?" pri":""}" data-mp="mode" data-m="gm">Run a multiplayer game (Game Master)</button></div>
  ${MODE==="player"?`<div class="row"><button class="btn" data-mp="newturn">Load a new turn code</button></div>`:""}<div class="row"><button class="btn" data-mp="names">Edit NPC prince names</button>${olBtns()}</div><div class="row"><button class="btn" data-mp="close">Close</button></div>`)}
 
 /* ===== ONLINE (Cloudflare): games without emailed codes, and cloud saves. Works only when this page is served by the King of Demons server; anywhere else (a Claude artifact, a file) it stays hidden and the code-passing game is unchanged. ===== */
@@ -2065,7 +2065,7 @@ async function olProbe(){if(OL.chk)return;OL.chk=true;if(!/^https?:$/.test(locat
 function olToast(t){let e=document.getElementById("oltoast");if(!e){e=document.createElement("div");e.id="oltoast";e.style.cssText="position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 14px;z-index:60;max-width:90vw;font-size:13px";document.body.appendChild(e)}e.textContent=t;e.hidden=false;clearTimeout(e._t);e._t=setTimeout(()=>e.hidden=true,7000)}
 const olErr=err=>{if($("#mpmodal"))mpMsg(esc(err.message),1);else if(MODE==="gm"){GMX.msgs=[{t:err.message,bad:1}];renderGM()}else olToast(err.message)};
 const olLink=i=>`${location.origin}${location.pathname}#o=${G.ol.room}.${G.ol.keys[i]}`;
-const olBtns=()=>OL.on?`<button class="btn" data-ol="cloud">Cloud save…</button>`:"";
+const olBtns=()=>OL.on?`<button class="btn" data-ol="cloud">Save or load online…</button>`:"";
 const olHdr=()=>OL.on&&olPl()?`<button class="btn sm" data-ol="check">Check for new turn</button>`:"";
 
 /* GM side */
@@ -2100,13 +2100,36 @@ doResolve=async function(){const c=olPl();
 const ckeyGet=()=>{try{return localStorage.getItem("kodCK")||""}catch(e){return""}};
 const ckeyFmt=k=>(String(k).match(/.{1,4}/g)||[]).join("-");
 function ckeyParse(v){const r=String(v||"").replace(/[^A-Za-z0-9]/g,"").toUpperCase();if(r.length<16)throw new Error("The key needs 20 letters and digits. Press \"Make a key\" for a new one.");return{room:"c"+MODE[0]+r.slice(0,8).toLowerCase(),k:r.slice(8)}}
-function cloudModal(){modal(`<h2>Cloud save</h2><p class="sub">Keep your game on the server so you can carry on from another device. Anyone who has your key can read or replace the save, so keep it private. Write it down: it cannot be recovered. Use the same key on every device.</p><div class="row"><input type="text" id="ckey" value="${esc(ckeyFmt(ckeyGet()))}" placeholder="Your secret key" aria-label="Secret key"><button class="btn sm" data-ol="newkey">Make a key</button></div><div class="row"><button class="btn pri" data-ol="csave">Save to cloud</button><button class="btn" data-ol="cload">Load from cloud</button><button class="btn" data-mp="close">Close</button></div><div id="mpmsg"></div><div id="cres"></div>`)}
+function cloudModal(){modal(`<h2>Save or load your game online</h2><p class="sub">Store a copy of your game on the server, then pick it up on any other device. You protect it with a secret key, like a password: press "Make a key", write it down, and use the same key on every device. Anyone with the key can read or replace the save, and a lost key cannot be recovered.</p><div class="row"><input type="text" id="ckey" value="${esc(ckeyFmt(ckeyGet()))}" placeholder="Your secret key" aria-label="Secret key"><button class="btn sm" data-ol="newkey">Make a key</button></div><div class="row"><button class="btn pri" data-ol="csave">Save this game online</button><button class="btn" data-ol="cload">Load my saved game</button><button class="btn" data-mp="close">Close</button></div><div id="mpmsg"></div><div id="cres"></div>`)}
 function olRestore(o){if(!o||o.k!=="sav"||!o.g||!o.g.planes)throw new Error("That save is not readable.");if(!verOK(o.v))throw new Error("This save comes from a version that can no longer be played.");
  if(o.mode!==MODE)throw new Error("This save belongs to a different mode of the game. Switch mode in the Multiplayer menu first.");
  localStorage.setItem(SK(),JSON.stringify(o.g));loadG();UI.tab="report";UI.rep=null;closeModal();renderAll();window.scrollTo(0,0)}
+
+/* the start screen of the Cloudflare site */
+const lsGame=k=>{try{const g=JSON.parse(localStorage.getItem(k)||"null");return g&&g.planes&&!g.askName?g:null}catch(e){return null}};
+function olLanding(msg,confirmSolo){
+ const so=lsGame("kod1"),pl=lsGame("kodP"),gm=lsGame("kodGM"),c=[];
+ if(so)c.push(`<button class="btn" data-ol="go" data-m="solo">Continue your solo game (turn ${so.turn})</button>`);
+ if(pl)c.push(`<button class="btn" data-ol="go" data-m="player">Continue your multiplayer game (turn ${pl.turn})</button>`);
+ if(gm)c.push(`<button class="btn" data-ol="go" data-m="gm">Continue running your game as Game Master${gm.mpg?` (turn ${gm.turn})`:""}</button>`);
+ modal(`<h2>King of Demons</h2>${c.length?`<div class="row">${c.join("")}</div>`:""}
+ <div class="row"><button class="btn${c.length?"":" pri"}" data-ol="solo">${confirmSolo?"Click again to replace your solo game":"New solo game"}</button><span class="note">Play alone against computer princes.</span></div>
+ <div class="row"><b>Join a multiplayer game</b></div><p class="note" style="margin:0">Paste the game link your Game Master sent you (or an email turn code).</p><div class="row"><input type="text" id="lcode" placeholder="Paste the link or code here" aria-label="Game link or code"><button class="btn" data-ol="join">Join</button></div>
+ <div class="row"><button class="btn" data-ol="gm">Create a new multiplayer game as the Game Master</button><span class="note">You set up the game and send each player a link.</span></div>
+ <div class="row"><button class="btn" data-ol="cloud">Save or load your game online</button><span class="note">Keep a copy of your game on the server so you can continue it on another device.</span></div>
+ <div id="mpmsg">${msg?`<div class="msg bad">${esc(msg)}</div>`:""}</div><p class="note">You can come back to these choices any time with the Multiplayer button.</p>`)}
+async function olLandAct(a,d){
+ if(a==="go"){closeModal();if(MODE!==d.m)setMode(d.m)}
+ else if(a==="solo"){const had=lsGame("kod1");if(had&&!OL.csolo){OL.csolo=1;return olLanding("",true)}OL.csolo=0;closeModal();try{localStorage.removeItem("kod1")}catch(e){}if(MODE!=="solo")setMode("solo");else{loadG();renderAll()}}
+ else if(a==="gm"){closeModal();if(MODE!=="gm")setMode("gm")}
+ else if(a==="join"){const v=($("#lcode").value||"").trim();if(!v)return mpMsg("Paste the link or code first.",1);
+  const m=v.match(/#o=([A-Za-z0-9_-]{4,64})\.([A-Za-z0-9]{6,32})/)||v.match(/^([A-Za-z0-9_-]{4,64})\.([A-Za-z0-9]{6,32})$/);
+  if(m){try{localStorage.setItem("kodOL",JSON.stringify({room:m[1],key:m[2]}))}catch(e){}closeModal();if(MODE!=="player")setMode("player");else renderAll();return olSync(true)}
+  closeModal();if(MODE!=="player")setMode("player");try{await loadTurn(v)}catch(err){olLanding(err.message)}}}
 document.addEventListener("click",async e=>{const t=e.target.closest("[data-ol]");if(!t)return;const d=t.dataset,a=d.ol;
  try{
-  if(a==="cplink")copyText(olLink(+d.i),t);
+  if(["go","solo","gm","join"].includes(a))await olLandAct(a,d);
+  else if(a==="cplink")copyText(olLink(+d.i),t);
   else if(a==="collect"){const n=await olCollect();GMX.msgs=[{t:n?`${n} set${n>1?"s":""} of orders received.`:"No new orders yet."}];renderGM()}
   else if(a==="pub"){await olPublish();GMX.msgs=[{t:`Turn ${G.turn} published.`}];renderGM()}
   else if(a==="check")await olSync(true);
@@ -2116,13 +2139,14 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-ol]"
    const blob=await pack({k:"sav",v:G.ver,mode:MODE,g:G});await olApi(c.room,"save",{k:c.k,method:"PUT",body:{blob,info:{turn:G.turn,no:G.no}}});mpMsg(`Saved: game ${esc(G.no)}, turn ${G.turn}, at ${new Date().toLocaleTimeString()}.`)}
   else if(a==="cload"){const c=ckeyParse($("#ckey").value);try{localStorage.setItem("kodCK",$("#ckey").value.replace(/[^A-Za-z0-9]/g,"").toUpperCase())}catch(e2){}
    let j;try{j=await olApi(c.room,"save",{k:c.k})}catch(er){throw new Error(er.message==="No save here."?"No save was found under that key for this kind of game.":er.message)}
-   OL.pend=await unpack(j.blob);const i=j.info||{};mpMsg(`Found a save: game ${esc(i.no)}, turn ${esc(i.turn)}, saved ${esc(new Date(j.at).toLocaleString())}.`);$("#cres").innerHTML=`<div class="row"><button class="btn pri" data-ol="crestore">Replace the game on this device with it</button></div>`}
+   OL.pend=await unpack(j.blob);const i=j.info||{};mpMsg(`Found a save: game ${esc(i.no)}, turn ${esc(i.turn)}, saved ${esc(new Date(j.at).toLocaleString())}.`);$("#cres").innerHTML=`<div class="row"><button class="btn pri" data-ol="crestore">Replace the game on this device with the saved one</button></div>`}
   else if(a==="crestore")olRestore(OL.pend);
  }catch(err){olErr(err)}});
 async function olStart(){await olProbe();if(!OL.on)return;
  const m=location.hash.match(/^#o=([A-Za-z0-9_-]{4,64})\.([A-Za-z0-9]{6,32})$/);
  if(m){try{localStorage.setItem("kodOL",JSON.stringify({room:m[1],key:m[2]}))}catch(e){}try{history.replaceState(null,"",location.pathname+location.search)}catch(e){}if(MODE!=="player"){setMode("player")}}
  if(MODE==="gm"&&(!G||!G.mpg))renderAll();else if(MODE==="solo"&&G)renderHeader();
+ if(!m)olLanding();
  if(MODE==="player"&&olPl())olSync()}
 setInterval(()=>{if(document.hidden||!OL.on)return;
  if(MODE==="player")olSync();
