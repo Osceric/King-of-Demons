@@ -183,7 +183,8 @@ const olPl=()=>{try{return JSON.parse(localStorage.getItem("kodOL")||"null")}cat
 async function olSync(manual){const c=olPl();if(!c||!OL.on||OL.busy)return;OL.busy=1;
  try{const st=await olApi(c.room,"status",{k:c.key});
   if(st.turn<1){if(manual)olToast("The Game Master has not started the game yet.");return}
-  if(!G||!G.mpg||String(G.no)!==String(st.no)||G.turn<st.turn){const v=await olApi(c.room,"view",{k:c.key});await loadTurn(v.code);olToast(`Turn ${v.turn} is ready. Your orders have not been sent yet.${G.due?" Orders are due by "+fdue(G.due)+".":""}`)}
+  if(G&&G.olk!==c.key){/* the saved turn belongs to another seat's link (same browser, different link): start over from this link */G=null;try{localStorage.removeItem("kodP")}catch(e){}}
+  if(!G||!G.mpg||String(G.no)!==String(st.no)||G.turn<st.turn){const v=await olApi(c.room,"view",{k:c.key});await loadTurn(v.code);G.olk=c.key;save();olToast(`Turn ${v.turn} is ready. Your orders have not been sent yet.${G.due?" Orders are due by "+fdue(G.due)+".":""}`)}
   else if(manual){const me=st.seats[st.seat],w=st.seats.filter(x=>!x.submitted).map(x=>x.name);olToast(`${me&&me.submitted?`Your orders for turn ${st.turn} are in.`:`Turn ${st.turn}: your orders are not sent yet.`}${G.due?" Orders are due by "+fdue(G.due)+".":""} ${w.length?"Waiting for: "+w.join(", ")+".":"Everyone has sent orders."}`)}
  }catch(e){if(manual)olToast(e.message)}finally{OL.busy=0}}
 const _dr2=doResolve;

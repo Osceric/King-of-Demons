@@ -946,3 +946,6 @@ Domination sword tilted 45 degrees clockwise (tip toward the upper right) and dr
 
 ## v2.101 (2026-11-22)
 - "Being attacked" icon replaced: a multicolor mushroom cloud (yellow cap with a bright band, orange stem) over billowy red dust clouds. ICO.blast in 07-ui-orders-realm-standing.js.
+
+## v2.102 (2026-11-22)
+- Fix: two player links opened in one browser (incognito windows share storage) showed the first seat's turn. A loaded online turn now remembers its link key (G.olk); a different link replaces the saved game. Note: one browser can hold only one seat at a time; use separate browsers or profiles for two players on one computer.
