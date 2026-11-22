@@ -929,3 +929,4 @@ Domination sword tilted 45 degrees clockwise (tip toward the upper right) and dr
 - Server build now also writes public/test/index.html (the Test build) so the Test page can reach the server.
 - GitHub Pages redirect: 01-shell.html has HOME="" ; set it to the Cloudflare address to redirect github.io visitors (a browser that already holds a game gets a banner instead).
 - GitHub Pages redirect is on: HOME in 01-shell.html is https://king-of-demons.dennis-dillman.workers.dev .
+- Maintenance > Game results has a "Send a test result" button (posts a labeled TEST record) to prove the collection path.

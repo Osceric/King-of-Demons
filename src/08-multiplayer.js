@@ -237,6 +237,8 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-ol]"
   else if(a==="crestore")olRestore(OL.pend);
   else if(a==="rlist"){const k=$("#akey").value.trim();try{localStorage.setItem("kodAK",k)}catch(e2){}const j=await olApi("results","list",{k});OL.rl=j.items;
    $("#rlist").innerHTML=`<p class="note">${j.total} game${j.total===1?"":"s"} on file${j.total>j.items.length?`, newest ${j.items.length} shown`:""}.</p><div class="rtw"><table class="rt"><tr><th>Received</th><th>Game</th><th>Mode</th><th>Ver</th><th>Turn</th><th>State</th><th>Princes (points)</th><th></th></tr>${j.items.map(x=>`<tr><td>${esc(fdate(x.at))}</td><td>${esc(x.no)}</td><td>${esc(x.mode)}</td><td>${esc(x.v)}</td><td>${x.turn}</td><td>${x.over?"finished":"unfinished"}</td><td>${x.n.map(p=>esc(p[0])+(p[1]?"":" (NPC)")+" "+(p[2]==null?"":p[2])).join("; ")}</td><td><button class="btn sm" data-ol="ropen" data-id="${esc(x.id)}">Open</button></td></tr>`).join("")}</table></div>`}
+  else if(a==="rtest"){const id=olId(6,"0123456789");await olApi("results","submit",{method:"POST",body:{rec:{k:"res",v:GAME_VERSION,g:"TEST"+id,sd:id,cfg:{nx:10,ny:6},mode:"test",turn:1,over:true,end:"test record",at:Date.now(),pl:[{n:"TEST RESULT (not a real game)",h:1,rk:1,vp:1,pa:[],pn:1},{n:"Test NPC",h:0,rk:1,vp:0,pa:[],pn:1}],hist:[]}}});
+   mpMsg("A test result was sent. Press Load results to see it.")}
   else if(a==="ropen"){const j=await olApi("results","rec",{k:$("#akey").value.trim(),id:d.id});$("#rout").innerHTML=resHTML(j.rec)}
  }catch(err){olErr(err)}});
 async function olStart(){await olProbe();if(!OL.on)return;olResult();
@@ -255,7 +257,7 @@ async function olResult(){if(!OL.on||!G||!G.over||G.rsent||OL.rbusy||MODE==="pla
  try{await olApi("results","submit",{method:"POST",body:{rec:resObj()}});G.rsent=true;save()}catch(e){}finally{OL.rbusy=0}}
 const _ra3=renderAll;renderAll=function(){const r=_ra3.apply(this,arguments);olResult();return r};
 const akeyGet=()=>{try{return localStorage.getItem("kodAK")||""}catch(e){return""}};
-function resultsHTML(){return`<h3 style="margin-top:22px">Game results</h3><p class="note">Finished games sent in by players. Enter the admin key you set in Cloudflare (the ADMIN_KEY secret).</p><div class="row"><input type="password" id="akey" value="${esc(akeyGet())}" placeholder="Admin key" aria-label="Admin key"><button class="btn sm" data-ol="rlist">Load results</button></div><div id="rlist"></div><div id="rout"></div>`}
+function resultsHTML(){return`<h3 style="margin-top:22px">Game results</h3><p class="note">Finished games sent in by players. Enter the admin key you set in Cloudflare (the ADMIN_KEY secret).</p><div class="row"><input type="password" id="akey" value="${esc(akeyGet())}" placeholder="Admin key" aria-label="Admin key"><button class="btn sm" data-ol="rlist">Load results</button><button class="btn sm" data-ol="rtest">Send a test result</button></div><div id="rlist"></div><div id="rout"></div>`}
 const fdate=t=>{const d=new Date(t);return isNaN(d)?"":d.toLocaleString()};
 /* ---- GM screen ---- */
 const GMX={msgs:[],mail:null,link:""};
