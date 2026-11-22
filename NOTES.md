@@ -928,5 +928,6 @@ Domination sword tilted 45 degrees clockwise (tip toward the upper right) and dr
 - Game results: when a solo or Game Master game ends on the Cloudflare site, the client posts its result record (names included) to the server room "results" (op submit, no key). Reading needs the ADMIN_KEY secret: Maintenance (Test build, served at /test/ on Cloudflare) has a Game results list and viewer. The start screen carries the notice "Game results, including your prince name, are collected in order to improve the quality of the game." Result trust (replaying games to verify scores) is deliberately left for later.
 - Server build now also writes public/test/index.html (the Test build) so the Test page can reach the server.
 - GitHub Pages redirect: 01-shell.html has HOME="" ; set it to the Cloudflare address to redirect github.io visitors (a browser that already holds a game gets a banner instead).
-- GitHub Pages redirect is on: HOME in 01-shell.html is https://king-of-demons.dennis-dillman.workers.dev .
+- GitHub Pages redirect is on: HOME in 01-shell.html is https://king-of-demons.siblog.workers.dev .
 - Maintenance > Game results has a "Send a test result" button (posts a labeled TEST record) to prove the collection path.
+- Cloudflare address is now https://king-of-demons.siblog.workers.dev (account subdomain renamed from dennis-dillman); HOME updated.
