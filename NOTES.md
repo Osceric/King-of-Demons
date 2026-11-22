@@ -910,6 +910,12 @@ Domination sword tilted 45 degrees clockwise (tip toward the upper right) and dr
 - Row names are now "Demons lost" and "Souls consumed" (no percentages in the name); older saved games' longer names map across (vpNorm). The row descriptions were out of date (Demons lost showed the generic 15% line) and now match the real scoring.
 - Tutorial card order: How Do I Win the Game?, What Are Souls?, Realm, Hordes, Mindless Rage, Generals, Orders 1/3, 2/3, 3/3, Opponents, Combat, Reports.
 
-## Cloudflare server (added 2026-11-22)
-- `server/` holds the Worker + Durable Object relay (online games, cloud saves). Deploy by hand with `npm run deploy` in that folder, or connect the GitHub repo in Cloudflare (Workers Builds): root directory `server`, build `npm run build`, deploy `npx wrangler deploy`.
-- `server/public/index.html` is a copy of the game, refreshed by `npm run build`. The game client does not use the server yet (phase 2).
+## Online games and cloud saves, client side (written 2026-11-22, not yet released)
+- `src/08-multiplayer.js` has an ONLINE section. It switches on only when the page is served by the Cloudflare server (probe of `/api/room/probe/status` answers "No such game."); in a Claude artifact, a file, or any other host it stays hidden and the code-passing game is unchanged.
+- Game Master: Set up a game shows an "Online game" checkbox (default on). Starting creates a room, stores the keys in the GM's game (`G.ol`), publishes turn 1 views. The GM screen then shows per-seat Copy link buttons, orders status, Check for orders now, Publish this turn again. It collects orders every 20 s; Resolve publishes the next turn.
+- Player: opening `#o=<room>.<key>` stores the link, switches to player mode, loads the published turn. "Finalize Orders" posts the orders to the server (falls back to the orders code if the server fails). "Check for new turn" button and a 20 s poll load the next turn.
+- Cloud save: Multiplayer menu and the Save code section show "Cloud save…" (online only). One 20-character key; the room is made from the first 8 characters plus the mode letter, the secret is the rest.
+- Tested end to end with a local Node copy of the server logic (`/tmp/w/oltest`): GM create, player link, orders, collect, resolve, republish, player sync, cloud save and load.
+
+## v2.98 (2026-11-22)
+- Online games and cloud saves (see the section above), released with the Cloudflare server.
