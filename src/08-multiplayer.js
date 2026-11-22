@@ -94,6 +94,9 @@ const copyText=async(txt,btn)=>{let ok=false;try{await navigator.clipboard.write
 const st=document.createElement("style");st.textContent=`body.pl [data-act=newgame],body.pl [data-act=playagain]{display:none}
 .mp{max-width:880px;margin:0 auto;padding:0 0 60px}.mp h2{margin:.2em 0}.mp textarea{width:100%;min-height:90px;background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:8px;font:12px/1.35 ui-monospace,Menlo,Consolas,monospace}
 .mp input[type=text],.mp input[type=email],.mp select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:6px 8px;font:13px var(--body);width:100%;box-sizing:border-box}
+.opt{margin:12px 0;padding:12px 14px;border:1px solid var(--line);border-left-width:8px;border-radius:6px;background:var(--panel2)}.opt .btn{display:block;width:100%;white-space:normal;box-sizing:border-box;text-align:left;font-size:15px;font-weight:600;padding:10px 12px;color:#1a0f12;border:0}.opt .od{margin-top:8px;font-size:13px;line-height:1.4;color:var(--ink)}.opt input{margin-top:8px}
+.o-go{border-left-color:#80c47b;background:rgba(128,196,123,.10)}.o-go .btn{background:#80c47b}.o-solo{border-left-color:#e8782e;background:rgba(232,120,46,.12)}.o-solo .btn{background:#e8782e}.o-join{border-left-color:#4fb3bf;background:rgba(79,179,191,.12)}.o-join .btn{background:#4fb3bf}.o-gm{border-left-color:#dcae52;background:rgba(220,174,82,.12)}.o-gm .btn{background:#dcae52}.o-cloud{border-left-color:#a78bd6;background:rgba(167,139,214,.12)}.o-cloud .btn{background:#a78bd6}
+.opt .btn:hover{filter:brightness(1.12)}
 .mp .seat{display:grid;grid-template-columns:70px 1.3fr 1.2fr 100px;gap:8px;align-items:center;margin:6px 0}@media(max-width:640px){.mp .seat{grid-template-columns:1fr 1fr}}
 .mp .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}.mp .ok{color:var(--good,#7bc47f)}.mp .wait{color:var(--gold)}.mp .msg{margin:8px 0;padding:8px;border-radius:4px;background:var(--panel2)}.mp .bad{color:var(--bad,#e5675b)}
 .mp pre{white-space:pre-wrap;word-break:break-all;max-height:160px;overflow:auto;background:var(--panel2);padding:8px;border-radius:4px;font-size:11px}
@@ -195,15 +198,17 @@ function olRestore(o){if(!o||o.k!=="sav"||!o.g||!o.g.planes)throw new Error("Tha
 /* the start screen of the Cloudflare site */
 const lsGame=k=>{try{const g=JSON.parse(localStorage.getItem(k)||"null");return g&&g.planes&&!g.askName?g:null}catch(e){return null}};
 function olLanding(msg,confirmSolo){
- const so=lsGame("kod1"),pl=lsGame("kodP"),gm=lsGame("kodGM"),c=[];
- if(so)c.push(`<button class="btn" data-ol="go" data-m="solo">Continue your solo game (turn ${so.turn})</button>`);
- if(pl)c.push(`<button class="btn" data-ol="go" data-m="player">Continue your multiplayer game (turn ${pl.turn})</button>`);
- if(gm)c.push(`<button class="btn" data-ol="go" data-m="gm">Continue running your game as Game Master${gm.mpg?` (turn ${gm.turn})`:""}</button>`);
- modal(`<h2>King of Demons</h2>${c.length?`<div class="row">${c.join("")}</div>`:""}
- <div class="row"><button class="btn${c.length?"":" pri"}" data-ol="solo">${confirmSolo?"Click again to replace your solo game":"New solo game"}</button><span class="note">Play alone against computer princes.</span></div>
- <div class="row"><b>Join a multiplayer game</b></div><p class="note" style="margin:0">Paste the game link your Game Master sent you (or an email turn code).</p><div class="row"><input type="text" id="lcode" placeholder="Paste the link or code here" aria-label="Game link or code"><button class="btn" data-ol="join">Join</button></div>
- <div class="row"><button class="btn" data-ol="gm">Create a new multiplayer game as the Game Master</button><span class="note">You set up the game and send each player a link.</span></div>
- <div class="row"><button class="btn" data-ol="cloud">Save or load your game online</button><span class="note">Keep a copy of your game on the server so you can continue it on another device.</span></div>
+ const so=lsGame("kod1"),pl=lsGame("kodP"),gm=lsGame("kodGM");
+ const opt=(cls,btn,desc)=>`<div class="opt ${cls}">${btn}<div class="od">${desc}</div></div>`;
+ const cont=[];
+ if(so)cont.push(opt("o-go",`<button class="btn" data-ol="go" data-m="solo">Continue your solo game (turn ${so.turn})</button>`,"Pick up your game against the computer princes where you left it."));
+ if(pl)cont.push(opt("o-go",`<button class="btn" data-ol="go" data-m="player">Continue your multiplayer game (turn ${pl.turn})</button>`,"Go back to the multiplayer game you are playing in."));
+ if(gm)cont.push(opt("o-go",`<button class="btn" data-ol="go" data-m="gm">Continue running your game as Game Master${gm.mpg?` (turn ${gm.turn})`:""}</button>`,"Go back to the game you are running."));
+ modal(`<h2>King of Demons</h2>${cont.join("")}
+ ${opt("o-solo",`<button class="btn" data-ol="solo">${confirmSolo?"Click again to replace your solo game":"New solo game"}</button>`,confirmSolo?"This deletes your current solo game from this browser.":"Play alone against computer princes.")}
+ <div class="opt o-join"><button class="btn" data-ol="join">Join a multiplayer game</button><div class="od">Paste the game link your Game Master sent you (or an email turn code), then press the button above.</div><input type="text" id="lcode" placeholder="Paste the link or code here" aria-label="Game link or code"></div>
+ ${opt("o-gm",`<button class="btn" data-ol="gm">Create a new multiplayer game as the Game Master</button>`,"You set up the game and send each player a private link.")}
+ ${opt("o-cloud",`<button class="btn" data-ol="cloud">Save or load your game online</button>`,"Keep a copy of your game on the server so you can continue it on another device.")}
  <div id="mpmsg">${msg?`<div class="msg bad">${esc(msg)}</div>`:""}</div><p class="note">You can come back to these choices any time with the Multiplayer button.</p>`)}
 async function olLandAct(a,d){
  if(a==="go"){closeModal();if(MODE!==d.m)setMode(d.m)}
