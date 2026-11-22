@@ -1,0 +1,12 @@
+{
+  "name": "king-of-demons-server",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node test.js",
+    "build": "node -e \"import('fs').then(f=>f.copyFileSync('../index.html','public/index.html'))\"",
+    "dev": "npm run build && wrangler dev",
+    "deploy": "npm run build && wrangler deploy"
+  },
+  "devDependencies": { "wrangler": "^4" }
+}

@@ -1,0 +1,44 @@
+import {handle} from "./src/logic.js";
+const mk=()=>{const m=new Map();return{get:async k=>m.get(k),put:async(k,v)=>{m.set(k,JSON.parse(JSON.stringify(v)))},delete:async k=>{m.delete(k)},m}};
+let fails=0;const t=(n,c)=>{if(!c){fails++;console.log("FAIL",n)}};
+const call=(st,method,op,q,body)=>handle(st,{method,op,q:new URLSearchParams(q||""),body});
+(async()=>{
+ const g=mk();
+ let [s,r]=await call(g,"POST","init","",{seats:1});t("too few seats",s===400);
+ [s,r]=await call(g,"POST","init","",{seats:3,names:["Ann","Bo"],no:"482113"});t("init",s===200&&r.seats.length===3&&r.gm&&r.seats[2].name==="Seat 3");
+ const gm=r.gm,K=r.seats.map(x=>x.key);
+ [s]=await call(g,"POST","init","",{seats:3});t("init twice",s===409);
+ [s]=await call(g,"GET","status","k=nope");t("bad key",s===403);
+ [s,r]=await call(g,"GET","view","k="+K[0]);t("no turn yet",s===404);
+ [s]=await call(g,"POST","publish","k="+K[0],{turn:1,views:["a","b","c"]});t("seat cannot publish",s===403);
+ [s]=await call(g,"POST","publish","k="+gm,{turn:1,views:["a","b"]});t("needs one view per seat",s===400);
+ const big="x".repeat(230000);
+ [s,r]=await call(g,"POST","publish","k="+gm,{turn:1,views:[big,"B1","C1"]});t("publish",s===200&&r.turn===1);
+ [s,r]=await call(g,"GET","view","k="+K[0]);t("view big roundtrip",s===200&&r.code===big&&r.turn===1);
+ [s,r]=await call(g,"GET","view","k="+K[1]);t("view seat 1",r.code==="B1");
+ [s,r]=await call(g,"GET","view","k="+gm+"&s=2");t("gm views any seat",r.code==="C1");
+ [s]=await call(g,"GET","view","k="+gm);t("gm needs a seat",s===400);
+ [s,r]=await call(g,"POST","orders","k="+K[1],{turn:1,code:"ORD-B"});t("orders in",s===200);
+ [s]=await call(g,"POST","orders","k="+K[1],{turn:2,code:"x"});t("wrong turn",s===409);
+ [s,r]=await call(g,"GET","status","k="+K[2]);t("status shows who sent",r.seats[1].submitted===true&&r.seats[0].submitted===false&&r.seat===2);
+ [s]=await call(g,"GET","orders","k="+K[0]);t("seat cannot collect",s===403);
+ [s,r]=await call(g,"POST","orders","k="+K[1],{turn:1,code:"ORD-B2"});t("resend replaces",s===200);
+ [s,r]=await call(g,"GET","orders","k="+gm);t("gm collects",r.orders[1].code==="ORD-B2"&&r.orders[0]===null&&r.orders[2]===null);
+ [s]=await call(g,"POST","publish","k="+gm,{turn:0,views:["a","b","c"]});t("cannot go back a turn",s===409);
+ [s,r]=await call(g,"POST","publish","k="+gm,{turn:2,views:["a2","b2","c2"]});t("next turn",s===200);
+ [s,r]=await call(g,"GET","orders","k="+gm);t("orders cleared after publish",r.orders.every(x=>x===null));
+ [s,r]=await call(g,"GET","status","k="+gm);t("gm status",r.turn===2&&r.role==="gm");
+ /* cloud saves */
+ const v=mk();
+ [s]=await call(v,"GET","save","k=short");t("short key refused",s===400);
+ [s]=await call(v,"GET","save","k=abcdefgh1");t("empty save 404",s===404);
+ const blob="y".repeat(350000);
+ [s,r]=await call(v,"PUT","save","k=abcdefgh1",{blob,info:{turn:7,no:"123456"}});t("save",s===200);
+ [s,r]=await call(v,"GET","save","k=abcdefgh1");t("load roundtrip",s===200&&r.blob===blob&&r.info.turn===7);
+ [s]=await call(v,"GET","save","k=zzzzzzzz1");t("wrong key",s===403);
+ [s]=await call(v,"PUT","save","k=zzzzzzzz1",{blob:"hi"});t("wrong key cannot overwrite",s===403);
+ [s]=await call(v,"PUT","save","k=abcdefgh1",{blob:"small"});t("overwrite smaller",s===200);
+ [s,r]=await call(v,"GET","save","k=abcdefgh1");t("shrunk",r.blob==="small");
+ [s]=await call(v,"PUT","save","k=abcdefgh1",{blob:"z".repeat(1600000)});t("too large",s===413);
+ [s]=await call(v,"DELETE","save","k=abcdefgh1");[s]=await call(v,"GET","save","k=abcdefgh1");t("deleted",s===404&&![...v.m.keys()].some(k=>k.startsWith("blob")));
+ console.log(fails?fails+" failures":"all server tests pass");process.exit(fails?1:0)})()

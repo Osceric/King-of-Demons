@@ -1,0 +1,17 @@
+name = "king-of-demons"
+main = "src/worker.js"
+compatibility_date = "2025-01-01"
+
+# The game page itself (public/index.html) is served by the same Worker, so the page and the API share one address.
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+[[durable_objects.bindings]]
+name = "ROOM"
+class_name = "Room"
+
+# Declares the Durable Object class. Needed once; the SQLite backend is the current default for new classes.
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Room"]

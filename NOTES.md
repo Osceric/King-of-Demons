@@ -909,3 +909,7 @@ Domination sword tilted 45 degrees clockwise (tip toward the upper right) and dr
 - The Standing tab and the end-of-game prince tables group victory points: Military (Carnage, Demons lost, Horde strength), Realm Size (Planes dominated, Planes held), Power & Economy (Chaos Power, Souls consumed); True Prince bonus stays below. Built by vpRows() in 07-ui-orders-realm-standing.js.
 - Row names are now "Demons lost" and "Souls consumed" (no percentages in the name); older saved games' longer names map across (vpNorm). The row descriptions were out of date (Demons lost showed the generic 15% line) and now match the real scoring.
 - Tutorial card order: How Do I Win the Game?, What Are Souls?, Realm, Hordes, Mindless Rage, Generals, Orders 1/3, 2/3, 3/3, Opponents, Combat, Reports.
+
+## Cloudflare server (added 2026-11-22)
+- `server/` holds the Worker + Durable Object relay (online games, cloud saves). Deploy by hand with `npm run deploy` in that folder, or connect the GitHub repo in Cloudflare (Workers Builds): root directory `server`, build `npm run build`, deploy `npx wrangler deploy`.
+- `server/public/index.html` is a copy of the game, refreshed by `npm run build`. The game client does not use the server yet (phase 2).
