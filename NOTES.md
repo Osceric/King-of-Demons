@@ -949,3 +949,6 @@ Domination sword tilted 45 degrees clockwise (tip toward the upper right) and dr
 
 ## v2.102 (2026-11-22)
 - Fix: two player links opened in one browser (incognito windows share storage) showed the first seat's turn. A loaded online turn now remembers its link key (G.olk); a different link replaces the saved game. Note: one browser can hold only one seat at a time; use separate browsers or profiles for two players on one computer.
+
+## v2.103 (2026-11-22)
+- GM card: with no deadline the line now says the turn resolves as soon as every prince has sent orders (or waits for Resolve if that checkbox is off), instead of always saying turns wait for the Game Master.
