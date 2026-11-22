@@ -981,3 +981,7 @@ Open questions when this is picked up: is paying $5/month acceptable if the free
 
 ## v2.104 (2026-11-22)
 - The Multiplayer button now opens the same colored start cards as the Cloudflare start screen on every build (Test page, #mp, Cloudflare). Parts that need the server (online save, results notice, link joining) show only where the server exists; elsewhere the Join card takes an email turn code and the Game Master card mentions turn codes.
+
+## v2.105 (2026-11-22)
+- The Multiplayer button is now **Game Menu** (always visible). It holds New solo game, Join, Create as Game Master (multiplayer cards only on the Test page, #mp, the server site, or in a multiplayer mode), plus a Save and load card: Make my save code, Restore a saved game, and (server only) Save or load your game online.
+- The Save code and Result code sections were removed from the Standing tab, and the Result code button from the game-over screen. Reading a result code by hand moved to Maintenance (Test only). Result records still go to the server automatically on the Cloudflare site.
