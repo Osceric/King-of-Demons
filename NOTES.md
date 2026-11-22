@@ -943,3 +943,6 @@ Domination sword tilted 45 degrees clockwise (tip toward the upper right) and dr
 
 ## v2.100 (2026-11-22)
 - After "Submit Orders to Server" the popup says orders can be replaced any number of times until the turn is processed, who has still to send, and the deadline; if everyone is in it says the turn will process within about a minute.
+
+## v2.101 (2026-11-22)
+- "Being attacked" icon replaced: a multicolor mushroom cloud (yellow cap with a bright band, orange stem) over billowy red dust clouds. ICO.blast in 07-ui-orders-realm-standing.js.
