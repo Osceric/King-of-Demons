@@ -895,3 +895,6 @@ Domination sword tilted 45 degrees clockwise (tip toward the upper right) and dr
 - Tutorial card titles: What Are Souls? / Understanding Your Realm / Understanding Your Hordes / Understanding Orders, 1/3 (horde commands) / 2/3 (princely commands) / 3/3 (the soul bar).
 
 - Battles and events row icons (left of the pill): crossed swords = horde combat, mountain = planar combat, skull demon = chaos rank ascension (yours and other princes'), larger orange blast cluster = "under attack: domination cut to N". Events carry an `ico` field; battles pick swords or mountain from `battle.aft.*.planar` (`evIco` in 06-ui-report.js). Rows without an icon keep an empty slot so the pills align.
+
+## v2.97: pushed everywhere
+- Tutorials tab (six animated shows: What Are Souls?, Understanding Your Realm, Understanding Your Hordes, Understanding Orders 1/3, 2/3, 3/3), multi-turn order wording with estimated turns to complete, league renamed to mpg, and icons on the Battles and events rows.
