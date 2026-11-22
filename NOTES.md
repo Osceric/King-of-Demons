@@ -50,7 +50,7 @@ Project: King of Demons (KoD), a single-page HTML play-by-mail demon-prince stra
 A single-player web take on play-by-mail games. The turn report is the core: it should let a player see what happened, what they know, and what to do next, quickly.
 
 ## Report design (implemented)
-Headline sentence, then stat tiles with deltas, a "needs your attention" list whose buttons jump to the right screen, battles and events, each order echoed with an outcome (success / partial / setback), new intel, and shadow-horde rumors. Filters and a per-turn archive. Planes and hordes named in the report are clickable. Standing orders carry over. Stale map info is drawn dashed with its age.
+Headline sentence, then stat tiles with deltas, a "needs your attention" list whose buttons jump to the right screen, battles and events, each order echoed with an outcome (success / partial / setback), new intel, and shadow-horde rumors. Filters and a per-turn archive. Planes and hordes named in the report are clickable. Multi-turn orders (Move and Dominate, Forced March) carry over until the horde arrives. Stale map info is drawn dashed with its age.
 
 ## Assumptions where the deck was silent or conflicted
 - Dretches can join any horde (rank 1 allows only tier 1).
@@ -129,7 +129,7 @@ Source: the designer's spreadsheet "NPC Planes by Value" (table NPCDEF in 02-dat
 
 ## v30 – Multiplayer (GM-run play by mail)
 - Multiplayer button (top right) switches between Solo, Play in a friend's game, and Run a game (GM). Each mode has its own saved game (kod1 / kodP / kodGM).
-- GM: set up 4 seats (human or AI), custom prince names and emails. Each turn: Prepare mail (one email per human prince with a private, fogged turn code) → paste each returned orders code → Resolve (missing princes keep standing orders + default Princely plan).
+- GM: set up 4 seats (human or AI), custom prince names and emails. Each turn: Prepare mail (one email per human prince with a private, fogged turn code) → paste each returned orders code → Resolve (missing princes keep their multi-turn orders + default Princely plan).
 - Player: paste turn code, play normally, "Make orders code", reply by email. Report history accumulates locally.
 - Codes are gzip+base64url (~4 KB), wrapped in BEGIN/END KOD CODE markers. Views swap the player's seat with seat 0 and redact unknown planes and other princes' private state.
 - Gmail drafts NOT yet wired (connector not connected): mail is copy-to-clipboard for now. GM must share the artifact link with friends.
@@ -629,7 +629,7 @@ Goal: replace the save-code passing in multiplayer games with a server that hold
 
 **Turn timing (decided)**
 - A turn is processed as soon as every player has submitted orders. Turns take no time to resolve (about 10 ms for six princes), so a group that is all online can play its first 10 turns in one evening.
-- A schedule is the backstop for stragglers: orders are due at fixed times (for example 1:00 PM and 10:00 PM) and the server processes the turn then, with results ready by about 1:05 PM / 10:05 PM. Whoever has not submitted keeps their standing orders (a horde with none holds).
+- A schedule is the backstop for stragglers: orders are due at fixed times (for example 1:00 PM and 10:00 PM) and the server processes the turn then, with results ready by about 1:05 PM / 10:05 PM. Whoever has not submitted keeps their multi-turn orders (a horde with none holds).
 - Times are stored in UTC and shown in each player's local time. Still to decide: whether "1 PM" means a fixed local time or fixed UTC (daylight saving shifts local), and whether a game may be set to strict-schedule only.
 - With turn processing on the server, email is not needed to send or receive turns. Notifications are optional extras.
 
@@ -883,3 +883,11 @@ Domination sword tilted 45 degrees clockwise (tip toward the upper right) and dr
 ## v2.96: pushed everywhere
 - Mindless Rage, DISCIPLINE and rebels, the inner tile light, the personality renames (Craven and Spiteful, Vengeful), the Princes card rearrangement and the expanded How to Play tab are all in v2.96 and pushed to the public link, GitHub, the Test copy and the PC.
 - Decision: the long How to Play tab stays as the full rules and strategy guide for now. It is a wall of text; a short quick-start version, or collapsible sections, may come later.
+
+## Tutorials tab (prototype, in progress)
+- New tab "Tutorials" (before How to Play). Animated slide shows on the REAL screens: a throwaway demo game (fixed seed) is rendered with the real renderers; spotlight ring, moving cursor, one-line caption, Back/Pause/Next, dots, progress bar. No sound.
+- Sandbox: `withDemo()` swaps G, map size, seat and UI.open and restores them; `save()` refuses to write while DEMO_ON. Source: src/066-tutorials.js (slide shows are the `TUTS` array; each step = selector, caption, optional act that "clicks").
+- Rule: a highlight never moves or resizes until it has shown for 2 s (clicks fire at 2.0 s). Cursor sits at the highlight's lower right and steps outward to avoid text.
+- Done: "Souls and your Well" (5 slides), "The Realm map" (8), "Hordes: reading the card" (9 slides: card, general, details, type, strength and purge, rage, move, demon tables, general abilities) and "Orders: horde commands" (3). To build: princely commands, soul bar, Standing, Mindless Rage, Combat, Planes. Excluded by Dennis: Minor Powers, Blood Pacts, Turn Sequence.
+
+- Term "standing order" removed from the game (it implies a permanent order, which the game does not have). Multi-turn orders now say "Estimated turns to complete: N" under the target picker (not shown for Raid).

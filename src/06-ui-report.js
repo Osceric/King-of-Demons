@@ -12,7 +12,7 @@ const dl=(n,f=fmt0)=>n===0?'<span class="d eq">no change</span>':`<span class="d
 const PILL={good:"Success",warn:"Partial",bad:"Setback",info:"Info"};
 const line=(sev,txt,lab)=>`<div class="line"><span class="pill s-${sev}">${lab||PILL[sev]}</span><div>${ref(txt)}</div></div>`;
 let MODE="solo";const SK=()=>({solo:"kod1",player:"kodP",gm:"kodGM"})[MODE]||"kod1";
-const savedTxt=t=>{const d=new Date(t),n=new Date(),tm=d.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});return d.toDateString()===n.toDateString()?tm:d.toLocaleDateString([],{month:"short",day:"numeric"})+" "+tm};let SAVE_ERR=null;function save(){try{if(G){G.savedAt=Date.now();localStorage.setItem(SK(),JSON.stringify(G));SAVE_ERR=null}}catch(e){SAVE_ERR=String((e&&e.name)||e)}}
+const savedTxt=t=>{const d=new Date(t),n=new Date(),tm=d.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});return d.toDateString()===n.toDateString()?tm:d.toLocaleDateString([],{month:"short",day:"numeric"})+" "+tm};let SAVE_ERR=null;function save(){try{if(G&&!DEMO_ON){G.savedAt=Date.now();localStorage.setItem(SK(),JSON.stringify(G));SAVE_ERR=null}}catch(e){SAVE_ERR=String((e&&e.name)||e)}}
 function ageLabel(t){return t<0?"unexplored":t===G.turn?"live":`${G.turn-t} turn${G.turn-t>1?"s":""} old`}
 
 function renderHeader(){
@@ -21,9 +21,9 @@ function renderHeader(){
  $("#prince").innerHTML=`<b>${P.name}</b> · ${RK[P.rank].n}`;
  $("#meters").innerHTML=`<div title="The current turn. The game ends after turn ${MAXT}, or sooner if an end-game countdown runs out."><span>Turn</span> <b>${G.turn}</b></div><div title="${TIP_WELL}"><span>Well</span> <b>${fmt0(P.well)}</b></div><div title="${TIP_INC}"><span>Total Yield</span> <b>${fmt0(income(0))}</b></div><div title="The planes you hold. Each pays yield into your Well and counts toward your victory points."><span>Planes</span> <b>${ownedPlanes(0).length}</b></div>`;
  const att=G.reports[G.reports.length-1].attention.filter(a=>a.sev==="bad"||a.sev==="warn").length;
- const tabs=[["report","Report",att],["orders","Orders",0],["realm","Realm",0],["standing","Standing",0],["gameplay","How to Play",0]];
- if(!G.seenTabs){G.seenTabs={};if(G.turn>1)for(const k of["orders","realm","standing","gameplay"])G.seenTabs[k]=true}
- $("#tabs").innerHTML=tabs.map(([k,l,n])=>`<button class="tab${k==="gameplay"?" info":""}${["orders","realm","standing","gameplay"].includes(k)&&!G.seenTabs[k]?" pulse":""}" role="tab" data-act="tab" data-id="${k}" aria-selected="${UI.tab===k}">${l}${n?`<span class="n">${n}</span>`:""}</button>`).join("")+(DL&&SHOW_PDF?`<button class="btn sm pdfb" id="pdfbtn" data-act="pdf" title="Save the Report, Realm and Standing tabs as a PDF">Export PDF</button>`:"")}
+ const tabs=[["report","Report",att],["orders","Orders",0],["realm","Realm",0],["standing","Standing",0],["tutorials","Tutorials",0],["gameplay","How to Play",0]];
+ if(!G.seenTabs){G.seenTabs={};if(G.turn>1)for(const k of["orders","realm","standing","tutorials","gameplay"])G.seenTabs[k]=true}
+ $("#tabs").innerHTML=tabs.map(([k,l,n])=>`<button class="tab${k==="gameplay"||k==="tutorials"?" info":""}${["orders","realm","standing","tutorials","gameplay"].includes(k)&&!G.seenTabs[k]?" pulse":""}" role="tab" data-act="tab" data-id="${k}" aria-selected="${UI.tab===k}">${l}${n?`<span class="n">${n}</span>`:""}</button>`).join("")+(DL&&SHOW_PDF?`<button class="btn sm pdfb" id="pdfbtn" data-act="pdf" title="Save the Report, Realm and Standing tabs as a PDF">Export PDF</button>`:"")}
 
 const isAI=i=>{const p=G.players[i];return p.ai!==undefined?p.ai:!p.human};
 function aiOpenTag(i){if(i===0||!isAI(i))return"";const p=G.players[i];return p.open?` <span class="pill s-info" title="Order a Blood Pact with this prince now and it will answer">Open to a Blood Pact</span>`:` <span class="pill" title="This prince will not answer a Blood Pact offer this turn">Closed to a Blood Pact</span>`}

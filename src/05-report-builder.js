@@ -16,7 +16,7 @@ function buildEcho(){
   const c=h.t.cmd,t=h.t;if(!c)continue;
   const nm=`[[H:${h.id}]]`,verb=pick(VERBS),bits=[];let sev="info",head;
   const tgt=c.target?` [[P:${c.target}]]`:"";
-  head=`${nm} was ${verb} to ${cmdName(c.type)}${tgt}.${h.stand?" (standing order)":""}`;
+  head=`${nm} was ${verb} to ${cmdName(c.type)}${tgt}.${h.stand?" (continued from last turn)":""}`;
   if(c.type==="DOMINATE"||c.type==="MARCH"||c.type==="RAID"){
    const mv=t.mv;
    if(t.forced)bits.push("The Blood Pact was broken, so this horde stands and fights any former partner on its plane.");
