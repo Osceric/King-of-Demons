@@ -22,7 +22,7 @@ function vp(p){
  const P=G.players[p];let hs=0;
  for(const h of hordesOf(p))hs+=hstats(h).val;for(const k in P.shadow)hs+=P.shadow[k]*DT[k].cost; /* horde strength counts the soul cost of the demons you still have */
  let ctl=0;for(const pl of ownedPlanes(p))ctl+=pl.dom*Math.max(1,pl.q)*1000;
- const parts=[["Carnage",P.carnage],["Planes dominated",P.domVal*3000],["Demons lost (75% of their soul cost)",Math.round((P.lostSouls||0)*.75)],["Horde strength",hs],["Chaos Power",P.rank*50000],["Planes held",ctl],["Souls consumed (10%)",Math.round(P.consumed*.1)]];
+ const parts=[["Carnage",P.carnage],["Planes dominated",P.domVal*3000],["Demons lost",Math.round((P.lostSouls||0)*.75)],["Horde strength",hs],["Chaos Power",P.rank*50000],["Planes held",ctl],["Souls consumed",Math.round(P.consumed*.1)]];
  let t=parts.reduce((a,b)=>a+b[1],0);
  if(P.rank>=10){parts.push(["True Prince bonus (15%)",Math.round(t*.15)]);t=Math.round(t*1.15)}
  return{parts,total:Math.round(t)}}

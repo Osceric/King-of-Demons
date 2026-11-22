@@ -12,7 +12,7 @@ function demoBuild(){/* a throwaway game with a fixed seed; the real G and map s
 function withDemo(fn){
  if(!DEMO)demoBuild();
  const rg=G,nx=NX,ny=NY,rme=ME,ro=UI.open,rs=UI.sel,rt=UI.tab,rf=UI.filter;
- G=DEMO;DEMO_ON=true;setDims(DEMO.cfg.nx,DEMO.cfg.ny);ME=0;UI.open=T.open;
+ G=DEMO;DEMO_ON=true;setDims(DEMO.cfg.nx,DEMO.cfg.ny);ME=0;UI.open=T.open;UI.filter="all";
  try{return fn(G)}finally{G=rg;DEMO_ON=false;setDims(nx,ny);ME=rme;UI.open=ro;UI.sel=rs;UI.tab=rt;UI.filter=rf}}
 function demoReset(show){
  DEMO=null;T.open={};T.sel=null;demoBuild();
@@ -29,6 +29,25 @@ function demoPage(tab){/* draw a real tab into the stage: the stage borrows the 
   const mh=withDemo(()=>{renderHeader();return $("#meters").innerHTML});renderHeader();
   pg.insertAdjacentHTML("afterbegin",`<div class="meters tmeters">${mh}</div>`)}}
 
+/* a real fight in the practice game: an NPC horde is dropped onto your horde's plane, both are told to HOLD, and one real turn is resolved, so the report holds a genuine battle record */
+function tutFight(g,near){
+ const h=hordesOf(0)[0],npc=g.hordes.find(x=>x.owner===1&&total(x));
+ npc.loc=h.loc;h.cmd={type:"HOLD"};npc.cmd={type:"HOLD"};for(const k in h.demons)h.demons[k]*=2;/* the practice fight is meant to be won, so it stays a clear story */
+ if(near){const n2=g.hordes.find(x=>x.owner===2&&total(x));if(n2){n2.loc=g.planes[h.loc].links[1]||g.planes[h.loc].links[0];n2.cmd={type:"HOLD"}}}
+ resolveTurn();
+ const r=g.reports[g.reports.length-1];T.fk=r.turn+":"+r.events.findIndex(e=>e.battle)}
+/* the Princes of the Abyss card on the Standing tab, and one prince's row inside it */
+const tutPrinces=pg=>[...pg.querySelectorAll(".sec.card")].find(c=>/princes of the Abyss/i.test((c.querySelector("h3")||{}).textContent||""));
+const tutProw=i=>pg=>tutPrinces(pg).querySelector("div[style*='display:grid']").children[i];
+const tutPnote=(i,re)=>pg=>[...tutProw(i)(pg).querySelectorAll("span.note")].find(x=>re.test(x.textContent));
+/* two rivals are made known to you in the practice game: a plane they own, and a horde of theirs standing on it */
+function tutRivals(g){
+ const me=g.players[0],P=me.pk=me.pk||{};P[1]=1;P[2]=1;g.players[1].pers="PEACE";g.players[2].pers=null;g.players[1].open=true;g.players[2].open=false;
+ const X=g.players[1].home;/* their home plane, as if scried */
+ snap(X);const K=me.known[X];K.h=visH(X,0,false);K.ht=g.turn;T.rx=X}
+const tutCardH=re=>pg=>[...pg.querySelectorAll(".card")].find(c=>re.test((c.querySelector("h3")||{}).textContent||""));
+const tutSecH=re=>pg=>[...pg.querySelectorAll(".sec")].find(c=>re.test((c.querySelector("h3")||{}).textContent||""));
+const tutVpRows=names=>pg=>[...tutCardH(/Your victory points/)(pg).querySelectorAll("tr")].filter(r=>names.some(n=>r.textContent.startsWith(n)));
 /* ---------- the slide shows ---------- */
 const tutPcRow=i=>pg=>{const r=pg.querySelector(`select[data-k=pc][data-i="${i}"]`).closest(".cmdrow");return[r,r.nextElementSibling]};/* a princely command row plus its explanation */
 const tutPcSel=i=>pg=>pg.querySelector(`select[data-k=pc][data-i="${i}"]`).closest(".cmdrow");
@@ -76,6 +95,76 @@ const TUTS=[
    {sel:"[data-act=abil]",act:()=>{T.open.abil=true},look:"table.dtt",dur:8000,cap:"<b>Show general abilities</b> lists what a general can earn at Age 10 and at Experience 10.",
     then:{at:4200,sel:"[data-act=abil]",click:1,act:()=>{T.open.abil=false},cap:"Click again to hide the list."}}
   ]},
+ {id:"rage",covers:["what Mindless Rage is","reading a horde's rage state","why it almost always gets worse","what each stage does to the horde","the DISCIPLINE command"],title:"Mindless Rage",blurb:"Why hordes turn on you when left alone, how to see it coming, and the one command that calms them.",tab:"orders",
+  init:(g,h)=>{h.loc=g.planes[g.players[0].home].links[0];h.demons={[DK[1]]:30,[DK[5]]:12,[DK[7]]:6};h.rage=4;h.tr=0;h.tp=0;h.lv=[1,0,0,0];h.rc="a crowd of demons far from home"},
+  steps:[
+   {pre:(g,h)=>{h.rage=4;h.lv=[1,0,0,0]},sel:"#hc-$H",dur:5200,cap:"Demons are unruly. Pack many of them together far from home without a fight, and they turn on each other. That is <b>Mindless Rage</b>."},
+   {pre:(g,h)=>{h.rage=4;h.lv=[1,0,0,0]},sel:["#hc-$H > .kv > .pill","#hc-$H > .note"],dur:6600,cap:"A horde's rage shows as a <b>stage</b> beside its type, with the likely cause underneath. You never see the number itself."},
+   {pre:(g,h)=>{h.rage=4;h.lv=[1,0,0,0]},sel:"#hc-$H > .note",dur:8600,cap:"Rage builds when big hordes sit far from home without a fight. A fight stops it growing and going home pauses it, but it <b>never falls by itself</b>."},
+   {pre:(g,h)=>{h.rage=4;h.lv=[1,0,0,0]},sel:"#hc-$H > .kv > .pill",dur:4800,cap:"<b>Discontent</b>: the demons squabble and fight worse in combat, more so each turn."},
+   {pre:(g,h)=>{h.rage=7;h.lv=[2,1,0,0]},sel:"#hc-$H > .kv > .pill",dur:4800,cap:"<b>Rioting</b>: the horde loses some of its demons every turn."},
+   {pre:(g,h)=>{h.rage=11;h.lv=[3,2,1,0]},sel:"#hc-$H > .kv > .pill",dur:6600,cap:"<b>Mutinous</b>: the horde may refuse Dominate, Raid and Disband, and a Forced March moves it only one plane."},
+   {pre:(g,h)=>{h.rage=16;h.lv=[4,3,2,1]},sel:"#hc-$H > .kv > .pill",dur:7200,cap:"<b>Frothing Mad</b>: the horde may rebel. Its general dies and the horde becomes a Rebel Power that seizes the plane it stands on."},
+   {pre:(g,h)=>{h.rage=7;h.lv=[2,1,0,0];h.cmd={type:"HOLD"}},sel:"#hc-$H .cmdrow",act:(g,h)=>{h.cmd={type:"DISCIPLINE"}},keep:1,dur:9000,cap:"The cure is the <b>DISCIPLINE</b> command. It appears in the list once a horde is Discontent or worse.",
+    then:{at:3600,sel:["#hc-$H .cmdrow","#hc-$H > :last-child"],cap:"It <b>sacrifices part of the horde</b> and eases the rage. The worse the mood, the bigger the price."}}
+  ]},
+ {id:"gen",covers:["the general and his Details","Age","Experience","Iron Fist","Abilities"],title:"Understanding Generals",blurb:"Every horde follows a general. Learn how he grows stronger and what he earns along the way.",tab:"orders",
+  init:(g,h)=>{h.loc=g.planes[g.players[0].home].links[0];h.demons={[DK[1]]:30,[DK[5]]:12,[DK[7]]:6};h.rage=0;h.tr=0;h.tp=0;h.lv=[0,0,0,0];h.born=g.turn-5;h.exp=4;h.res=0;h.abA=h.abE=null;T.open["gd"+h.id]=true},
+  steps:[
+   {pre:(g,h)=>{h.born=g.turn-5;h.exp=4;h.abA=h.abE=null},sel:["#hc-$H .gen","#hc-$H [data-act=gdet]"],dur:5600,cap:"Every horde follows a <b>general</b>. <b>Details</b> shows his record."},
+   {pre:(g,h)=>{h.born=g.turn-5;h.exp=4;h.abA=h.abE=null},sel:"#hc-$H .gdet > .kv:nth-child(1) > span:nth-child(1)",dur:6000,cap:"<b>Age</b> is how many turns he has led. At Age 10 he earns an ability."},
+   {pre:(g,h)=>{h.born=g.turn-5;h.exp=4;h.abA=h.abE=null},sel:"#hc-$H .gdet > .kv:nth-child(1) > span:nth-child(2)",dur:7000,cap:"<b>Experience</b> goes up by one after every battle against another horde, win or lose. At Experience 10 he earns a second ability."},
+   ...(TEST_BUILD?[{pre:(g,h)=>{h.born=g.turn-5;h.exp=4;h.abA=h.abE=null},sel:"#hc-$H .gdet > .kv:nth-child(2)",dur:8200,cap:"<b>Iron Fist</b> is Age plus Experience plus a bonus from DISCIPLINE. The higher it is, the slower the horde's Mindless Rage builds."}]:[]),
+   {pre:(g,h)=>{h.born=g.turn-5;h.exp=4;h.abA=h.abE=null},sel:"#hc-$H .gdet > .kv:last-child",dur:6400,cap:"<b>Abilities</b> appear here. A young general has none yet."},
+   {pre:(g,h)=>{h.born=g.turn-11;h.exp=6;h.abA="TACT";h.abE=null},sel:"#hc-$H .gdet > .kv:last-child",dur:6400,cap:"This general has reached Age 10 and earned <b>Tactician</b>. Each ability is a lasting edge, in battle or in your economy."},
+   {pre:(g,h)=>{h.born=g.turn-11;h.exp=6;h.abA="TACT";h.abE=null},sel:"[data-act=abil]",act:()=>{T.open.abil=true},look:"table.dtt",dur:11000,cap:"<b>Show general abilities</b> lists every ability a general can earn.",
+    then:{at:4600,sel:"table.dtt",cap:"A general who is destroyed and resurrected <b>loses his abilities and his Experience</b>, and starts again at Age 0."}}
+  ]},
+ {id:"combat",covers:["how a fight is decided: the strength ratio","tactics","defender bonuses","how a fight ends"],title:"Understanding Combat",blurb:"What happens when two hordes meet, using a real battle record from a practice fight.",tab:"report",
+  init:(g,h)=>{tutFight(g);T.open[T.fk]=true},
+  steps:[
+   {sel:".battle .note",dur:8400,cap:"Every round compares the <b>strength</b> of the two sides. The bigger your edge, the likelier you win the round and the harder you hit. A big edge is never a guarantee."},
+   {sel:".rt tbody tr:first-child td:nth-child(2)",dur:9000,cap:"Each round also has a <b>tactics</b> contest. The side with the better plan takes fewer losses and deals more. The first words of the round tell you who outplayed whom."},
+   {sel:".bt-cols",dur:9600,cap:"The <b>defender</b> gets a bonus: 15% for defending, 25% if the horde was ordered to HOLD, and more with a Trench Master general."},
+   {sel:".aft",dur:9600,cap:"A fight ends when one side is <b>broken</b>, having lost most of its strength, or after six rounds. The loser retreats on its own, and Afterward tells you who holds the plane."}
+  ]},
+ {id:"opp",covers:["the Princes of the Abyss card","Chaos Rank","Blood Pact stance","Danger Level","Personality","Known Planes and the Realm grid"],title:"Understanding Your Opponents",blurb:"Who you are up against: what the Standing tab and the Realm tab tell you about every rival prince.",tab:"standing",
+  init:(g,h)=>tutRivals(g),
+  steps:[
+   {sel:tutPrinces,dur:6400,cap:"The <b>Princes of the Abyss</b> card lists every prince in the game, in the colors you see on the map."},
+   {sel:tutPnote(1,/·/),dur:6000,cap:"<b>Chaos Rank</b> shows how powerful a prince has become. A higher rank means stronger demons."},
+   {sel:tutProw(1)?pg=>tutProw(1)(pg).querySelector(".pill"):null,dur:7400,cap:"<b>Blood Pact stance</b>: a prince run by the game says each turn whether it is open or closed to a Blood Pact. An open one answers the first prince who offers."},
+   {sel:tutPnote(1,/Danger Level/),dur:6800,cap:"<b>Danger Level</b> is how aggressive the prince is. Plan your borders around the dangerous ones."},
+   {sel:tutPnote(1,/Personality/),dur:9400,cap:"<b>Personality</b> shows how a prince treats you. It appears once you have discovered it, and ends at turn 20.",
+    then:{at:4200,sel:pg=>tutPrinces(pg).lastElementChild,cap:"These three personalities are explained at the bottom of the card."}},
+   {tab:"realm",sel:pg=>pg.querySelector(`g[data-act=plane][data-id="${T.rx}"]`),dur:8400,cap:"On the Realm grid, a plane in a rival's color is <b>theirs</b>. A numbered marker beside it is one of their hordes that you can see."},
+   {tab:"realm",sel:pg=>{const r=[...pg.querySelectorAll("table.kp tr, table tr")].find(t=>t.textContent.includes(T.rx));return r||null},dur:8400,cap:"<b>Known Planes</b> lists everything you have learned about each plane, including its owner, domination and any horde seen there."}
+  ]},
+ {id:"win",covers:["victory points decide the victor","how the game ends","the victory point leader summary","where victory points come from"],title:"How Do I Win the Game?",blurb:"What the game is scored on, how it ends, and where your points come from.",tab:"standing",
+  init:(g,h)=>tutFight(g),
+  steps:[
+   {sel:"h2",dur:6800,cap:"<b>Victory points</b> decide the winner. When the game ends, the prince with the most is crowned King of Demons."},
+   {sel:tutCardH(/How the game ends/),dur:8600,cap:"The game ends after a <b>countdown</b>. The first trigger to happen starts it, and later triggers change nothing."},
+   {sel:pg=>tutCardH(/How the game ends/)(pg).querySelector(".kv"),dur:10000,cap:"Triggers: a prince reaches <b>Chaos Lord</b>, nearly every plane has been <b>dominated</b>, or every prince has <b>met</b> every other."},
+   {sel:pg=>tutCardH(/How the game ends/)(pg).querySelector("p.note"),dur:10000,cap:"The countdown has no fixed length. Each turn an <b>omen</b> hints at how likely the end is. The game also ends after turn "+MAXT+"."},
+   {sel:".sub",dur:7600,cap:"The <b>leader summary</b> says where you stand: your place out of all princes. Rivals' totals stay hidden until the game ends."},
+   {tab:"report",sel:pg=>[...pg.querySelectorAll(".stat")].find(x=>/Standing/.test(x.textContent)),dur:6800,cap:"Your place also shows in the <b>Standing</b> box on every report."},
+   {sel:tutCardH(/Your victory points/),dur:7000,cap:"Victory points come from <b>many actions</b>, in three groups. Every row of this table is a different way to score."},
+   {sel:tutVpRows(["Military","Carnage","Demons lost","Horde strength"]),dur:12000,cap:"<b>Military</b>: Carnage is the souls value of what you destroy. Demons lost is 75% of the souls value of your own demons that die. Horde strength is the value of the demons you command."},
+   {sel:tutVpRows(["Realm Size","Planes dominated","Planes held"]),dur:9000,cap:"<b>Realm Size</b>: a bonus for each plane you first take, and points every turn for the planes you hold."},
+   {sel:tutVpRows(["Power & Economy","Chaos Power","Souls consumed"]),dur:9000,cap:"<b>Power &amp; Economy</b>: your Chaos rank, and a tenth of the souls you spend. Souls you only bank do not count."}
+  ]},
+ {id:"reports",covers:["the upper right stats","the summary","the stat boxes","Needs your attention","Battles and events","drilling into a battle"],title:"How Do I Read Reports?",blurb:"Every turn ends with a report. Learn where to look first and how to dig into a fight.",tab:"report",meters:1,
+  init:(g,h)=>tutFight(g,true),
+  steps:[
+   {sel:".tmeters",dur:7400,cap:"The <b>upper right stats</b> stay on every tab: the turn, your Well of Souls, your total yield and the planes you hold."},
+   {sel:".head",dur:7000,cap:"The <b>summary</b> gives the turn's headline in one sentence. It repeats things you will find below."},
+   {sel:[".stats",".stats + .note"],dur:8400,cap:"The <b>stat boxes</b> show your Well, yield, planes, demons, Chaos rank and standing, with the change since the turn began."},
+   {sel:tutSecH(/Needs your attention|Needed attention/),dur:9000,cap:"<b>Needs your attention</b> lists what should change your orders: an empty horde, a lost plane, a rival horde near your planes, or an approaching end."},
+   {sel:tutSecH(/Battles and events/),dur:9600,cap:"<b>Battles and events</b> lists every fight and notable event. The icon shows the kind: swords for horde combat, a mountain for planar combat, a skull demon for a rank rise."},
+   {sel:"[data-act=battle]",act:()=>{T.open[T.fk]=true},look:".battle",dur:9600,cap:"Select a fight's outcome to <b>drill down</b> to the blow by blow, round by round.",
+    then:{at:4600,sel:".battle",cap:"The record shows both sides before the fight, every round, and what happened afterward."}}
+  ]},
  {id:"cmds",covers:["one command per horde","choosing a command","command descriptions","target planes and estimated turns"],title:"Understanding Orders, 1/3",blurb:"Give a horde its command and read what the card tells you about it.",tab:"orders",
   steps:[
    {sel:"#hc-$H",dur:2500,cap:"Each horde gets <b>one command</b> a turn."},
@@ -107,6 +196,8 @@ const TUTS=[
 
 /* ---------- player ---------- */
 /* Rule: a highlight never moves or resizes until it has been showing for at least 2 seconds (the first move after a click is at 2.0 s; later moves are 'then' steps, each at least 2 s after the one before). */
+/* card order on the home page: the basics first, then orders, then the wider game */
+TUTS.sort((a,b)=>["win","souls","map","horde","rage","gen","cmds","princely","bar","opp","combat","reports"].indexOf(a.id)-["win","souls","map","horde","rage","gen","cmds","princely","bar","opp","combat","reports"].indexOf(b.id));
 const tutList=a=>a.length<3?a.join(" and "):a.slice(0,-1).join(", ")+", and "+a[a.length-1];
 const tutMs=sh=>sh.steps.reduce((a,x)=>a+(x.dur||(x.act?5400:4400)),0),tutClock=ms=>{const t=Math.round(ms/1000);return Math.floor(t/60)+":"+String(t%60).padStart(2,"0")};
 function tutClear(){T.timers.forEach(clearTimeout);T.timers=[];if(T.adv&&T.adv.t)clearTimeout(T.adv.t);T.adv=null}

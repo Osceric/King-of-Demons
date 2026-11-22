@@ -898,3 +898,14 @@ Domination sword tilted 45 degrees clockwise (tip toward the upper right) and dr
 
 ## v2.97: pushed everywhere
 - Tutorials tab (six animated shows: What Are Souls?, Understanding Your Realm, Understanding Your Hordes, Understanding Orders 1/3, 2/3, 3/3), multi-turn order wording with estimated turns to complete, league renamed to mpg, and icons on the Battles and events rows.
+
+## Tutorials: six more topics (v2.97, Test)
+- New shows in 066-tutorials.js: Mindless Rage (after Hordes), Understanding Generals, Understanding Combat, Understanding Your Opponents, How Do I Win the Game?, How Do I Read Reports? Card order: What Are Souls?, Realm, Hordes, Mindless Rage, Orders 1/3 to 3/3, Generals, Combat, Opponents, How Do I Win, Reports.
+- Combat, Win and Reports run on a real fight: tutFight() drops an NPC horde onto your horde's plane, doubles your demons so the practice fight is won, and resolves one real turn in the sandboxed demo game. Report tab slides read from that real report.
+- Iron Fist appears in the Generals show only when TEST_BUILD is true (the stat is test-only in the horde card).
+- No dedicated Standing or Planes topic (Dennis, v2.97).
+
+## Victory point display grouped (v2.97, Test)
+- The Standing tab and the end-of-game prince tables group victory points: Military (Carnage, Demons lost, Horde strength), Realm Size (Planes dominated, Planes held), Power & Economy (Chaos Power, Souls consumed); True Prince bonus stays below. Built by vpRows() in 07-ui-orders-realm-standing.js.
+- Row names are now "Demons lost" and "Souls consumed" (no percentages in the name); older saved games' longer names map across (vpNorm). The row descriptions were out of date (Demons lost showed the generic 15% line) and now match the real scoring.
+- Tutorial card order: How Do I Win the Game?, What Are Souls?, Realm, Hordes, Mindless Rage, Generals, Orders 1/3, 2/3, 3/3, Opponents, Combat, Reports.
