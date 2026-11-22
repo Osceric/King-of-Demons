@@ -118,7 +118,7 @@ renderAll=function(){
 const _rh=renderHeader;
 /* The Multiplayer button shows only in the Test build, or where it was switched on by opening the game with #mp (remembered in this browser), or when this browser is already in Game Master or player mode. */
 const MPOK=(typeof TEST_BUILD!=="undefined"&&TEST_BUILD)||(()=>{try{if(location.hash==="#mp")localStorage.setItem("kodMP","1");return localStorage.getItem("kodMP")==="1"}catch(e){return location.hash==="#mp"}})();
-const mpBtn=st=>MPOK||MODE!=="solo"?`<button class="btn sm" data-mp="menu"${st||""}>Multiplayer</button>`:"";
+const mpBtn=st=>MPOK||OL.on||MODE!=="solo"?`<button class="btn sm" data-mp="menu"${st||""}>Multiplayer</button>`:"";
 renderHeader=function(){_rh();const t=$("#tabs");if(t)t.insertAdjacentHTML("beforeend",MODE==="player"?`<button class="btn sm" data-mp="turnbox" style="margin-left:auto">Load turn code</button>${olHdr()}`:mpBtn(` style="margin-left:auto"`))};
 function bareHeader(sub){$("#gameno").textContent=G&&G.no?`Game No. ${G.no}v${GAME_VERSION}`:`King of Demons v${GAME_VERSION}`;$("#prince").innerHTML=sub;$("#meters").innerHTML="";$("#tabs").innerHTML=MODE==="player"?"":mpBtn();$("#over").hidden=true}
 function renderGMHeader(){bareHeader(`<b>Game Master</b>${G&&G.mpg?` · turn ${G.turn}`:""}`)}
@@ -209,7 +209,7 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-ol]"
 async function olStart(){await olProbe();if(!OL.on)return;
  const m=location.hash.match(/^#o=([A-Za-z0-9_-]{4,64})\.([A-Za-z0-9]{6,32})$/);
  if(m){try{localStorage.setItem("kodOL",JSON.stringify({room:m[1],key:m[2]}))}catch(e){}try{history.replaceState(null,"",location.pathname+location.search)}catch(e){}if(MODE!=="player"){setMode("player")}}
- if(MODE==="gm"&&(!G||!G.mpg))renderAll();
+ if(MODE==="gm"&&(!G||!G.mpg))renderAll();else if(MODE==="solo"&&G)renderHeader();
  if(MODE==="player"&&olPl())olSync()}
 setInterval(()=>{if(document.hidden||!OL.on)return;
  if(MODE==="player")olSync();

@@ -919,3 +919,4 @@ Domination sword tilted 45 degrees clockwise (tip toward the upper right) and dr
 
 ## v2.98 (2026-11-22)
 - Online games and cloud saves (see the section above), released with the Cloudflare server.
+- Multiplayer button now also shows whenever the page is served by the Cloudflare server (OL.on), not only in the Test build or with #mp.
