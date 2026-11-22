@@ -32,7 +32,7 @@ function viewFor(s){
  const reps=repsOf(s),last=reps[reps.length-1];
  return{seed:0,ver:G.ver,pal:G.players.map((_,i)=>i===0?0:(G.pal?G.pal[sw(i)===0?s:sw(i)]:i)),fv:G.over?G.players.map((_,i)=>vp(sw(i))):null,no:G.no,turn:G.turn,planes,hordes:hordesOf(s).map(h=>{const o=clone2(h);o.owner=0;return o}),nextH:G.nextH,usedGen:G.usedGen,players,
   bonds:(G.bonds||[]).filter(k=>k.a===s||k.b===s).map(k=>({a:sw(k.a),b:sw(k.b),from:k.from,until:k.until,inc:k.inc})),reports:[walk(clone2(last))],prev:walk(clone2(s===0?G.prev:real.prev||null)),log:[],everDom:G.everDom,end:G.end?walk(clone2(G.end)):null,over:G.over,usedNpcN:[],ev:[],
-  mpg:{seat:s,gm:G.no},cfg:G.cfg||{nx:10,ny:6},vpr:vpRank(s)}}
+  mpg:{seat:s,gm:G.no},cfg:G.cfg||{nx:10,ny:6},vpr:vpRank(s),due:G.ol&&G.ol.due||null}}
 
 /* ---- GM side: orders in ---- */
 const PCH_OK=t=>t===""||(typeof PCH==="object"&&PCH[t]!==undefined)||t==="UNLEASH";
@@ -161,9 +161,14 @@ const olBtns=()=>OL.on?`<button class="btn" data-ol="cloud">Save or load online�
 const olHdr=()=>OL.on&&olPl()?`<button class="btn sm" data-ol="check">Check for new turn</button>`:"";
 
 /* GM side */
-async function olCreate(){const hs=humanSeats(),room="g"+olId(9);
+const DLD={on:true,h12:9,m:0,ap:"PM",n:2};
+const dlObj=v=>{v=v||DLD;return v.on?{h:(v.h12%12)+(v.ap==="PM"?12:0),m:v.m|0,n:Math.max(1,v.n|0),h12:v.h12,ap:v.ap}:null};
+/* next deadline: this time of day, at least n days (less 12 hours of slack) from now, so an early or late turn still lands on the same clock time */
+function olNextDue(dl,from){from=from||Date.now();const t=from+dl.n*864e5-432e5,d=new Date(t);d.setHours(dl.h,dl.m,0,0);if(d.getTime()<t)d.setDate(d.getDate()+1);return d.getTime()}
+const fdue=t=>new Date(t).toLocaleString([],{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"});
+async function olCreate(v){const hs=humanSeats(),room="g"+olId(9);
  const j=await olApi(room,"init",{method:"POST",body:{seats:hs.length,names:hs.map(x=>G.players[x].name),no:String(G.no)}});
- G.ol={room,gm:j.gm,keys:j.seats.map(x=>x.key),at:{}};save();await olPublish()}
+ G.ol={room,gm:j.gm,keys:j.seats.map(x=>x.key),at:{},auto:true,dl:dlObj(v),due:null};if(G.ol.dl)G.ol.due=olNextDue(G.ol.dl);save();await olPublish()}
 async function olPublish(){const views=[];for(const x of humanSeats())views.push(await pack({k:"turn",v:viewFor(x)}));
  await olApi(G.ol.room,"publish",{k:G.ol.gm,method:"POST",body:{turn:G.turn,views}});G.ol.pub=G.turn;save()}
 async function olCollect(){if(!G||!G.ol)return 0;const j=await olApi(G.ol.room,"orders",{k:G.ol.gm}),hs=humanSeats();let n=0;G.ol.at=G.ol.at||{};
@@ -171,15 +176,15 @@ async function olCollect(){if(!G||!G.ol)return 0;const j=await olApi(G.ol.room,"
   try{applyOrders(await unpack(o.code));G.ol.at[hs[i]]=o.at;n++}catch(e){GMX.msgs=[{t:`${G.players[hs[i]].name}: ${e.message}`,bad:1}]}}
  if(n)save();return n}
 function olCard(){const hs=humanSeats(),got=G.got||{};
- return`<div class="card"><h3>Online game</h3><p class="note">Send each prince their own link. Opening it shows their turn and sends their orders here automatically (this page checks every 20 seconds while it is open). Each link is private to its prince.</p>${hs.map((x,i)=>`<div class="row"><b style="color:var(--c${x})">${esc(G.players[x].name)}</b>${got[x]?`<span class="ok">orders received</span>`:`<span class="wait">waiting for orders</span>`}<button class="btn sm" data-ol="cplink" data-i="${i}">Copy link</button></div>`).join("")}<div class="row"><button class="btn sm" data-ol="collect">Check for orders now</button><button class="btn sm" data-ol="pub">Publish this turn again</button><span class="note">Turn ${G.turn}${G.ol.pub===G.turn?" is published":" is NOT published yet"}.</span></div>${GMX.msgs.map(m=>`<div class="msg ${m.bad?"bad":""}">${esc(m.t)}</div>`).join("")}</div>`}
+ const dl=G.ol.dl;return`<div class="card"><h3>Online game</h3><div class="msg bad"><b>Keep this page open.</b> This page collects the orders and resolves every turn. If you close it, orders wait on the server and no turn resolves, not even at the deadline, until you open this page again. Then any overdue turn resolves at once. Use a computer that stays awake, and leave this tab open.</div><p class="note">Send each prince their own link. Opening it shows their turn and sends their orders here automatically (this page checks every 20 seconds). Each link is private to its prince.</p>${hs.map((x,i)=>`<div class="row"><b style="color:var(--c${x})">${esc(G.players[x].name)}</b>${got[x]?`<span class="ok">orders received</span>`:`<span class="wait">waiting for orders</span>`}<button class="btn sm" data-ol="cplink" data-i="${i}">Copy link</button></div>`).join("")}<div class="row"><button class="btn sm" data-ol="collect">Check for orders now</button><button class="btn sm" data-ol="pub">Publish this turn again</button><span class="note">Turn ${G.turn}${G.ol.pub===G.turn?" is published":" is NOT published yet"}.</span></div><div class="row"><label><input type="checkbox" data-ol="autotoggle"${G.ol.auto!==false?" checked":""}> Resolve the turn as soon as every prince has sent orders</label></div><div class="row"><b>Deadline:</b> ${G.ol.due?`${esc(fdue(G.ol.due))} (${esc(tzName())})`:"none"}${dl?"":" · turns wait for the Game Master"}</div><div class="row"><span class="note">Schedule</span><label><input type="checkbox" id="edon"${dl?" checked":""}> use a deadline</label>${dlSel("ed",dl||DLD)}<button class="btn sm" data-ol="dlsave">Save schedule</button><button class="btn sm" data-ol="dlplus">Extend this deadline 1 day</button></div><p class="note">A prince who has not sent orders by the deadline has an NPC commander play the turn. Players see the deadline when the turn is published; a schedule change shows to them from the next turn.</p>${GMX.msgs.map(m=>`<div class="msg ${m.bad?"bad":""}">${esc(m.t)}</div>`).join("")}</div>`}
 
 /* player side */
 const olPl=()=>{try{return JSON.parse(localStorage.getItem("kodOL")||"null")}catch(e){return null}};
 async function olSync(manual){const c=olPl();if(!c||!OL.on||OL.busy)return;OL.busy=1;
  try{const st=await olApi(c.room,"status",{k:c.key});
   if(st.turn<1){if(manual)olToast("The Game Master has not started the game yet.");return}
-  if(!G||!G.mpg||String(G.no)!==String(st.no)||G.turn<st.turn){const v=await olApi(c.room,"view",{k:c.key});await loadTurn(v.code);olToast(`Turn ${v.turn} is ready. Your orders for it have not been sent yet.`)}
-  else if(manual){const me=st.seats[st.seat],w=st.seats.filter(x=>!x.submitted).map(x=>x.name);olToast(`${me&&me.submitted?`Your orders for turn ${st.turn} are in.`:`Turn ${st.turn}: your orders are not sent yet.`} ${w.length?"Waiting for: "+w.join(", ")+".":"Everyone has sent orders."}`)}
+  if(!G||!G.mpg||String(G.no)!==String(st.no)||G.turn<st.turn){const v=await olApi(c.room,"view",{k:c.key});await loadTurn(v.code);olToast(`Turn ${v.turn} is ready. Your orders have not been sent yet.${G.due?" Orders are due by "+fdue(G.due)+".":""}`)}
+  else if(manual){const me=st.seats[st.seat],w=st.seats.filter(x=>!x.submitted).map(x=>x.name);olToast(`${me&&me.submitted?`Your orders for turn ${st.turn} are in.`:`Turn ${st.turn}: your orders are not sent yet.`}${G.due?" Orders are due by "+fdue(G.due)+".":""} ${w.length?"Waiting for: "+w.join(", ")+".":"Everyone has sent orders."}`)}
  }catch(e){if(manual)olToast(e.message)}finally{OL.busy=0}}
 const _dr2=doResolve;
 doResolve=async function(){const c=olPl();
@@ -235,6 +240,9 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-ol]"
    let j;try{j=await olApi(c.room,"save",{k:c.k})}catch(er){throw new Error(er.message==="No save here."?"No save was found under that key for this kind of game.":er.message)}
    OL.pend=await unpack(j.blob);const i=j.info||{};mpMsg(`Found a save: game ${esc(i.no)}, turn ${esc(i.turn)}, saved ${esc(new Date(j.at).toLocaleString())}.`);$("#cres").innerHTML=`<div class="row"><button class="btn pri" data-ol="crestore">Replace the game on this device with the saved one</button></div>`}
   else if(a==="crestore")olRestore(OL.pend);
+  else if(a==="autotoggle"){G.ol.auto=t.checked;save();renderGM()}
+  else if(a==="dlsave"){const on=$("#edon").checked,v=on?dlRead("ed"):null;G.ol.dl=on?dlObj(v):null;G.ol.due=G.ol.dl?olNextDue(G.ol.dl):null;save();renderGM()}
+  else if(a==="dlplus"){if(!G.ol.due)throw new Error("There is no deadline to extend.");G.ol.due+=864e5;save();renderGM()}
   else if(a==="rlist"){const k=$("#akey").value.trim();try{localStorage.setItem("kodAK",k)}catch(e2){}const j=await olApi("results","list",{k});OL.rl=j.items;
    $("#rlist").innerHTML=`<p class="note">${j.total} game${j.total===1?"":"s"} on file${j.total>j.items.length?`, newest ${j.items.length} shown`:""}.</p><div class="rtw"><table class="rt"><tr><th>Received</th><th>Game</th><th>Mode</th><th>Ver</th><th>Turn</th><th>State</th><th>Princes (points)</th><th></th></tr>${j.items.map(x=>`<tr><td>${esc(fdate(x.at))}</td><td>${esc(x.no)}</td><td>${esc(x.mode)}</td><td>${esc(x.v)}</td><td>${x.turn}</td><td>${x.over?"finished":"unfinished"}</td><td>${x.n.map(p=>esc(p[0])+(p[1]?"":" (NPC)")+" "+(p[2]==null?"":p[2])).join("; ")}</td><td><button class="btn sm" data-ol="ropen" data-id="${esc(x.id)}">Open</button></td></tr>`).join("")}</table></div>`}
   else if(a==="rtest"){const id=olId(6,"0123456789");await olApi("results","submit",{method:"POST",body:{rec:{k:"res",v:GAME_VERSION,g:"TEST"+id,sd:id,cfg:{nx:10,ny:6},mode:"test",turn:1,over:true,end:"test record",at:Date.now(),pl:[{n:"TEST RESULT (not a real game)",h:1,rk:1,vp:1,pa:[],pn:1},{n:"Test NPC",h:0,rk:1,vp:0,pa:[],pn:1}],hist:[]}}});
@@ -246,10 +254,8 @@ async function olStart(){await olProbe();if(!OL.on)return;olResult();
  if(m){try{localStorage.setItem("kodOL",JSON.stringify({room:m[1],key:m[2]}))}catch(e){}try{history.replaceState(null,"",location.pathname+location.search)}catch(e){}if(MODE!=="player"){setMode("player")}}
  if(MODE==="gm"&&(!G||!G.mpg))renderAll();else if(MODE==="solo"&&G)renderHeader();
  if(!m)olLanding();
- if(MODE==="player"&&olPl())olSync()}
-setInterval(()=>{if(document.hidden||!OL.on)return;
- if(MODE==="player")olSync();
- else if(MODE==="gm"&&G&&G.mpg&&G.ol&&!G.over)olCollect().then(n=>{if(n&&MODE==="gm"&&!$("#mpmodal"))renderGM()}).catch(()=>{})},20000);
+ if(MODE==="player"&&olPl())olSync();if(MODE==="gm")olTick()}
+setInterval(()=>{if(!OL.on)return;if(MODE==="gm")olTick();else if(MODE==="player"&&!document.hidden)olSync()},20000);
 
 
 /* finished games send a copy of their result to the server (Cloudflare site only); the start screen says so */
@@ -259,6 +265,26 @@ const _ra3=renderAll;renderAll=function(){const r=_ra3.apply(this,arguments);olR
 const akeyGet=()=>{try{return localStorage.getItem("kodAK")||""}catch(e){return""}};
 function resultsHTML(){return`<h3 style="margin-top:22px">Game results</h3><p class="note">Finished games sent in by players. Enter the admin key you set in Cloudflare (the ADMIN_KEY secret).</p><div class="row"><input type="password" id="akey" value="${esc(akeyGet())}" placeholder="Admin key" aria-label="Admin key"><button class="btn sm" data-ol="rlist">Load results</button><button class="btn sm" data-ol="rtest">Send a test result</button></div><div id="rlist"></div><div id="rout"></div>`}
 const fdate=t=>{const d=new Date(t);return isNaN(d)?"":d.toLocaleString()};
+
+/* resolving on its own: when every human prince has sent orders, or the deadline passes (an NPC commander plays for anyone who has not sent orders) */
+const dlSel=(p,v)=>{v=v||DLD;const o=(a,b,x,st=1,f=i=>i)=>{let r="";for(let i=a;i<=b;i+=st)r+=`<option value="${i}"${i===x?" selected":""}>${f(i)}</option>`;return r};
+ return`<select id="${p}h" aria-label="Hour" style="width:auto">${o(1,12,v.h12)}</select> : <select id="${p}m" aria-label="Minute" style="width:auto">${o(0,55,v.m,5,i=>String(i).padStart(2,"0"))}</select> <select id="${p}ap" aria-label="AM or PM" style="width:auto"><option${v.ap==="AM"?" selected":""}>AM</option><option${v.ap==="PM"?" selected":""}>PM</option></select> every <select id="${p}n" aria-label="Days" style="width:auto">${o(1,14,v.n)}</select> day(s)`};
+const dlRead=p=>{const g=i=>document.getElementById(p+i);return g("h")?{on:true,h12:+g("h").value,m:+g("m").value,ap:g("ap").value,n:+g("n").value}:null};
+const tzName=()=>{try{return Intl.DateTimeFormat().resolvedOptions().timeZone}catch(e){return"your local time"}};
+async function olResolve(why){if(OL.arun||!G||!G.ol||!G.mpg||G.over)return;OL.arun=1;
+ try{const missing=humanSeats().filter(x=>!G.players[x].elim&&!(G.got||{})[x]);
+  for(const x of missing){aiPlan(x);G.players[x].autoNote=true}
+  resolveTurn();G.got={};G.sent={};G.ol.at={};GMX.mail=null;if(G.ol.dl)G.ol.due=olNextDue(G.ol.dl);else G.ol.due=null;save();
+  let msg=`Turn ${G.turn-1} resolved (${why}).${missing.length?` An NPC played for ${missing.map(x=>G.players[x].name).join(", ")}.`:""}`;
+  try{await olPublish();msg+=` Turn ${G.turn} is published.`}catch(er){GMX.msgs=[{t:msg+` But publishing failed: ${er.message} Press "Publish this turn again".`,bad:1}];if(MODE==="gm"&&!$("#mpmodal"))renderGM();return}
+  GMX.msgs=[{t:msg}];olResult();if(MODE==="gm"&&!$("#mpmodal"))renderGM()}
+ catch(er){GMX.msgs=[{t:"Could not resolve the turn: "+er.message,bad:1}]}finally{OL.arun=0}}
+async function olTick(){if(MODE!=="gm"||!G||!G.ol||!G.mpg||G.over||!OL.on)return;
+ let n=0;try{n=await olCollect()}catch(e){}
+ const hs=humanSeats().filter(x=>!G.players[x].elim),all=hs.length&&hs.every(x=>(G.got||{})[x]);
+ if(all&&G.ol.auto!==false)return olResolve("everyone sent orders");
+ if(G.ol.due&&Date.now()>=G.ol.due)return olResolve("the deadline passed");
+ if(n&&!$("#mpmodal"))renderGM()}
 /* ---- GM screen ---- */
 const GMX={msgs:[],mail:null,link:""};
 try{GMX.link=localStorage.getItem("kodLink")||"https://claude.ai/artifact/5rD6MYEJpYzjyntTiJfWzD"}catch(e){}
@@ -270,7 +296,7 @@ function renderGM(){renderGMHeader();
  if(G.ol)h+=olCard();else{h+=`<div class="card"><h3>1 · Send this turn's mail</h3><p class="note">Builds one email per human prince with a private turn code.</p><div class="row"><label class="note">Game link in the mail</label><input type="text" id="glink" value="${esc(GMX.link)}"></div><div class="row"><button class="btn pri" data-mp="mail">Prepare mail for turn ${T}</button></div><div id="mailbox">${mailHTML()}</div></div>`;
  h+=`<div class="card"><h3>2 · Collect orders</h3><p class="note">Paste each reply's orders code here. Missing princes keep their standing horde orders and harvest all their souls.</p><textarea id="ocodes" placeholder="Paste an orders code"></textarea><div class="row"><button class="btn" data-mp="gotorders">Add orders</button></div>${GMX.msgs.map(m=>`<div class="msg ${m.bad?"bad":""}">${esc(m.t)}</div>`).join("")}</div>`}
  const miss=hs.filter(s=>!got[s]&&!G.players[s].elim);
- h+=`<div class="card"><h3>3 · Resolve</h3><p class="note">${miss.length?`Still missing: ${miss.map(s=>esc(G.players[s].name)).join(", ")}.`:"All human princes have sent orders."}</p><div class="row"><button class="btn pri" data-mp="resolve"${G.over?" disabled":""}>${GMX.confirm?"Click again to resolve":`Resolve turn ${T}`}</button></div>${G.over?`<div class="msg">The game is over.</div>`:""}</div>`;
+ h+=`<div class="card"><h3>3 · Resolve</h3><p class="note">${miss.length?`Still missing: ${miss.map(s=>esc(G.players[s].name)).join(", ")}${G.ol?"; an NPC will play for them":""}.`:"All human princes have sent orders."}</p><div class="row"><button class="btn pri" data-mp="resolve"${G.over?" disabled":""}>${GMX.confirm?"Click again to resolve":`Resolve turn ${T}`}</button></div>${G.over?`<div class="msg">The game is over.</div>`:""}</div>`;
  h+=`<div class="card"><h3>Backup</h3><div class="row"><button class="btn sm" data-mp="end">End multiplayer game and return to setup</button></div></div></div>`;
  $("#main").innerHTML=h}
 function mailHTML(){if(!GMX.mail)return"";const sent=G.sent||{},n=GMX.mail.filter(m=>sent[m.s]).length;
@@ -278,7 +304,7 @@ function mailHTML(){if(!GMX.mail)return"";const sent=G.sent||{},n=GMX.mail.filte
 function suLoad(){let r={};try{r=JSON.parse(localStorage.getItem("kodRoster2")||"{}")}catch(e){}
  return Object.assign({nh:2,na:2,nx:10,ny:6,rows:[]},r)}
 function suRead(){const s=GMX.su||suLoad(),g=id=>document.getElementById(id);
- if(g("nh")){s.nh=+g("nh").value;s.na=+g("na").value;s.nx=+g("nx").value;s.ny=+g("ny").value;if(g("online"))s.online=g("online").checked;s.rows=[];for(let i=0;i<s.nh;i++)s.rows.push({name:g("sn"+i)?g("sn"+i).value:"",email:g("se"+i)?g("se"+i).value:""})}
+ if(g("nh")){s.nh=+g("nh").value;s.na=+g("na").value;s.nx=+g("nx").value;s.ny=+g("ny").value;if(g("online"))s.online=g("online").checked;if(g("dlh")){const d=dlRead("dl");d.on=g("dlon").checked;s.dl=d}s.rows=[];for(let i=0;i<s.nh;i++)s.rows.push({name:g("sn"+i)?g("sn"+i).value:"",email:g("se"+i)?g("se"+i).value:""})}
  GMX.su=s;return s}
 function renderGMSetup(){
  const s=GMX.su||(GMX.su=suLoad());s.nh=Math.max(1,Math.min(8,s.nh));s.na=Math.max(0,Math.min(8-s.nh,s.na));if(s.nh+s.na<2)s.na=1;
@@ -287,7 +313,7 @@ function renderGMSetup(){
  $("#main").innerHTML=`<div class="mp"><h2>Set up a game</h2><p class="sub">Choose the number of human and NPC princes (2 to 8 in all) and the size of the map. Human princes get a name and the email address their turns go to. NPC princes get names from the name table.</p>
  <div class="card"><div class="row"><label>Human princes <select id="nh" data-su="1" style="width:auto">${opt(1,8,s.nh)}</select></label><label>NPC princes <select id="na" data-su="1" style="width:auto">${opt(s.nh===1?1:0,8-s.nh,s.na)}</select></label><span class="note">${s.nh+s.na} princes in all</span></div>
  <div class="row"><label>Map width <select id="nx" data-su="1" style="width:auto">${opt(6,16,s.nx)}</select></label><label>Map height <select id="ny" data-su="1" style="width:auto">${opt(4,10,s.ny,2)}</select></label><span class="note">${s.nx * s.ny} planes. Height is even.</span></div></div>
- ${OL.on?`<div class="card"><label><input type="checkbox" id="online" data-su="1"${s.online!==false?" checked":""}> Online game: each human prince gets a private link, and orders arrive without emailing codes. Email addresses are then not needed.</label></div>`:""}${rows.join("")}<div class="row"><button class="btn pri" data-mp="start">Start the game</button></div><div id="mpmsg"></div></div>`}
+ ${OL.on?`<div class="card"><label><input type="checkbox" id="online" data-su="1"${s.online!==false?" checked":""}> Online game: each human prince gets a private link, and orders arrive without emailing codes. Email addresses are then not needed.</label></div>`:""}${OL.on&&s.online!==false?`<div class="card"><label><input type="checkbox" id="dlon" data-su="1"${(s.dl||DLD).on?" checked":""}> Turn deadline</label><div class="row">${dlSel("dl",s.dl||DLD)}<span class="note">${esc(tzName())}</span></div><p class="note">A prince who has not sent orders by the deadline has an NPC commander play the turn. Turns also resolve as soon as every prince has sent orders. Leave the deadline off to resolve only when everyone is in.</p></div>`:""}${rows.join("")}<div class="row"><button class="btn pri" data-mp="start">Start the game</button></div><div id="mpmsg"></div></div>`}
 document.addEventListener("input",e=>{const t=e.target;if(t&&(t.id==="pname"||(t.id||"").match(/^sn\d+$/))){const v=t.value.replace(/[^A-Za-z ]/g,"").replace(/ {2,}/g," ").replace(/^ /,"");if(v!==t.value)t.value=v}});
 document.addEventListener("change",e=>{if(MODE==="gm"&&e.target.dataset&&e.target.dataset.su){suRead();renderGMSetup()}});
 async function gmAct(d,t){
@@ -295,7 +321,7 @@ async function gmAct(d,t){
  if(a==="start"){const s=suRead();
   const seats=[];for(let i=0;i<s.nh;i++)seats.push({human:true,name:s.rows[i].name.trim(),email:s.rows[i].email.trim()});for(let i=0;i<s.na;i++)seats.push({human:false});
   if(seats.length<2||seats.length>8)return mpMsg("Choose 2 to 8 princes in all.",1);
-  try{localStorage.setItem("kodRoster2",JSON.stringify(s))}catch(e){}GMX.su=null;newGame({seats,nx:s.nx,ny:s.ny});G.got={};GMX.mail=null;GMX.msgs=[];save();if(s.online!==false&&OL.on){try{await olCreate()}catch(er){GMX.msgs=[{t:"The online game could not be set up: "+er.message+" The game will run by email instead.",bad:1}]}}renderAll()}
+  try{localStorage.setItem("kodRoster2",JSON.stringify(s))}catch(e){}GMX.su=null;newGame({seats,nx:s.nx,ny:s.ny});G.got={};GMX.mail=null;GMX.msgs=[];save();if(s.online!==false&&OL.on){try{await olCreate(s.dl)}catch(er){GMX.msgs=[{t:"The online game could not be set up: "+er.message+" The game will run by email instead.",bad:1}]}}renderAll()}
  else if(a==="mail"){GMX.link=$("#glink").value.trim()||GMX.link;try{localStorage.setItem("kodLink",GMX.link)}catch(e){}
   t.textContent="Building…";G.sent={};GMX.mail=await Promise.all(humanSeats().map(s=>mailFor(s,GMX.link)));renderGM()}
  else if(a==="cpall"){copyText(GMX.mail.map(m=>`===== To: ${m.to||"(no email)"} =====\nSubject: ${m.subject}\n\n${m.body}`).join("\n\n"),t)}
@@ -305,7 +331,7 @@ async function gmAct(d,t){
   GMX.msgs=[msg];renderGM()}
  else if(a==="resolve"){const miss=humanSeats().filter(s=>!(G.got||{})[s]&&!G.players[s].elim);
   if(miss.length&&!GMX.confirm){GMX.confirm=true;return renderGM()}
-  GMX.confirm=false;resolveTurn();G.got={};G.sent={};GMX.mail=null;GMX.msgs=[{t:`Turn ${G.turn-1} resolved. Prepare the mail for turn ${G.turn}.`}];if(G.ol){G.ol.at={};try{await olPublish();GMX.msgs=[{t:`Turn ${G.turn-1} resolved. Turn ${G.turn} is published; players see it when they open their links.`}]}catch(er){GMX.msgs=[{t:`Turn resolved, but publishing failed: ${er.message} Press "Publish this turn again".`,bad:1}]}}save();renderGM()}
+  GMX.confirm=false;if(G.ol){await olResolve("the Game Master resolved it");return}resolveTurn();G.got={};G.sent={};GMX.mail=null;GMX.msgs=[{t:`Turn ${G.turn-1} resolved. Prepare the mail for turn ${G.turn}.`}];if(G.ol){G.ol.at={};try{await olPublish();GMX.msgs=[{t:`Turn ${G.turn-1} resolved. Turn ${G.turn} is published; players see it when they open their links.`}]}catch(er){GMX.msgs=[{t:`Turn resolved, but publishing failed: ${er.message} Press "Publish this turn again".`,bad:1}]}}save();renderGM()}
  else if(a==="end"){if(GMX.endc){G=null;try{localStorage.removeItem("kodGM")}catch(e){}GMX.endc=false;renderAll()}else{GMX.endc=true;t.textContent="Click again to delete this multiplayer game"}}}
 document.addEventListener("click",async e=>{const t=e.target.closest("[data-mp]");if(!t)return;const d=t.dataset,a=d.mp;
  try{

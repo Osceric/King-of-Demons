@@ -931,3 +931,9 @@ Domination sword tilted 45 degrees clockwise (tip toward the upper right) and dr
 - GitHub Pages redirect is on: HOME in 01-shell.html is https://king-of-demons.siblog.workers.dev .
 - Maintenance > Game results has a "Send a test result" button (posts a labeled TEST record) to prove the collection path.
 - Cloudflare address is now https://king-of-demons.siblog.workers.dev (account subdomain renamed from dennis-dillman); HOME updated.
+
+## Online games resolve themselves (2026-11-22)
+- The Game Master's page (08-multiplayer.js, olTick every 20 s, also on open) resolves a turn when every living human prince has sent orders (checkbox to turn that off), or when the deadline passes. Anyone without orders is played by an NPC (aiPlan on their seat, `autoNote` makes the report say so). The manual Resolve button does the same.
+- Deadline: one clock time every n days (setup card and GM card). Next deadline = that time of day at least n days (minus 12 h slack) after the resolve. Stored in G.ol.dl / G.ol.due; players see it via the view's `due`.
+- The GM page must stay open; the GM card says so. Reopening resolves any overdue turn at once. Server-side resolving is deferred (option 3).
+- Tested end to end locally (/tmp/w/oltest/t9.js): all-in resolve, deadline resolve with NPC notice, next-deadline samples.

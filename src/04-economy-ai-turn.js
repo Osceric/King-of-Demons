@@ -100,6 +100,7 @@ function resolveTurn(){
  for(const h of G.hordes){h.t={fights:[]};h.t.cmd=clone(h.cmd)}
  for(const p of G.players){p.rank0=p.rank;p.pendS=null;p.scryR=0;if(p.human)p.echoP=[];if(p.elim){p.princely=[];p.shadowCmd=null}}
  for(const p of G.players)if(!p.human&&!p.elim)aiPlan(p.id);
+ for(const s of HS){const P=G.players[s];if(P.autoNote){P.autoNote=false;ev(s,{sev:"info",pri:0,big:true,text:"Your orders did not arrive before the deadline, so an NPC commander played this turn for you."})}}
  /* 1. summon spending */
  for(const P of G.players){
   const tier=effTier(P.id);if(P.shadowCmd&&P.shadowCmd.type==="SUMMON")P.shadowCmd.type="SSUMMON";/* SHADOW SUMMON (older orders called it SUMMON) */
