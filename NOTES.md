@@ -985,3 +985,14 @@ Open questions when this is picked up: is paying $5/month acceptable if the free
 ## v2.105 (2026-11-22)
 - The Multiplayer button is now **Game Menu** (always visible). It holds New solo game, Join, Create as Game Master (multiplayer cards only on the Test page, #mp, the server site, or in a multiplayer mode), plus a Save and load card: Make my save code, Restore a saved game, and (server only) Save or load your game online.
 - The Save code and Result code sections were removed from the Standing tab, and the Result code button from the game-over screen. Reading a result code by hand moved to Maintenance (Test only). Result records still go to the server automatically on the Cloudflare site.
+
+## Spaceward Ho! clones on GitHub (researched 2026-11-22)
+The earlier findings were lost in a context compaction; this is the re-done research. Licenses are as shown on each repo page; confirm the LICENSE file before copying any code.
+
+| Repo | Stack | License | State |
+|---|---|---|---|
+| **db0x/Ho** (https://github.com/db0x/Ho) | Node.js 22+, browser client, only dependency `ws`; folders client/server/shared/test/doc | **MIT** (screenshots too) | 105 commits, CI + tests, README says "Built with Claude Code". Up to 16 players, simultaneous turns, 4-letter join code, AI personalities, fighters + capital ships, "classic Ho!!" mode, alliances, flat/spiral maps, mobile UI. |
+| Mr-Twave/Open_Spaceward_Ho- (https://github.com/Mr-Twave/Open_Spaceward_Ho-) | C++ / CMake | Apache-2.0 | 25 commits, "code dump", mostly a planned layout; only src/, LICENSE, README. Unfinished. |
+| melissa-anholm/OpenHo- (https://github.com/melissa-anholm/OpenHo-) | C/C++ / CMake, native Mac | none visible | 298 commits, planning/audit docs, still in development. Not reusable without a license. |
+
+Only db0x/Ho is both MIT and a working browser game. Rules for reuse: keep its copyright notice with any copied code; do not use the Spaceward Ho! name, art or sounds (Delta Tao's trademark/copyright, https://www.deltatao.com/ho/); use our own name and art.
