@@ -22,6 +22,7 @@ Project: King of Demons (KoD), a single-page HTML play-by-mail demon-prince stra
 - A 30-game AI smoke test (`q55.js`) after anything touching the engine or AI.
 
 ## Style and conduct
+- **Nothing on screen reorders itself** (Dennis, 2026-11-24, from Space Scrum). A list, row, button or card stays where the player last saw it: no sorting or re-ranking when a value or count changes, new items go at the end of their group, and a removed item leaves its place visible ("removed, Undo") rather than shifting the rows below it. The player aims at a position, so a moved row sends the click to the wrong thing. A Space Scrum player built 30 colony ships instead of 30 satellites after a list reordered itself (about $1,300 lost). Where an order spends resources, also confirm big ones (Space Scrum asks about any build line over 4 ships, naming the type, the design name and the cost).
 - Be honest about unknown causes. Correct earlier misstatements promptly.
 - RULE: do not use the term "league" anywhere (game text, code, comments, notes or documentation) until a league feature is added. Say "multiplayer game" (MPG).
 - Call the computer-run princes "NPC princes" (in UI text and in conversation), not "AI players" or "AI princes": they run on an algorithm, not AI. Code comments and old NOTES entries may still say AI.
