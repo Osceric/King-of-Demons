@@ -999,3 +999,6 @@ Only db0x/Ho is both MIT and a working browser game. Rules for reuse: keep its c
 
 ## GitHub Pages (2026-11-24)
 - The Siberian Logic dashboard lives in its own repo, Osceric/SibLog (https://osceric.github.io/SibLog/). This repo's Pages setup is back to publishing the repo root, so the old github.io address serves the game's redirect to Cloudflare again.
+
+## v2.106 (2026-11-24)
+- GitHub Pages redirect (Dennis: both games should send visitors to the Siberian Logic dashboard): a github.io visitor with no game in this browser now goes to the dashboard, https://osceric.github.io/SibLog/ (`DASH` in `src/01-shell.html`). A link that carries a game code (a query string or a hash) still goes straight to the Cloudflare game (`HOME`), so old seat links keep working. A browser that already holds a game here still gets the banner pointing at the Cloudflare game, not the dashboard.
