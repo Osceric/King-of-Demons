@@ -996,7 +996,3 @@ The earlier findings were lost in a context compaction; this is the re-done rese
 | melissa-anholm/OpenHo- (https://github.com/melissa-anholm/OpenHo-) | C/C++ / CMake, native Mac | none visible | 298 commits, planning/audit docs, still in development. Not reusable without a license. |
 
 Only db0x/Ho is both MIT and a working browser game. Rules for reuse: keep its copyright notice with any copied code; do not use the Spaceward Ho! name, art or sounds (Delta Tao's trademark/copyright, https://www.deltatao.com/ho/); use our own name and art.
-
-## GitHub Pages is now the Siberian Logic dashboard (2026-11-24)
-- Dennis asked for GitHub Pages to be a simple landing page for the business entity "Siberian Logic" (name for now): one link and a few descriptive sentences each for KoD (https://king-of-demons.siblog.workers.dev) and Space Scrum (https://spacescrum.siblog.workers.dev).
-- The page is `site/index.html`; `.github/workflows/pages.yml` now publishes the `site` folder instead of the repo root. The game (`index.html` at the root, the `HOME` redirect in `src/01-shell.html`) is unchanged and still deploys to Cloudflare from `server/`. The old github.io game address no longer serves the game; players use the Cloudflare address.
