@@ -1002,3 +1002,6 @@ Only db0x/Ho is both MIT and a working browser game. Rules for reuse: keep its c
 
 ## v2.106 (2026-11-24)
 - GitHub Pages redirect (Dennis: both games should send visitors to the Siberian Logic dashboard): a github.io visitor with no game in this browser now goes to the dashboard, https://osceric.github.io/SibLog/ (`DASH` in `src/01-shell.html`). A link that carries a game code (a query string or a hash) still goes straight to the Cloudflare game (`HOME`), so old seat links keep working. A browser that already holds a game here still gets the banner pointing at the Cloudflare game, not the dashboard.
+
+## v2.107 (2026-11-24)
+- Dennis: force the old GitHub Pages address to the new address in every case. The "browser already holds a game" exception is gone: every github.io visit goes to the dashboard, or to the Cloudflare game when the link carries a game code. (The banner code in `08-multiplayer.js` keyed on `window.KOD_MOVED` is now unused.) A game saved only in a browser on the old address cannot be reached from there any more; it would need its save code exported first.

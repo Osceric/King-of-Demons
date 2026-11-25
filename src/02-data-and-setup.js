@@ -35,7 +35,7 @@ const CLS={F:"Fast",H:"Heavy"};
 const SHOW_PDF=false;
 /* The Test copy of the game is published with this set to true, which shows the Game Menu button. */
 const TEST_BUILD=false;
-const GAME_VERSION="2.106";const MIN_VER="2.0";/* saved games and turn codes from older versions (1.81 and earlier carry no stamp) are no longer supported */
+const GAME_VERSION="2.107";const MIN_VER="2.0";/* saved games and turn codes from older versions (1.81 and earlier carry no stamp) are no longer supported */
 /* prince colors: you are always color 1 (green); the other 11 palette colors are dealt to the rival princes at random, fixed for the life of a game by its seed */
 const PAL=["#8cc276","#4db6c9","#a98be0","#e8782e","#d4688f","#e0c34a","#f7f2e4","#a8342e","#2d55b0","#2e8b4f","#b9d84a","#9a6a4a"];
 function mkPal(n,seed){let x=((+seed||1)*2654435761+12345)>>>0;const r=()=>(x=(Math.imul(x,1664525)+1013904223)>>>0)/4294967296,a=[1,2,3,4,5,6,7,8,9,10,11];for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return[0].concat(Array.from({length:Math.max(0,n-1)},(_,i)=>a[i%11]))}
