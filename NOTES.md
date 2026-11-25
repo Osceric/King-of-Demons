@@ -996,3 +996,6 @@ The earlier findings were lost in a context compaction; this is the re-done rese
 | melissa-anholm/OpenHo- (https://github.com/melissa-anholm/OpenHo-) | C/C++ / CMake, native Mac | none visible | 298 commits, planning/audit docs, still in development. Not reusable without a license. |
 
 Only db0x/Ho is both MIT and a working browser game. Rules for reuse: keep its copyright notice with any copied code; do not use the Spaceward Ho! name, art or sounds (Delta Tao's trademark/copyright, https://www.deltatao.com/ho/); use our own name and art.
+
+## GitHub Pages (2026-11-24)
+- The Siberian Logic dashboard lives in its own repo, Osceric/SibLog (https://osceric.github.io/SibLog/). This repo's Pages setup is back to publishing the repo root, so the old github.io address serves the game's redirect to Cloudflare again.
