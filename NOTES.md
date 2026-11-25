@@ -17,6 +17,7 @@ Project: King of Demons (KoD), a single-page HTML play-by-mail demon-prince stra
 - Do not paste artifact links unless asked. After publishing, one sentence saying what it is.
 
 ## Testing
+- Syntax guard (Dennis, 2026-11-24; no game version bump because the game itself is unchanged): `node build.js` now parses every inline script before writing `index.html` and stops with "BUILD BROKEN" if one does not parse, leaving the last good page in place. `node syntax.test.js` re-checks the built page (expects `"bad":[]`). Added after Space Scrum shipped a page with one stray character that blanked the whole game.
 - ENG = engine test (`node t2.js`, expects `"bad": []`). BTN = button test (`node pwbtn.js`, expects `[]`). Report as "ENG and BTN pass".
 - Rebuild the engine file before ENG: `(echo '"use strict";'; cat src/02 03 04 05 055 056) > engine.js`.
 - A 30-game AI smoke test (`q55.js`) after anything touching the engine or AI.
